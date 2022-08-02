@@ -16,6 +16,7 @@ def model_select(cfg):
     seghead_kwargs = dict(cfg.MODEL.SEGHEAD)
 
     archs = dict(unet=SaneUnet, ssl=SSL)
+
     seg = partial(archs[cfg.MODEL.ARCH], encoder_cfg=enc_kwargs, decoder_cfg=dec_kwargs, seg_cfg=seghead_kwargs)
     return seg
 
@@ -102,18 +103,10 @@ class SaneUnet(nn.Module):
         x = batch['xb']
 
         features = self.encoder(x)
-        # cls = self.cls_head(features[-1])
-        x = self.pool(features[-1])
-        x = self.flatten(x)
-        x = self.dropout(x)
-        cls = self.linear(x)
+        cls = self.cls_head(features[-1])
 
         xx = self.decoder(*features)
-
         last_feat = xx[-1]
-        x = self.pool2(x)
-        # print(x.shape, last_feat.shape)
-        # last_feat = last_feat * x.unsqueeze(-1).unsqueeze(-1)
         masks = self.seg_head(last_feat)
 
         return dict(yb=masks, cls=cls)

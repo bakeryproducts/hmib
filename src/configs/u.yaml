@@ -64,7 +64,7 @@ AUGS:
       - {m : sh.augmentation.ToTensor,}
 
 MODEL:
-  ARCH: 'ssl'
+  ARCH: 'unet'
   INIT_MODEL: ''
   ENCODER:
     model_name: 'resnet34'
@@ -142,9 +142,10 @@ OPTIMIZER:
   LRS: [0.00001, 0.00025, 0.0001, 1]
   # LRS: [0.000001, 0.00006, 0.00001, 0]
   
-  HEAD_LR:
+  FINE_LR:
     - name: 'seg_head'
-      scale: 2
+      group_params:
+        lr_scale: 2
 
   OPT:
     _target_: torch.optim.AdamW
