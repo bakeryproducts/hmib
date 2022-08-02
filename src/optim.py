@@ -56,7 +56,7 @@ def build_optim(cfg, model, init_fn):
         options = []
         for group in cfg.OPTIMIZER.FINE_LR:
             # d  == {'name': 'seg_head', group_params: {'lr_scale': 3, ...}}
-            goptions = group['group_options']
+            goptions = dict(group['group_options'])
             gname = group['name']
             goptions["params"] = groups[gname]
             options.append(goptions)
