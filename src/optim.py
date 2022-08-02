@@ -43,12 +43,12 @@ def build_optim(cfg, model, init_fn):
         #  HEAD_LR:
         #    - name: 'segmentation_head'
 
-        group_names = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.HEAD_LR])}
+        group_names = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.FINE_LR])}
         groups = defaultdict(list)
         for name, param in model.named_parameters():
-            for k in kk:
-                if k in name:
-                    groups[k].append(param)
+            for gname in group_names:
+                if gname in name:
+                    groups[gname].append(param)
                     break
             else:
                 groups['rest'].append(param)
