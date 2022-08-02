@@ -55,34 +55,41 @@ class DiceLoss(nn.Module):
 
 def loss_seg(pred, target, loss, cfg, reduction='mean'):
     assert reduction == 'mean'
-    # yb = target['yb']
-    # pr = pred['cls']
-    # gt = target['cls']
-    # cls_l = loss['cls'](pr, gt)
-    cls_l = None
 
-    # pr = pred['yb']
-    # gt = target['yb']
-    # segd_l = loss['seg_dice'](pr, gt)
-    segd_l = None
-    # sege_l = loss['seg_ce'](pr, gt)
-    sege_l = None
-    # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
-    reg_l = None
+    if cfg.MODEL.ARCH != 'ssl':
+        # yb = target['yb']
+        # pr = pred['cls']
+        # gt = target['cls']
+        # cls_l = loss['cls'](pr, gt)
+        cls_l = None
 
-    # SSL
-    patch_size = 4
-    in_chans = 3
-    x_rec = pred['yb']
-    x = target['xb']
-    mask = target['mask']
-    mask = mask.repeat_interleave(patch_size, 1).repeat_interleave(patch_size, 2).unsqueeze(1).contiguous()
-    loss_recon = F.l1_loss(x, x_rec, reduction='none')
-    # loss_recon = F.mse_loss(x_rec, x, reduction='none')
-    # loss_recon = F.l2_loss(x, x_rec, reduction='none')
-    # print(loss_recon.shape, mask.shape, x.shape, x_rec.shape)
-    ssl_l = (loss_recon * mask).sum() / (mask.sum() + 1e-5) / in_chans
-    # ssl_l = loss_recon.mean()
+        pr = pred['yb']
+        gt = target['yb']
+        segd_l = loss['seg_dice'](pr, gt)
+        # segd_l = None
+        sege_l = loss['seg_ce'](pr, gt)
+        # sege_l = None
+        # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
+        reg_l = None
+        ssl_l = None
+    else:
+        # SSL MODE
+        y = pred['yb'] # x_rec if ssl
+        x = target['xb']
+        mask = target['mask']
+        patch_size = 4
+        in_chans = 3
+        mask = mask.repeat_interleave(patch_size, 1).repeat_interleave(patch_size, 2).unsqueeze(1).contiguous()
+        loss_recon = F.l1_loss(x, y, reduction='none')
+        # loss_recon = F.mse_loss(x_rec, x, reduction='none')
+        # loss_recon = F.l2_loss(x, x_rec, reduction='none')
+        # print(loss_recon.shape, mask.shape, x.shape, x_rec.shape)
+        ssl_l = (loss_recon * mask).sum() / (mask.sum() + 1e-5) / in_chans
+        # ssl_l = loss_recon.mean()
+        sege_l = None
+        segd_l = None
+        reg_l = None
+        cls_l = None
 
 
     return dict(seg_dice=segd_l, seg_ce=sege_l, reg=reg_l, cls=cls_l, ssl=ssl_l)

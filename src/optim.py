@@ -65,27 +65,8 @@ def build_optim(cfg, model, init_fn):
 
 
 
-
-
-        kk = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.HEAD_LR])}
-        gr = defaultdict(list)
-        rest = []
-        params = []
-        for name, param in model.named_parameters():
-            for k in kk:
-                if k in name:
-                    gr[k].append(param)
-                    break
-            else:
-                rest.append(param)
-        params = []
-        for k, v in gr.items():
-            group_params = cfg.OPTIMIZER.HEAD_LR[]
-        params = [{'params':ps} for ps in gr.values()]
-        params.append({'params':rest})
         optimizer = hydra.utils.instantiate(cfg.OPTIMIZER.OPT, lr=lr)
-        optimizer = optimizer(params=params)
-        optimizer.GROUP_NAMES = kk
+        optimizer = optimizer(params=options)
 
     if cfg.MODEL.INIT_MODEL:
         #init_fn(optimizer)

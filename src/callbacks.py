@@ -228,26 +228,6 @@ class FrozenEncoderCB(sh.callbacks.Callback):
                 self.enc_frozen = False
 
 
-class LrCB(sh.callbacks.Callback):
-    def __init__(self, cfg, writer, logger=None):
-        sh.utils.file_op.store_attr(self, locals())
-
-    @sh.utils.call.on_train
-    def before_epoch(self):
-        for i in range(len(self.L.opt.param_groups)):
-            self.L.opt.param_groups[i]['lr'] = self.L.lr
-
-        for lr_cfg in self.cfg.FEATURES.HEAD_LR:
-            head_group_id = self.L.opt.GROUP_NAMES[lr_cfg.name]
-            self.L.opt.param_groups[head_group_id]['lr'] *= float(lr_cfg.scale)
-    # def after_epoch(self):
-    #     for i in range(len(self.L.opt.param_groups)):
-    #         lr = self.L.opt.param_groups[i]['lr']
-    #         d = {v:k for k, v in self.L.opt.GROUP_NAMES.items()}
-    #         name = d.get(i, 'rest')
-    #         self.L.writer.add_scalar(f'lr/{name}', lr, self.L.n_epoch)
-
-
 class TBPredictionsCB(sh.callbacks.Callback):
     def __init__(self, cfg, writer, batch_read=lambda x: x, denorm=sh.utils.common.denorm, upscale=sh.utils.common.upscale, logger=None):
         sh.utils.file_op.store_attr(self, locals())
@@ -272,35 +252,12 @@ class TBPredictionsCB(sh.callbacks.Callback):
         # print(sh.utils.common.st(xb))
         # print(sh.utils.common.st(yb))
         # print(sh.utils.common.st(pr))
-        mask = batch['mask'][:self.num_images].cpu().float()
-        mask = mask.unsqueeze(1).repeat(1,3,1,1)
-        mask = self.upscale(mask, (xb.shape[2], xb.shape[3]))
-        yb = xb.clone()
-        yb[mask>0] = 0
-
-        # yb = yb.repeat(1,3,1,1)
-        # yb[:,2] = 0
-        # yb[:,1] = pr[:,0]
-
-        # pr = pr.repeat(1,3,1,1)
-
-        # xb = xb.repeat(1,3,1,1)
-        # xb = xb / xb.max()
-        # m = xb.view(xb.shape[0], -1).max(1)[0]
-        # m = m.view(-1,1,1,1)
-        # print(xb.shape, m.shape)
-        # xb = xb * .23 + .28#torch.tensor([.23]).view(-1, 1,1,1) + .31
-
-        # xb = xb * 60 + 160
-        # xb = (xb-xb.min()) / (xb.max() - xb.min())
-
-        # xb = xb / m
-        # yb = yb * .23 + .28#torch.tensor([.23]).view(-1, 1,1,1) + .31
-
-        # yb = yb * 60 + 160
-        # yb = (yb-yb.min()) / (yb.max() - yb.min())
-
-        # yb = yb / yb.max()
+        if self.cfg.MODEL.ARCH == 'ssl':
+            mask = batch['mask'][:self.num_images].cpu().float()
+            mask = mask.unsqueeze(1).repeat(1,3,1,1)
+            mask = self.upscale(mask, (xb.shape[2], xb.shape[3]))
+            yb = xb.clone()
+            yb[mask>0] = 0
 
         xb = self.upscale(xb, self.hw)
         yb = self.upscale(yb, self.hw)
@@ -313,18 +270,10 @@ class TBPredictionsCB(sh.callbacks.Callback):
         return r
 
     def process_write_predictions(self, training=False):
-        with torch.no_grad():
-            x = self.process_batch(training=training) # takes last batch that been used
+        diff = self.process_batch(training=training) # takes last batch that been used
         label = 'train predictions' if training else 'val_predictions'
-
-        diff = x#torch.hstack([x])
-        # print(sh.utils.common.st(diff.float()))
         diff = torchvision.utils.make_grid(diff, nrow=8, pad_value=4)
-        # print(sh.utils.common.st(diff.float()))
-        # print(diff.shape)
         diff = (diff * 255).numpy().astype(np.uint8)
-        # print(sh.utils.common.st(diff.float()))
-        # print(diff.shape, diff.max(), diff.min())
         self.writer.add_image(label+'diff', diff, self.L.n_epoch)
         self.writer.flush()
 

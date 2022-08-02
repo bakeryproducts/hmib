@@ -51,15 +51,16 @@ def prepare_batch(batch, cb, train):
 
     if cb.clamp is not None: xb.clamp_(-cb.clamp,cb.clamp)
 
-    mask = []
-    progress = cb.L.np_epoch
-    run_once(44, cb.log_debug, 'Progress ', progress)
-    for i in range(xb.shape[0]):
-        m = cb.mg(progress)
-        m = torch.from_numpy(m)
-        mask.append(m)
-    mask = torch.stack(mask,0)
-    mask = mask.cuda()
+    # mask = []
+    # progress = cb.L.np_epoch
+    # run_once(44, cb.log_debug, 'Progress ', progress)
+    # for i in range(xb.shape[0]):
+    #     m = cb.mg(progress)
+    #     m = torch.from_numpy(m)
+    #     mask.append(m)
+    # mask = torch.stack(mask,0)
+    # mask = mask.cuda()
+    mask = None
 
 
     batch['xb'] = xb
@@ -102,16 +103,6 @@ class TrainCB(_TrainCallback):
             if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
         except AttributeError as e:
             pass
-
-        for i in range(len(self.L.opt.param_groups)):
-            self.L.opt.param_groups[i]['lr'] = self.L.lr
-
-        for lr_cfg in self.cfg.FEATURES.HEAD_LR:
-            head_group_id = self.L.opt.GROUP_NAMES[lr_cfg.name]
-            self.L.opt.param_groups[head_group_id]['lr'] *= float(lr_cfg.scale)
-
-        # dynamic stride
-        # self.L.dls['TRAIN'].dataset.dataset.ds.ds.ds.stride = random.randint(1,3)
 
     def sched(self): return (self.L.n_epoch % 5) == 0
 
