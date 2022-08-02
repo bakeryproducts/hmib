@@ -1,0 +1,13 @@
+**/.ipynb*
+**/__py*
+input
+_src
+output
+losses
+submission*
+screenlog*
+multirun
+*.csv
+*.pth
+*.npy
+kaggle_upload

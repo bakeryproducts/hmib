@@ -1,0 +1,77 @@
+#!/usr/bin/python3
+
+import sys
+import shutil
+from pathlib import Path
+from loguru import logger
+from functools import partial
+
+config = {
+    "handlers": [
+        dict(sink=sys.stdout, format="<green>{time:MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",),
+        # {"sink": sys.stdout, "format": "{time} - {message}"},
+    ],
+}
+logger.configure(**config)
+
+import fire
+
+
+def deleter(p, debug=True):
+    if debug:
+        logger.debug(f"About to delete {p}! ")
+    else:
+        try:
+            shutil.rmtree(str(p))
+        except:
+            p.unlink()
+
+
+
+def cleanup(dst, force=False, doff=False, score=False):
+    dst = Path(dst)
+    logger.warning(f"CLEANUP AT {dst}")
+    cnt = 0
+    debug = not doff
+    delete = partial(deleter, debug=debug)
+
+    runs = list(dst.glob('*'))
+
+    for i, r in enumerate(runs):
+        # if debug: logger.debug(f"{i:3d}. {r}")
+        files = list(r.glob("*"))
+        if len(files) == 2 and force:
+            s1 = set([files[0].name, files[1].name])
+            s2 = set(['main.log', '.hydra'])
+            if s1 == s2:
+                logger.info(f"Folder {r} is DDP duplicate, removing")
+                delete(r)
+                cnt+=1
+                continue
+
+        split = [f for f in files if f.name.startswith('split_')]
+        if len(split) == 1:
+            split = split[0]
+            models = list((split / 'models').glob('*.pth'))
+            if len(models) == 0:
+                logger.info(f"Folder {r} contains zeros model weights, removing")
+                delete(r)
+                cnt+=1
+                continue
+            if score is not None:
+                for m in models:
+                    model_score = float(m.stem.split('_')[-1])
+                    if model_score > 1e-5 and model_score < 1-1e-5:
+                        # valid
+                        if model_score < score:
+                            logger.info(f"Model {m} has score {model_score}, removing")
+                            delete(m)
+
+
+
+    logger.warning(f"All done, {cnt} folders removed!")
+
+
+
+if __name__ == '__main__':
+    fire.Fire(cleanup)

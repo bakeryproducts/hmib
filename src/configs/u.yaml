@@ -1,0 +1,169 @@
+INPUTS: input
+OUTPUTS: output
+
+SPLIT: 0
+DATA:
+  root: 'preprocessed/png1024overlap/images/'
+  ann_root: 'preprocessed/png1024overlap/masks/'
+  img_loader: 'partial(data.Names, suffix=".png")'
+  ann_loader: 'partial(data.Names, suffix=".png")'
+  DALI: True
+  TRAIN:
+    DATASETS: ['train_${SPLIT}', ]
+    DATASET_ARGS:
+      rate: 4
+
+  VALID:
+    DATASETS: ['valid_${SPLIT}', ]
+    DATASET_ARGS:
+      rate: 1
+
+AUGS:
+  STD: [1]
+  MEAN: [0.]
+  TRAIN_RESIZE: [0]
+  VALID_RESIZE: [0]
+  MSR:
+    scale_up: 1.0
+    scale_down: 1.0
+  MIXUP:
+    PROB: .0
+  CUTMIX:
+    PROB: .0
+  FMIX:
+    ALPHA: 1
+    REPEAT: 1
+    PROB: .0
+
+  AUG_MULTIPLICITY: 1
+  # CROP: [384,384]
+  CROP: [192, 192]
+  VALCROP: [192,192]
+  # VALCROP: [768,768]
+  TRAIN:
+    AUGS:
+      - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
+      # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
+      # - {m : ParamCrop, args : '${AUGS.CROP}'}
+      # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
+      # - {m : albu.GridDistortion, kwargs : {'p': .3}}
+      - {m : albu.RandomRotate90, }
+      - {m : albu.HorizontalFlip, }
+      # - {m : albu.ChannelShuffle, args: [.5,]}
+      # - {m : albu.VerticalFlip, }
+      # - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .2}}
+      # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
+      # - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      # - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
+      # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
+
+      - {m : sh.augmentation.ToTensor,}
+  VALID:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+
+MODEL:
+  ARCH: 'ssl'
+  INIT_MODEL: ''
+  ENCODER:
+    model_name: 'resnet34'
+    in_chans: 3
+
+  DECODER:
+    base:
+      use_bottleneck: False
+    blocks:
+      - ch: 512
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="nearest")'
+      - ch: 256
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="nearest")'
+      - ch: 128
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="nearest")'
+      - ch: 64
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="nearest")'
+      - ch: 32
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="nearest")'
+    # all_stages:
+
+  SEGHEAD:
+    out_channels: 1
+    kernel_size: 1
+
+TRAIN:
+  BATCH_NUM_INSTANCES: 1
+  EMA: 0.0
+  AMP: True
+  GPUS: [0,1,2,3]
+  NUM_WORKERS: 3
+  SAVE_STEP: 50
+  SCALAR_STEP: 1
+  TB_STEP: 1
+  START_VAL: 0
+  EPOCH_COUNT: 400
+  BATCH_SIZE: 256
+  EARLY_EXIT: 30
+
+VALID:
+  BATCH_SIZE: 8
+
+LOSS:
+    - name: 'seg_dice'
+      weight: .8
+      LOSS:
+        _target_: segmentation_models_pytorch.losses.DiceLoss
+        mode: 'binary'
+        smooth: .0
+
+    - name: 'seg_ce'
+      weight: .2
+      LOSS:
+        # _target_: torch.nn.CrossEntropyLoss
+        _target_: torch.nn.BCEWithLogitsLoss
+        # _target_: segmentation_models_pytorch.losses.SoftCrossEntropyLoss
+        # smooth_factor: .0
+    - name: 'cls'
+      weight: .01
+      LOSS:
+        _target_: torch.nn.CrossEntropyLoss
+  
+
+FEATURES:
+  GRAD_CLIP: 10
+  CLAMP: 10
+  CLIP_MODE: 'value'
+  BATCH_ACCUMULATION_STEP: 1
+  SAM:
+    REDUCE: 1.
+    RHO: 0.
+
+
+OPTIMIZER:
+  LRS: [0.00001, 0.00025, 0.0001, 1]
+  # LRS: [0.000001, 0.00006, 0.00001, 0]
+  
+  HEAD_LR:
+    - name: 'seg_head'
+      scale: 2
+
+  OPT:
+    _target_: torch.optim.AdamW
+    # _target_: timm.optim.MADGRAD
+    _partial_: true
+    weight_decay: 0.1
+
+PARALLEL:
+  DDP: True
+
+hydra:
+    run:
+        dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${MODEL.ARCH}_${MODEL.ENCODER.model_name}
+
+defaults: 
+    - PARALLEL: _parallel
+    - TRAIN: _train
+    - VALID: _valid
+    - TEST: _test
+    - FEATURES.SAM: _sam
+    - AUGS.MIXUP: _mixup
+    - _self_
