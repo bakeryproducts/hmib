@@ -44,45 +44,28 @@ def build_optim(cfg, model, init_fn):
         #    - name: 'segmentation_head'
 
         group_names = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.HEAD_LR])}
-        gr = defaultdict(list)
-        rest = []
-        params = []
+        groups = defaultdict(list)
         for name, param in model.named_parameters():
             for k in kk:
                 if k in name:
-                    gr[k].append(param)
+                    groups[k].append(param)
                     break
             else:
-                rest.append(param)
-        params = []
+                groups['rest'].append(param)
+
+        options = []
         for group in cfg.OPTIMIZER.FINE_LR:
             # d  == {'name': 'seg_head', group_params: {'lr_scale': 3, ...}}
-            opt_params = group['group_params']
+            goptions = group['group_options']
             gname = group['name']
-            gparams = all_params['gname']
-            opt_params["params"] = gparams
-            params.append(opt_params)
+            goptions["params"] = groups[gname]
+            options.append(goptions)
 
 
 
 
+        options.append({'params':groups['rest']})
 
-        kk = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.HEAD_LR])}
-        gr = defaultdict(list)
-        rest = []
-        params = []
-        for name, param in model.named_parameters():
-            for k in kk:
-                if k in name:
-                    gr[k].append(param)
-                    break
-            else:
-                rest.append(param)
-        params = []
-        for k, v in gr.items():
-            group_params = cfg.OPTIMIZER.HEAD_LR[]
-        params = [{'params':ps} for ps in gr.values()]
-        params.append({'params':rest})
         optimizer = hydra.utils.instantiate(cfg.OPTIMIZER.OPT, lr=lr)
         optimizer = optimizer(params=params)
         optimizer.GROUP_NAMES = kk
