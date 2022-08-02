@@ -144,7 +144,7 @@ OPTIMIZER:
   
   FINE_LR:
     - name: 'seg_head'
-      group_params:
+      group_options:
         lr_scale: 2
 
   OPT:
