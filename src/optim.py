@@ -109,9 +109,9 @@ class LrCB(sh.callbacks.Callback):
             warmup_duration = .1
 
         scheds = [
-            [warmup_duration,        sh.schedulers.sched_cos(l0,l1)],
-            [main_dur,               sh.schedulers.sched_lin(l1,l1)],
-            [1 - warmup_duration,    sh.schedulers.sched_cos(l1,l2)],
+            [warmup_duration,                sh.schedulers.sched_cos(l0,l1)],
+            [main_dur,                       sh.schedulers.sched_lin(l1,l1)],
+            [1 - warmup_duration - main_dur, sh.schedulers.sched_cos(l1,l2)],
         ]
 
         sched = sh.schedulers.combine_scheds(scheds)
