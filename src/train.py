@@ -17,7 +17,7 @@ import optim
 import tv
 from logger import logger
 
-from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB, LrCB
+from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB
 
 
 
@@ -84,7 +84,7 @@ def init_master_cbs(cfg, track_cb, output_folder):
 
     checkpoint_cb = CheckpointCB(models_dir, logger=logger)
     train_timer_cb = sh.callbacks.TimerCB(mode_train=True, logger=logger)
-    lr_cb = LrCB(cfg, writer, logger=logger)
+    lr_cb = optim.LrCB(cfg, writer, logger=logger)
     master_cbs = [train_timer_cb, *tb_cbs, writer, checkpoint_cb, lr_cb]
     # master_cbs = [train_timer_cb, *tb_cbs, writer]
     return master_cbs
