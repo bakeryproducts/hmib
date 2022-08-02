@@ -84,8 +84,7 @@ def init_master_cbs(cfg, track_cb, output_folder):
 
     checkpoint_cb = CheckpointCB(models_dir, logger=logger)
     train_timer_cb = sh.callbacks.TimerCB(mode_train=True, logger=logger)
-    lr_cb = optim.LrCB(cfg, writer, logger=logger)
-    master_cbs = [train_timer_cb, *tb_cbs, writer, checkpoint_cb, lr_cb]
+    master_cbs = [train_timer_cb, *tb_cbs, writer, checkpoint_cb, ]
     # master_cbs = [train_timer_cb, *tb_cbs, writer]
     return master_cbs
 
@@ -130,9 +129,7 @@ def start_split(cfg, output_folder, datasets):
     init_path = cfg.MODEL.get("INIT_MODEL", '')
     INIT_MODEL_PATH = init_model_path(init_path, split_id=cfg.TRAIN.SPLIT_ID)
     model_select = partial(network.model_select, cfg)
-    # model = sh.model.build_model(cfg.MODEL.NAME, model_select, INIT_MODEL_PATH, partial(sh.utils.nn.load_state, k=['model_state', 'cls']))
     model = model_select()().cuda().train()
-
     logger.log("DEBUG", 'build model.')
 
     if cfg.TRAIN.EMA > 0.:
@@ -163,10 +160,10 @@ def start_split(cfg, output_folder, datasets):
     criterion = partial(_crit)
 
     track_cb = TrackResultsCB(logger=logger)
-    lrcb = optim.init_lrcb(cfg)
+    lr_cb = optim.LrCB(cfg, writer=None, logger=logger)
     score_cb = ScorerCB(logger=logger)
 
-    cbs = [batch_setup_cb, lrcb, train_cb, val_cb]
+    cbs = [batch_setup_cb, lr_cb, train_cb, val_cb]
     if 'UNFREEZE_SCHED' in cfg:
         d = OmegaConf.to_container(cfg.UNFREEZE_SCHED)
         fr_cb = FrozenEncoderCB(d, logger=logger)
