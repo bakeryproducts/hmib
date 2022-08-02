@@ -1,5 +1,22 @@
 # HM2
 
+# Usage
+
+data structure:
+ - input (all input data)
+    - hmib (original kgl data)
+    - preprocessed
+    - ...
+ - output (logs, models)
+ - src
+    - tv train-validation callbacks, main stuff
+    - train - fitter init, all callbacks init
+    - network - NN init, Unet, SSL, etc
+    - build_data - dataloaders
+    - data - datasets
+    - metrics - loss, metrics
+ - notebooks
+
 # TODO
 git
 
