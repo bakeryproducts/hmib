@@ -41,8 +41,8 @@ AUGS:
   CROP: [192, 192]
   # VALCROP: [192,192]
   # CROP: [384,384]
-  VALCROP: [384,384]
-  # VALCROP: [768,768]
+  # VALCROP: [384,384]
+  VALCROP: [512,512]
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
@@ -58,7 +58,7 @@ AUGS:
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
       - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
-      # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
+      - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
       - {m : sh.augmentation.ToTensor,}
   VALID:
@@ -70,7 +70,8 @@ MODEL:
   ARCH: 'unet' # 'ssl'
   INIT_MODEL: ''
   ENCODER:
-    model_name: 'resnet34'
+    # model_name: 'resnet34'
+    model_name: 'convnext_small'
     in_chans: 3
 
   DECODER:

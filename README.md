@@ -33,6 +33,8 @@ data structure:
 # TODO
 
 ## Basic
+- build scale regressor, do not rely on kaggle scales
+- dice per class
 - instance norm? domain shift! normalize stat
 - progressive ema momentum
 - boundary loss weight-in
@@ -60,6 +62,9 @@ data structure:
 - https://github.com/BMIRDS/deepslide - lung WSI dataset!
 - !!! overlapped, PAIRED dataset !!! https://www.nature.com/articles/s41598-018-37257-4.pdf
         https://zenodo.org/record/5137717
+- !!! paired domain-shift https://bci.grand-challenge.org/ https://github.com/bupt-ai-cz/BCI
+- domain-shift dataset ? https://imig.science/midog/the-challgenge/
+- a LOT of challenges https://grand-challenge.org/challenges/
 
 ## Labeling problems
  - pseudo?
