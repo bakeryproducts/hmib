@@ -17,6 +17,19 @@ data structure:
     - metrics - loss, metrics
  - notebooks
 
+
+## start
+
+`python3 -m torch.distributed.launch --use_env --nproc_per_node=4 src/main.py --config-name=u`
+
+
+## hydra start:
+
+4 consecutive runs, changing split param
+`python3 starter.py -m +SPLIT=0,1,2,3  +nproc=4`
+
+
+
 # TODO
 git
 
