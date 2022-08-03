@@ -63,6 +63,7 @@ data structure:
 
 ## Labeling problems
  - pseudo?
+ - lung mask -> band-like polygons?  terminal bronchiole? 
 
 ## Random
 
