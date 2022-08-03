@@ -31,12 +31,21 @@ data structure:
 
 
 # TODO
-git
 
-increasing momentum
-nonblocking cuda call
-memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
-normalize stat
+- progressive ema momentum
+- instance norm? domain shift! normalize stat
+- boundary loss weight-in
+- layer-wise LR decay
+- check if FINE_LR is working
+- trivial aug
+- repeated aug
+- finetuning with frequent val epoch, every N step -> inside train cb
 
-tmpfs
+## Labeling problems
+ - pseudo?
+
+- nonblocking cuda call
+- memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
+
+
 mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
