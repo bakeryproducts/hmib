@@ -38,9 +38,10 @@ AUGS:
     PROB: .0
 
   AUG_MULTIPLICITY: 1
-  # CROP: [384,384]
   CROP: [192, 192]
-  VALCROP: [192,192]
+  # VALCROP: [192,192]
+  # CROP: [384,384]
+  VALCROP: [384,384]
   # VALCROP: [768,768]
   TRAIN:
     AUGS:
@@ -53,10 +54,10 @@ AUGS:
       - {m : albu.HorizontalFlip, }
       # - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
-      # - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .2}}
+      - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .2}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      # - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
-      # - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
+      - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
       - {m : sh.augmentation.ToTensor,}
@@ -103,7 +104,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 400
-  BATCH_SIZE: 128
+  BATCH_SIZE: 64
   EARLY_EXIT: 30
 
 VALID:

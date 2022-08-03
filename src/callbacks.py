@@ -259,10 +259,10 @@ class TBPredictionsCB(sh.callbacks.Callback):
             yb[mask>0] = 0
 
         if self.cfg.MODEL.ARCH != 'ssl':
-            yb = yb.repeat(1,3,1,1)
-            # yb[:,2] = 0
-            # yb[:,1] = pr[:,0]
             pr = pr.sigmoid()
+            yb = yb.repeat(1,3,1,1)
+            yb[:,2] = 0
+            yb[:,1] = pr[:,0]
             pr = pr.repeat(1,3,1,1)
             xb = xb / xb.max()
             yb = yb / yb.max()
