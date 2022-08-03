@@ -32,8 +32,9 @@ data structure:
 
 # TODO
 
-- progressive ema momentum
+## Basic
 - instance norm? domain shift! normalize stat
+- progressive ema momentum
 - boundary loss weight-in
 - layer-wise LR decay
 - check if FINE_LR is working
@@ -43,11 +44,22 @@ data structure:
 - ema & swa combo?
 - proper regularization, stoch depth, dropouts
 - fix seg head, check for heavier heads, CBA -> Nxtimes
+- SAM
+- upernet
+- nfnets?
+- swin bb
 
-### Transformers
+## Transformers
 - segformer?
 - inject with class token
 - HiViT?
+
+## Shift
+- HUBMAP validation images for each class, can be without GT
+- SSL, mae
+- https://github.com/BMIRDS/deepslide - lung WSI dataset!
+- !!! overlapped, PAIRED dataset !!! https://www.nature.com/articles/s41598-018-37257-4.pdf
+        https://zenodo.org/record/5137717
 
 ## Labeling problems
  - pseudo?
