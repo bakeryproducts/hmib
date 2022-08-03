@@ -40,9 +40,19 @@ data structure:
 - trivial aug
 - repeated aug
 - finetuning with frequent val epoch, every N step -> inside train cb
+- ema & swa combo?
+- proper regularization, stoch depth, dropouts
+- fix seg head, check for heavier heads, CBA -> Nxtimes
+
+### Transformers
+- segformer?
+- inject with class token
+- HiViT?
 
 ## Labeling problems
  - pseudo?
+
+## Random
 
 - nonblocking cuda call
 - memory_used = torch.cuda.max_memory_allocated() / (1024.0 * 1024.0)
