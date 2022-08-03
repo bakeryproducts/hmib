@@ -1,3 +1,4 @@
+import cv2
 import json
 import random
 import numpy as np
@@ -171,6 +172,22 @@ class TiffImages:
         return i
 
 
+class PngImages:
+    def __init__(self, root, suffix=None):
+        self.root = Path(root)
+        self.suffix = suffix
+
+    def __call__(self, label):
+        path = self.root / label.fname
+        if self.suffix is not None:
+            path = path.with_suffix(self.suffix)
+        i = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+        assert i is not None, path
+        if len(i.shape) < 3:
+            i = np.expand_dims(i, -1)
+        return i
+
+
 class MaskImages:
     def __init__(self, root):
         self.root = Path(root)
@@ -289,7 +306,10 @@ class MainDataset:
         self.ds = Mult(ds, rate)
 
     def __len__(self): return len(self.ds)
-    def __getitem__(self, *args, **kwargs): return self.ds.__getitem__(*args, **kwargs)
+
+    def __getitem__(self, *args, **kwargs):
+        r = self.ds.__getitem__(*args, **kwargs)
+        return r
 
 
 

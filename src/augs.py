@@ -13,6 +13,7 @@ class AugDataset:
         self.dataset = dataset
         self.transforms = albu.Compose([]) if transforms is None else transforms
         self.train = train
+        self.aug = self._ssl_aug if cfg.MODEL.ARCH == 'ssl' else self._sup_aug
 
     def __getitem__(self, idx):
         item = self.dataset[idx]
@@ -23,7 +24,7 @@ class AugDataset:
         mult = self.cfg.AUGS.AUG_MULTIPLICITY if self.train else 1
 
         for i in range(mult):
-            aimage, amask = self._aug(image, mask, seed=0)
+            aimage, amask = self.aug(image, mask, seed=0)
             aug_images.append(aimage)
             aug_masks.append(amask)
             # print(aimage.shape, aimage.max(), aimage.dtype)
@@ -32,12 +33,12 @@ class AugDataset:
         item.update(aitem)
         return item
 
-    def __aug(self, image, mask, seed):
+    def _sup_aug(self, image, mask, seed):
         kwargs = dict(image=image, mask=mask, seed=seed)
         res = self.transforms(**kwargs)
         return res['image'], res['mask']
 
-    def _aug(self, image, mask, seed):
+    def _ssl_aug(self, image, mask, seed):
         kwargs = dict(image=image, seed=seed)
         res = self.transforms(**kwargs)
         return res['image'], mask

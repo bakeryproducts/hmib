@@ -20,13 +20,11 @@ def prepare_batch(batch, cb, train):
     xb = batch['xb'].float()
     yb = batch['yb'].float()
 
-
     run_once(0, cb.log_debug, 'After load, XB', sh.utils.common.st(xb))
     run_once(1, cb.log_debug, 'After load, YB', sh.utils.common.st(yb))
 
-
     xb, yb = xb.cuda(), yb.cuda()
-    yb = yb / 255.
+    # yb = yb / 255.
 
     xb = batch_quantile(xb, q=.005)
     run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
@@ -179,10 +177,10 @@ class ValCB(sh.callbacks.Callback):
 
     @sh.utils.call.on_validation
     def val_step(self):
-        # if self.sched():
-        #     self.run_valid()
-        # else:
-        raise sh.learner.CancelEpochException
+        if self.sched() and self.cfg.MODEL.ARCH != 'ssl':
+            self.run_valid()
+        else:
+            raise sh.learner.CancelEpochException
 
     def run_valid(self):
         ema = self.L.model_ema is not None
@@ -196,18 +194,20 @@ class ValCB(sh.callbacks.Callback):
                 pred = model(batch)
                 self.L.pred = pred
 
-                # sega = pred['yb']
-                # sega = sega.sigmoid()
+                if self.cfg.MODEL.ARCH != 'ssl':
+                    sega = pred['yb']
+                    sega = sega.sigmoid()
 
-                # segb = batch['yb']
-                # dice = metrics.calc_score(sega, segb)
+                    segb = batch['yb']
+                    dice = metrics.calc_score(sega, segb)
+                else:
+                    dice = torch.zeros(1).cuda()
 
                 # pred_cls = pred['cls'].softmax(1)
                 # pred_cls = torch.max(pred_cls, 1)[1]
                 # gt_cls = batch['cls']
                 # acc = (pred_cls == gt_cls).float().mean()
                 # self.L.tracker_cb.set('cls_acc', acc)
-                dice = torch.zeros(1).cuda()
 
                 self.L.tracker_cb.set('ema_dice', dice)
                 # self.L.tracker_cb.set('val_score', dice)

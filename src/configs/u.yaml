@@ -1,17 +1,19 @@
 INPUTS: input
 OUTPUTS: output
 
-SPLIT: 0
+SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++SPLITS=3
 DATA:
   root: 'preprocessed/png1024overlap/images/'
   ann_root: 'preprocessed/png1024overlap/masks/'
-  img_loader: 'partial(data.Names, suffix=".png")'
-  ann_loader: 'partial(data.Names, suffix=".png")'
-  DALI: True
+  # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
+  # ann_loader: 'partial(data.Names, suffix=".png")'
+  img_loader: 'partial(data.PngImages, suffix=".png")'
+  ann_loader: 'partial(data.PngImages, suffix=".png")'
+  DALI: False
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      rate: 4
+      rate: 8 # make single epoch longer
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
@@ -19,7 +21,7 @@ DATA:
       rate: 1
 
 AUGS:
-  STD: [1]
+  STD: [1] # TODO: fix stats
   MEAN: [0.]
   TRAIN_RESIZE: [0]
   VALID_RESIZE: [0]
@@ -36,9 +38,9 @@ AUGS:
     PROB: .0
 
   AUG_MULTIPLICITY: 1
-  # CROP: [384,384]
-  CROP: [192, 192]
-  VALCROP: [192,192]
+  CROP: [384,384]
+  # CROP: [192, 192]
+  # VALCROP: [192,192]
   # VALCROP: [768,768]
   TRAIN:
     AUGS:
@@ -64,7 +66,7 @@ AUGS:
       - {m : sh.augmentation.ToTensor,}
 
 MODEL:
-  ARCH: 'unet'
+  ARCH: 'unet' # 'ssl'
   INIT_MODEL: ''
   ENCODER:
     model_name: 'resnet34'
@@ -92,7 +94,7 @@ MODEL:
 
 TRAIN:
   BATCH_NUM_INSTANCES: 1
-  EMA: 0.0
+  EMA: 0.99
   AMP: True
   GPUS: [0,1,2,3]
   NUM_WORKERS: 3
@@ -101,7 +103,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 400
-  BATCH_SIZE: 256
+  BATCH_SIZE: 128
   EARLY_EXIT: 30
 
 VALID:

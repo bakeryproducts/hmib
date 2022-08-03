@@ -93,7 +93,7 @@ class NativeScaler:
 class LrCB(sh.callbacks.Callback):
     def __init__(self, cfg, writer, logger=None):
         sh.utils.file_op.store_attr(self, locals())
-        sched = self.init_sched(cfg)
+        self.sched = self.init_sched(cfg)
 
     def init_sched(self, cfg):
         _base_scale = 64 / 3

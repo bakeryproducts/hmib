@@ -231,7 +231,7 @@ class FrozenEncoderCB(sh.callbacks.Callback):
 class TBPredictionsCB(sh.callbacks.Callback):
     def __init__(self, cfg, writer, batch_read=lambda x: x, denorm=sh.utils.common.denorm, upscale=sh.utils.common.upscale, logger=None):
         sh.utils.file_op.store_attr(self, locals())
-        self.num_images, self.hw = 16, (256*3,256)
+        self.num_images, self.hw = 8, (256*3,256)
 
     def before_fit(self):
         self.mean, self.std = self.cfg.AUGS.MEAN, self.cfg.AUGS.STD
@@ -247,7 +247,6 @@ class TBPredictionsCB(sh.callbacks.Callback):
         yb = yb[:self.num_images].cpu().float()
         pr = pr[:self.num_images].cpu().float()
 
-        # pr = pr.sigmoid()
 
         # print(sh.utils.common.st(xb))
         # print(sh.utils.common.st(yb))
@@ -259,9 +258,19 @@ class TBPredictionsCB(sh.callbacks.Callback):
             yb = xb.clone()
             yb[mask>0] = 0
 
+        if self.cfg.MODEL.ARCH != 'ssl':
+            yb = yb.repeat(1,3,1,1)
+            # yb[:,2] = 0
+            # yb[:,1] = pr[:,0]
+            pr = pr.sigmoid()
+            pr = pr.repeat(1,3,1,1)
+            xb = xb / xb.max()
+            yb = yb / yb.max()
+
         xb = self.upscale(xb, self.hw)
         yb = self.upscale(yb, self.hw)
         pr = self.upscale(pr, self.hw)
+
 
         # pr = pr.sigmoid()
         b,c,h,w = xb.shape
@@ -282,10 +291,10 @@ class TBPredictionsCB(sh.callbacks.Callback):
             if self.L.n_epoch % self.cfg.TRAIN.TB_STEP == 0:
                 self.process_write_predictions(training=True)
         else:
-            try:
-                self.process_write_predictions(training=False)
-            except Exception as e:
-                self.log_error('TB error', e)
+            # try:
+            self.process_write_predictions(training=False)
+            # except Exception as e:
+            #     self.log_error('TB error', e)
             # pred = self.L.pred['seg'].cpu().float().flatten()
             # self.L.writer.add_histogram('predicts/val', pred, self.L.n_epoch)
 
