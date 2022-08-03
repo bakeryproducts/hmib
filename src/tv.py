@@ -10,7 +10,7 @@ from tools_tv import run_once, norm_2d, batch_quantile
 
 from mixup import MSR, MixUpAug
 from fmix import FMixAug, AmpAug
-from data import MaskGenerator
+from data import MaskGenerator, ORGANS
 
 import shallow as sh
 
@@ -64,7 +64,7 @@ def prepare_batch(batch, cb, train):
     batch['xb'] = xb
     batch['yb'] = yb
     batch['mask'] = mask
-    cls = 0#batch['cls'].cuda()
+    cls = batch['cls'].cuda()
     return dict(xb=xb, yb=yb, cls=cls, mask=mask)
 
 
@@ -174,6 +174,9 @@ class ValCB(sh.callbacks.Callback):
         run_once.__wrapped__._clear()
         # if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
 
+    @sh.utils.call.on_validation
+    def after_epoch(self):
+        collect_map_score(self)
 
     @sh.utils.call.on_validation
     def val_step(self):
@@ -200,6 +203,14 @@ class ValCB(sh.callbacks.Callback):
 
                     segb = batch['yb']
                     dice = metrics.calc_score(sega, segb)
+
+                    # run_once(441, self.log_warning, 'dice', sh.utils.common.st(dice))
+                    # run_once(442, self.log_warning, 'classes', sh.utils.common.st(batch['cls'].float()))
+
+                    op = 'gather'
+                    self.L.tracker_cb.set('dices', dice.unsqueeze(0), operation=op)
+                    self.L.tracker_cb.set('classes', batch['cls'].float().unsqueeze(0), operation=op)
+
                 else:
                     dice = torch.zeros(1).cuda()
 
@@ -221,3 +232,22 @@ class ValCB(sh.callbacks.Callback):
                     loss = loss.mean()
                     if loss.isnan(): loss = torch.zeros(1).cuda()
                     self.L.tracker_cb.set(f'{k}_{prefix}_loss', loss)
+
+
+
+def collect_map_score(cb, ema=True, train=False):
+    cb.L.tracker_cb._collect_all()
+    dices = cb.L.tracker_cb.dices.cpu()
+    classes = cb.L.tracker_cb.classes.cpu()
+
+    dices = dices.view(-1, dices.shape[-1])
+    classes = classes.view(-1, classes.shape[-1])
+    ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
+
+    if cb.cfg.PARALLEL.IS_MASTER:
+        for i in range(5):
+            idxs = classes.long() == i
+            class_name = ORGANS_DECODE[i]
+            organ_dice_mean = dices[idxs].mean()
+            organ_dice_std = dices[idxs].std()
+            cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3}, std {organ_dice_std:<.3}')

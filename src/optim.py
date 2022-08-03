@@ -55,7 +55,7 @@ def build_optim(cfg, model, init_fn):
 
         options = []
         for group in cfg.OPTIMIZER.FINE_LR:
-            # d  == {'name': 'seg_head', group_params: {'lr_scale': 3, ...}}
+            # group  == {'name': 'seg_head', group_params: {'lr_scale': 3, ...}}
             goptions = dict(group['group_options'])
             gname = group['name']
             goptions["params"] = groups[gname]
@@ -127,9 +127,15 @@ class LrCB(sh.callbacks.Callback):
         self.L.lr = adj_lr
 
         for param_group in self.opt.param_groups:
+            # print(param_group.keys())
             if "lr_scale" in param_group:
+                # print(param_group["lr_scale"], adj_lr, len(param_group['params']))
+                # pp = param_group['params']
+                # for p in pp:
+                #     print(p.shape, p.sum())
                 param_group["lr"] = adj_lr * param_group["lr_scale"]
             else:
+                # print('no scale', adj_lr)
                 param_group["lr"] = adj_lr
 
     # def after_epoch(self):

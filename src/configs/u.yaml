@@ -106,7 +106,7 @@ TRAIN:
   START_VAL: 0
   EPOCH_COUNT: 100
   BATCH_SIZE: 64
-  EARLY_EXIT: 30
+  EARLY_EXIT: 10
 
 VALID:
   BATCH_SIZE: 8
@@ -143,13 +143,14 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.00001, 0.00025, 0.0001, 1]
+  LRS: [0.00001, 0.0002, 0.0001, 1]
+  # LRS: [0.00001, 0.00025, 0.0001, 1]
   # LRS: [0.000001, 0.00006, 0.00001, 0]
   
   FINE_LR:
     - name: 'seg_head'
       group_options:
-        lr_scale: 2
+        lr_scale: 1
 
   OPT:
     _target_: torch.optim.AdamW
