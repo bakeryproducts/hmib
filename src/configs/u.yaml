@@ -96,7 +96,6 @@ MODEL:
 
 TRAIN:
   BATCH_NUM_INSTANCES: 1
-  EMA: 0.99
   AMP: True
   GPUS: [0,1,2,3]
   NUM_WORKERS: 3
@@ -107,6 +106,13 @@ TRAIN:
   EPOCH_COUNT: 100
   BATCH_SIZE: 64
   EARLY_EXIT: 10
+  SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
+  EMA: 
+    # TODO: step 
+    ENABLE: True
+    start: 0.95
+    end: .99
+    type: 'linear'
 
 VALID:
   BATCH_SIZE: 8
@@ -167,7 +173,7 @@ hydra:
 
 defaults: 
     - PARALLEL: _parallel
-    - TRAIN: _train
+    # - TRAIN: _train
     - VALID: _valid
     - TEST: _test
     - FEATURES.SAM: _sam

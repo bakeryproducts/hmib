@@ -9,7 +9,7 @@ from shallow import configer as shc
 
 
 @dataclass
-class Train(shc.Train):
+class _train():
     START_VAL: int = 1
     BATCH_NUM_INSTANCES: int = 0
 
@@ -63,7 +63,7 @@ def cfg_init():
         shc._generate_node(group='TRANSFORMERS', name="_transformers", node_class=shc.Transformers),
         shc._generate_node(group='DATA', name="_data", node_class=shc.Data),
         shc._generate_node(group='PARALLEL', name="_parallel", node_class=shc.Parallel),
-        shc._generate_node(group='TRAIN', name="_train", node_class=Train),
+        shc._generate_node(group='TRAIN', name="_train", node_class=_train),
         shc._generate_node(group='VALID', name="_valid", node_class=shc.Valid),
         shc._generate_node(group='TEST', name="_test", node_class=shc.Test),
         shc._generate_node(group='FEATURES.SAM', name="_sam", node_class=_sam),

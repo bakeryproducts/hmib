@@ -13,6 +13,18 @@ import shallow as sh
 def default_zero_tensor(): return lambda: torch.tensor([0.])
 
 
+def get_ema_decay_cb(cfg):
+    # lrcb = sh.callbacks.ParamSchedulerCB('before_epoch', 'lr', sched)
+    all_scheds = dict(linear=sh.schedulers.sched_lin,
+                      cos=sh.schedulers.sched_cos,
+                      const=sh.schedulers.sched_const,
+                      exp=sh.schedulers.sched_exp,)
+
+    sched = all_scheds[cfg.TRAIN.EMA.type](cfg.TRAIN.EMA.start, cfg.TRAIN.EMA.end)
+    emacb = sh.callbacks.ParamSchedulerCB('before_epoch', 'ema_decay', sched)
+    return emacb
+
+
 class TrackerItem:
     def __init__(self, value, operation='reduce', **kwargs): sh.utils.file_op.store_attr(self, locals())
     def __repr__(self): return f'{self.value}'
@@ -81,7 +93,7 @@ class ScorerCB(sh.callbacks.Callback):
                         self.max_EMA_score = score
                     if self.chpt_cb is not None:
                         self.chpt_cb.do_saving(f'step_{suffix}_{round(score, 4)}', save_ema=suffix=='ema')
-                elif self.cfg.TRAIN.EMA > 0.:
+                elif self.cfg.TRAIN.EMA.ENABLE:
                     self.update_max_and_save(self.L.tracker_cb.ema_score, prefix='cmax', ema=True)
 
 
@@ -192,7 +204,7 @@ class EarlyExit(sh.callbacks.Callback):
             #suffix = 'ema' if self.cfg.TRAIN.EMA > 0 else 'val'
             # if self.cfg.TRAIN.EMA: self.log_info(f'\t EMA score: {self.score_cb.get_score(ema=True)};')
             # self.log_info(f'\t VAL score: {self.score_cb.get_score(ema=False)};')
-            if self.cfg.TRAIN.EMA: self.log_info(f'\t EMA score: {score};')
+            if self.cfg.TRAIN.EMA.ENABLE: self.log_info(f'\t EMA score: {score};')
             self.log_info(f'\t MAX score: {self.max_score}; \n\t Streak: {self.current_streak}')
 
         if self.cfg.PARALLEL.DDP: torch.distributed.all_reduce(self.exit_signal)

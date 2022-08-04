@@ -17,7 +17,7 @@ import optim
 import tv
 from logger import logger
 
-from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB
+from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB, get_ema_decay_cb
 
 
 
@@ -89,12 +89,11 @@ def init_master_cbs(cfg, track_cb, output_folder):
     return master_cbs
 
 
-def init_model_path(p, split_id=None):
+def init_model_path(p):
     if p:
         p = Path(p)
         if p.suffix == '.pth': return str(p)
-        elif split_id is not None:
-            p = p / ('split_' + split_id + '/models')
+        elif p.is_dir():
             p = sh.utils.nn.get_last_model_name(p)
             return str(p)
     return ''
@@ -127,13 +126,13 @@ def start_split(cfg, output_folder, datasets):
     logger.log("DEBUG", 'build dataloaders.')
 
     init_path = cfg.MODEL.get("INIT_MODEL", '')
-    INIT_MODEL_PATH = init_model_path(init_path, split_id=cfg.TRAIN.SPLIT_ID)
+    INIT_MODEL_PATH = init_model_path(init_path)
     model_select = partial(network.model_select, cfg)
     model = model_select()().cuda().train()
     logger.log("DEBUG", 'build model.')
 
-    if cfg.TRAIN.EMA > 0.:
-        model_ema = sh.utils.ema.ModelEmaV2(model, decay=cfg.TRAIN.EMA, copy=True).cuda()
+    if cfg.TRAIN.EMA.ENABLE:
+        model_ema = sh.utils.ema.ModelEmaV2(model, copy=True).cuda() # TODO: dynamic decay
         model_ema = model_ema.eval()
         for p in model_ema.parameters():
             p.requires_grad = False
@@ -162,8 +161,9 @@ def start_split(cfg, output_folder, datasets):
     track_cb = TrackResultsCB(logger=logger)
     lr_cb = optim.LrCB(cfg, writer=None, logger=logger)
     score_cb = ScorerCB(logger=logger)
+    ema_cb = get_ema_decay_cb(cfg)
 
-    cbs = [batch_setup_cb, lr_cb, train_cb, val_cb]
+    cbs = [batch_setup_cb, lr_cb, ema_cb, train_cb, val_cb]
     if 'UNFREEZE_SCHED' in cfg:
         d = OmegaConf.to_container(cfg.UNFREEZE_SCHED)
         fr_cb = FrozenEncoderCB(d, logger=logger)

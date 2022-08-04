@@ -112,7 +112,7 @@ class TrainCB(_TrainCallback):
 
     def train_step(self):
         self.supervised_train_step()
-        if self.cfg.TRAIN.EMA: self.L.model_ema.update(self.L.model, self.L.ema_decay)
+        if self.cfg.TRAIN.EMA.ENABLE: self.L.model_ema.update(self.L.model, self.L.ema_decay)
 
     def sam_reduce(self, batch, p=.2):
         new_l = int(batch['xb'].shape[0] * p)
@@ -164,7 +164,6 @@ class ValCB(sh.callbacks.Callback):
     def before_fit(self):
         self.cfg = self.L.kwargs['cfg']
         self.L.model_ema = self.model_ema
-        self.L.ema_decay = self.cfg.TRAIN.EMA
         self.loss_kwargs = {}
         self.clamp = self.cfg.FEATURES.CLAMP
         self.mg = MaskGenerator(input_size=192, mask_ratio=.5, model_patch_size=4)
@@ -254,7 +253,8 @@ def collect_map_score(cb, ema=True, train=False):
         for i in range(5):
             idxs = classes.long() == i
             class_name = ORGANS_DECODE[i]
-            organ_dice_mean = dices[idxs].mean()
-            organ_dice_std = dices[idxs].std()
-            cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3}, std {organ_dice_std:<.3}')
+            organ_dices = dices[idxs]
+            organ_dice_mean = organ_dices.mean()
+            organ_dice_std = organ_dices.std()
+            cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
             cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)
