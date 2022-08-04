@@ -26,11 +26,12 @@ def read_ann(p):
     return data
 
 
-def convert_ann(data):
+def convert_ann(data, fixer):
     uni = None
     for d in data:
-        p = Polygon(d)
-        p = p.buffer(0)
+        p = fixer(d)
+        if p is None:
+            continue
         if uni is None:
             uni = p
         else:
