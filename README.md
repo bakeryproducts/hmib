@@ -50,6 +50,7 @@ data structure:
 - upernet
 - nfnets?
 - swin bb
+- uptrain helps.
 
 ## Transformers
 - segformer?
