@@ -2,6 +2,7 @@ import random
 from collections import defaultdict
 
 import torch
+import torchvision.transforms as T
 
 import metrics
 from callbacks import _TrainCallback
@@ -11,6 +12,7 @@ from tools_tv import run_once, norm_2d, batch_quantile
 from mixup import MSR, MixUpAug
 from fmix import FMixAug, AmpAug
 from data import MaskGenerator, ORGANS
+
 
 import shallow as sh
 
@@ -30,6 +32,9 @@ def prepare_batch(batch, cb, train):
     run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
 
     if train:
+        # cc = xb.byte().chunk(16)
+        # xb = torch.vstack([cb.augmenter(c) for c in cc])
+        # xb = xb.float()
         # xb, yb = cb.mixup(xb, yb)
         xb, yb = cb.fmix(xb, yb)
     #     xb = cb.ampaug(xb)
@@ -39,9 +44,9 @@ def prepare_batch(batch, cb, train):
     run_once(3, cb.log_debug, 'After train aug, XB', sh.utils.common.st(xb))
     run_once(35, cb.log_debug, 'After train aug, YB', sh.utils.common.st(yb))
 
-    # xb, mean, std = norm_2d(xb, mode='batch', )#mean=cb.cfg.AUGS.MEAN, std=cb.cfg.AUGS.STD)
+    xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.MEAN, std=cb.cfg.AUGS.STD)
     # xb = (xb-xb.min()) / (xb.max() - xb.min())
-    xb = xb / 255.
+    # xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
 
     # if train:
@@ -86,6 +91,7 @@ class TrainCB(_TrainCallback):
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.hdr = HDRAug(max_shift=3, p=.1)
         # self.ampaug = AmpAug(scale=20, p=.2)
+        self.augmenter = T.TrivialAugmentWide()
         self.mg = MaskGenerator(input_size=192, mask_ratio=.3, model_patch_size=4)
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
@@ -251,3 +257,4 @@ def collect_map_score(cb, ema=True, train=False):
             organ_dice_mean = dices[idxs].mean()
             organ_dice_std = dices[idxs].std()
             cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3}, std {organ_dice_std:<.3}')
+            cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)

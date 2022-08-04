@@ -21,8 +21,8 @@ DATA:
       rate: 1
 
 AUGS:
-  STD: [1] # TODO: fix stats
-  MEAN: [0.]
+  STD: [69] # TODO: fix stats
+  MEAN: [176.]
   TRAIN_RESIZE: [0]
   VALID_RESIZE: [0]
   MSR:
@@ -70,8 +70,8 @@ MODEL:
   ARCH: 'unet' # 'ssl'
   INIT_MODEL: ''
   ENCODER:
-    # model_name: 'resnet34'
-    model_name: 'convnext_small'
+    model_name: 'resnet34'
+    # model_name: 'convnext_tiny'
     in_chans: 3
 
   DECODER:
@@ -156,7 +156,7 @@ OPTIMIZER:
     _target_: torch.optim.AdamW
     # _target_: timm.optim.MADGRAD
     _partial_: true
-    weight_decay: 0.1
+    weight_decay: 0.001
 
 PARALLEL:
   DDP: True

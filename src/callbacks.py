@@ -264,6 +264,7 @@ class TBPredictionsCB(sh.callbacks.Callback):
             yb[:,2] = 0
             yb[:,1] = pr[:,0]
             pr = pr.repeat(1,3,1,1)
+            xb = xb * 69  + 176 
             xb = xb / xb.max()
             yb = yb / yb.max()
 

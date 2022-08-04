@@ -55,10 +55,28 @@ class DatasetsGen:
         train_0 = [split_path / p for p in [f1, f2, f3]]
         valid_0 = [split_path / p for p in [f0]]
 
+        train_1 = [split_path / p for p in [f0, f2, f3]]
+        valid_1 = [split_path / p for p in [f1]]
+
+        train_2 = [split_path / p for p in [f1, f0, f3]]
+        valid_2 = [split_path / p for p in [f2]]
+
+        train_3 = [split_path / p for p in [f1, f2, f0]]
+        valid_3 = [split_path / p for p in [f3]]
+
 
         self.dataset_args = dict(
             train_0=dict(ds=ext_train, kwargs={'index_paths':train_0}),
             valid_0=dict(ds=ext_val,   kwargs={'index_paths':valid_0,}),
+
+            train_1=dict(ds=ext_train, kwargs={'index_paths':train_1}),
+            valid_1=dict(ds=ext_val,   kwargs={'index_paths':valid_1,}),
+
+            train_2=dict(ds=ext_train, kwargs={'index_paths':train_2}),
+            valid_2=dict(ds=ext_val,   kwargs={'index_paths':valid_2,}),
+
+            train_3=dict(ds=ext_train, kwargs={'index_paths':train_3}),
+            valid_3=dict(ds=ext_val,   kwargs={'index_paths':valid_3,}),
 
         )
 
