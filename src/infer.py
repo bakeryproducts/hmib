@@ -1,3 +1,7 @@
+##############################
+#  from prev competition, redo
+##############################
+
 import sys
 import importlib
 from pathlib import Path
