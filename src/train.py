@@ -132,7 +132,7 @@ def start_split(cfg, output_folder, datasets):
     logger.log("DEBUG", 'build model.')
 
     if cfg.TRAIN.EMA.ENABLE:
-        model_ema = sh.utils.ema.ModelEmaV2(model, copy=True).cuda() # TODO: dynamic decay
+        model_ema = sh.utils.ema.ModelEmaV2(model, copy=True).cuda()
         model_ema = model_ema.eval()
         for p in model_ema.parameters():
             p.requires_grad = False

@@ -58,10 +58,10 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
 
     if cfg.MODEL.ARCH != 'ssl':
         # yb = target['yb']
-        # pr = pred['cls']
-        # gt = target['cls']
-        # cls_l = loss['cls'](pr, gt)
-        cls_l = None
+        pr = pred['cls']
+        gt = target['cls']
+        cls_l = loss['cls'](pr, gt)
+        # cls_l = None
 
         pr = pred['yb']
         gt = target['yb']

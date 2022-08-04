@@ -37,8 +37,8 @@ def prepare_batch(batch, cb, train):
         # xb = xb.float()
         # xb, yb = cb.mixup(xb, yb)
         xb, yb = cb.fmix(xb, yb)
+        xb, yb = cb.msr(xb, yb, cb)
     #     xb = cb.ampaug(xb)
-    #     xb, yb = cb.msr(xb, yb, cb)
     #     xb, yb = cb.hdr(xb, yb)
 
     run_once(3, cb.log_debug, 'After train aug, XB', sh.utils.common.st(xb))
@@ -85,7 +85,7 @@ class TrainCB(_TrainCallback):
         self.grad_clip = self.cfg.FEATURES.GRAD_CLIP
         self.grad_clip_mode = self.cfg.FEATURES.CLIP_MODE
         self.sam = self.cfg.FEATURES.SAM.RHO > 0
-        # self.msr = MSR(self.cfg)
+        self.msr = MSR(self.cfg)
         self.mixup = MixUpAug(self.cfg)
         self.fmix = FMixAug(self.cfg)
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
@@ -216,14 +216,15 @@ class ValCB(sh.callbacks.Callback):
                     self.L.tracker_cb.set('dices', dice.unsqueeze(0), operation=op)
                     self.L.tracker_cb.set('classes', batch['cls'].float().unsqueeze(0), operation=op)
 
+                    pred_cls = pred['cls'].softmax(1)
+                    pred_cls = torch.max(pred_cls, 1)[1]
+                    gt_cls = batch['cls']
+                    acc = (pred_cls == gt_cls).float().mean()
+                    self.L.tracker_cb.set('cls_acc', acc)
+
                 else:
                     dice = torch.zeros(1).cuda()
 
-                # pred_cls = pred['cls'].softmax(1)
-                # pred_cls = torch.max(pred_cls, 1)[1]
-                # gt_cls = batch['cls']
-                # acc = (pred_cls == gt_cls).float().mean()
-                # self.L.tracker_cb.set('cls_acc', acc)
 
                 self.L.tracker_cb.set('ema_dice', dice)
                 # self.L.tracker_cb.set('val_score', dice)

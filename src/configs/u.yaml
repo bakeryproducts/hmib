@@ -3,8 +3,10 @@ OUTPUTS: output
 
 SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++SPLITS=3
 DATA:
-  root: 'preprocessed/png1024overlap/images/'
-  ann_root: 'preprocessed/png1024overlap/masks/'
+  # root: 'preprocessed/png1024overlap/images/'
+  # ann_root: 'preprocessed/png1024overlap/masks/'
+  root: 'preprocessed/fixed1024_overlap512/images/'
+  ann_root: 'preprocessed/fixed1024_overlap512/masks/'
   # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
   # ann_loader: 'partial(data.Names, suffix=".png")'
   img_loader: 'partial(data.PngImages, suffix=".png")'
@@ -71,6 +73,7 @@ MODEL:
   INIT_MODEL: ''
   ENCODER:
     model_name: 'resnet34'
+    # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'convnext_tiny'
     in_chans: 3
 
@@ -110,7 +113,7 @@ TRAIN:
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.95
+    start: 0.97
     end: .99
     type: 'linear'
 
