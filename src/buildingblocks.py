@@ -136,12 +136,7 @@ def create_decoder(enc, dec):
         block = dict(block)
         dec_ch = block.pop('ch')
         dec_channels.append(dec_ch)
-
-        for k in block:
-            v = block.pop(k)
-            k, v = check_eval(k, v)
-            block[k] = v
-
+        block = dict(check_eval(k, v) for k, v in block.items())
         blocks_kwargs.append(block)
 
     dec_all_stages = dict(dec.get('all_stages', {}))
