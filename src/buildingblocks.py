@@ -120,10 +120,6 @@ def check_eval(k, v, evaler=oh_my_god):
         k = k[2:]
         try: v = evaler(v)
         except Exception as e: print('Eval error', e)
-    elif k.startswith('ep_'):
-        k = k[3:]
-        try: v = partial(evaler(v))
-        except Exception as e: print('Eval error', e)
     return k, v
 
 
