@@ -69,7 +69,7 @@ def prepare_batch(batch, cb, train):
     batch['xb'] = xb
     batch['yb'] = yb
     batch['mask'] = mask
-    cls = batch['cls'].cuda()
+    cls = batch['cls'].cuda().flatten()
     return dict(xb=xb, yb=yb, cls=cls, mask=mask)
 
 

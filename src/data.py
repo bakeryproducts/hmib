@@ -256,7 +256,8 @@ class ExtDfDataset:
         ll = []
         for l in self.labels:
             for i in range(9):
-                lc = replace(l) # copy dataclass
+            # for i in range(4):
+                lc = replace(l) # copy for dataclass
                 name, ext = lc.fname.split('.')
                 lc.fname = f'{name}_{i}.{ext}'
                 ll.append(lc)

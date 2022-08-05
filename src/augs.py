@@ -30,6 +30,8 @@ class AugDataset:
             # print(aimage.shape, aimage.max(), aimage.dtype)
 
         aitem = dict(x=aug_images, y=aug_masks)
+        cls = item['cls']
+        item['cls'] = np.hstack(mult*[cls])
         item.update(aitem)
         return item
 

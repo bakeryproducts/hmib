@@ -3,8 +3,6 @@ import numpy as np
 from torch import nn
 import torch.nn.functional as F
 
-import shallow as sh
-
 
 def calc_dice(pred, target, eps=1e-6, reduce='none'):
     with torch.no_grad():
@@ -39,7 +37,6 @@ class DiceLoss(nn.Module):
         super().__init__()
 
     def forward(self, inputs, targets, smooth=1):
-
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = F.sigmoid(inputs)
 
@@ -49,29 +46,29 @@ class DiceLoss(nn.Module):
 
         intersection = (inputs * targets).sum()
         dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)
-
         return 1 - dice
 
 
 def loss_seg(pred, target, loss, cfg, reduction='mean'):
     assert reduction == 'mean'
 
+    sege_l = None
+    segd_l = None
+    reg_l = None
+    cls_l = None
+    ssl_l = None
+
     if cfg.MODEL.ARCH != 'ssl':
         # yb = target['yb']
         pr = pred['cls']
         gt = target['cls']
         cls_l = loss['cls'](pr, gt)
-        # cls_l = None
 
         pr = pred['yb']
         gt = target['yb']
         segd_l = loss['seg_dice'](pr, gt)
-        # segd_l = None
         sege_l = loss['seg_ce'](pr, gt)
-        # sege_l = None
         # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
-        reg_l = None
-        ssl_l = None
     else:
         # SSL MODE
         y = pred['yb'] # x_rec if ssl
@@ -86,10 +83,6 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
         # print(loss_recon.shape, mask.shape, x.shape, x_rec.shape)
         ssl_l = (loss_recon * mask).sum() / (mask.sum() + 1e-5) / in_chans
         # ssl_l = loss_recon.mean()
-        sege_l = None
-        segd_l = None
-        reg_l = None
-        cls_l = None
 
 
     return dict(seg_dice=segd_l, seg_ce=sege_l, reg=reg_l, cls=cls_l, ssl=ssl_l)
