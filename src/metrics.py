@@ -69,6 +69,23 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
         segd_l = loss['seg_dice'](pr, gt)
         sege_l = loss['seg_ce'](pr, gt)
         # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
+        if cfg.FEATURES.USE_DS:
+            ds = pred['ds']
+            _,_,h,w = gt.shape
+            segd_li = 0
+            sege_li = 0
+            for i, hm in enumerate(ds):
+                hm = torch.nn.functional.interpolate(hm, (h,w))
+                segd_li += loss['seg_dice'](hm, gt)
+                sege_li += loss['seg_ce'](hm, gt)
+
+            segd_li = segd_li / len(ds)
+            sege_li = sege_li / len(ds)
+
+            alpha = .1
+            segd_l = (1 - alpha) * segd_l + alpha * segd_li
+            sege_l = (1 - alpha) * sege_l + alpha * sege_li
+
     else:
         # SSL MODE
         y = pred['yb'] # x_rec if ssl

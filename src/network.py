@@ -4,7 +4,7 @@ import torch.nn as nn
 from functools import partial
 
 from basemodels import SegmentationModel, DecoderBasicBlock, UnetDecoder, get_staged_head, get_head, get_simple_head
-from buildingblocks import create_encoder, create_decoder, create_swin
+from buildingblocks import create_encoder, create_decoder, create_swin, Adapter
 
 from swin import SwinTransformerForSimMIM
 from vit import VisionTransformerForSimMIM
@@ -17,7 +17,7 @@ def model_select(cfg):
 
     archs = dict(unet=SaneUnet, ssl=SSL)
 
-    seg = partial(archs[cfg.MODEL.ARCH], encoder_cfg=enc_kwargs, decoder_cfg=dec_kwargs, seg_cfg=seghead_kwargs)
+    seg = partial(archs[cfg.MODEL.ARCH], cfg=cfg, encoder_cfg=enc_kwargs, decoder_cfg=dec_kwargs, seg_cfg=seghead_kwargs)
     return seg
 
 
@@ -45,7 +45,7 @@ class SimMIM(nn.Module):
 
 
 class SSL(nn.Module):
-    def __init__(self, encoder_cfg, decoder_cfg, seg_cfg, stride=32):
+    def __init__(self, cfg, encoder_cfg, decoder_cfg, seg_cfg, stride=32):
         super().__init__()
         encoder_cfg.pop('model_name')
         # self.s = SwinTransformerForSimMIM(**encoder_cfg)
@@ -81,7 +81,7 @@ class ClassificationHead(nn.Sequential):
 
 
 class SaneUnet(nn.Module):
-    def __init__(self, encoder_cfg, decoder_cfg, seg_cfg):
+    def __init__(self, cfg, encoder_cfg, decoder_cfg, seg_cfg):
         super().__init__()
         self.encoder, encoder_cfg = create_encoder(encoder_cfg) # will update cfg with stage channels
         # self.encoder, encoder_cfg = create_swin(encoder_cfg) # will update cfg with stage channels
@@ -98,6 +98,8 @@ class SaneUnet(nn.Module):
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(p=.2, inplace=True)
         self.linear = nn.Linear(encoder_cfg['blocks'][-1]['ch'], num_classes, bias=False)
+        self.ds_adapter = Adapter(self.decoder.out_channels, 1) if cfg.FEATURES.USE_DS else torch.nn.Identity()
+
 
     def forward(self, batch):
         x = batch['xb']
@@ -106,10 +108,12 @@ class SaneUnet(nn.Module):
         cls = self.cls_head(features[-1])
 
         xx = self.decoder(*features)
+        # print([x.shape for x in xx])
         last_feat = xx[-1]
         masks = self.seg_head(last_feat)
+        deep_supervision = self.ds_adapter(xx)
 
-        return dict(yb=masks, cls=cls)
+        return dict(yb=masks, cls=cls, ds=deep_supervision)
 
 
 def get_att_layer(d):

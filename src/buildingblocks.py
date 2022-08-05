@@ -241,6 +241,7 @@ class Decoder(nn.Module):
             blocks.append(db)
 
         self.blocks = nn.ModuleList(blocks)
+        self.out_channels = out_channels
 
     def forward(self, *features):
         features = features[::-1]
@@ -256,3 +257,26 @@ class Decoder(nn.Module):
             xx.append(x)
 
         return xx
+
+
+class Adapter(torch.nn.Module):
+    def __init__(self, decoder_channels, out_channel):
+        super().__init__()
+        head_dim = out_channel
+        adapter_channels = decoder_channels[:-1]
+        self.convs = nn.ModuleList([
+            torch.nn.Sequential(
+                torch.nn.Conv2d(d, head_dim, (1,1)),
+                torch.nn.BatchNorm2d(head_dim),
+                torch.nn.ReLU(),
+            )
+            for d in adapter_channels])
+
+    def forward(self, features):
+        features = features[1:-1] # drop decoder input and full size
+        rr = []
+        assert len(features) == len(self.convs), (len(features),len(self.convs))
+        for i, f in enumerate(features):
+            r = self.convs[i](f)
+            rr.append(r)
+        return rr
