@@ -33,14 +33,14 @@ data structure:
 # TODO
 
 ## Basic
+- Proper val, whole image 
 - build scale regressor, do not rely on kaggle scales
-- deep supervision
+~~- deep supervision~~
 - boundary loss weight-in
 - layer-wise LR decay
 - trivial aug w/ gt
 - repeated aug
 - finetuning with frequent val epoch, every N step -> inside train cb
-- ema & swa combo?
 - proper regularization, stoch depth, LayerScale? dropouts
 - fix seg head, check for heavier heads, CBA -> Nxtimes
 - SAM
@@ -49,7 +49,7 @@ data structure:
 - swin bb
 - uptrain helps.
 - maybe cls test on top left all white crop ?
-- decouple WD for head/body (https://arxiv.org/pdf/2106.04560.pdf)
+~~- decouple WD for head/body (https://arxiv.org/pdf/2106.04560.pdf)~~
 
 ## Transformers
 - segformer?
