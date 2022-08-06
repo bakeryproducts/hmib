@@ -2,7 +2,6 @@ import math
 import random
 
 import torch
-import kornia
 import numpy as np
 from scipy.stats import beta
 
@@ -208,4 +207,3 @@ def do_fmix(xb, yb, repeat=1, alpha=2, decay_power=3, max_soft=0,):
     xb[x_mask] = xb[index][x_mask]
     y_mask = uni_mask.repeat(1,cc,1,1)
     yb[y_mask] = yb[index][y_mask]
-

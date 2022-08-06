@@ -87,6 +87,7 @@ MODEL:
   DECODER:
     base:
       use_bottleneck: False
+      last_scale: 4
     blocks:
       - ch: 512
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
@@ -95,9 +96,10 @@ MODEL:
       - ch: 128
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 64
-        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+        use_skip: False
+        e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
       - ch: 32
-        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+        e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
     # all_stages:
 
   SEGHEAD:
@@ -129,14 +131,14 @@ VALID:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .1
+      weight: .8
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'binary'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .9
+      weight: .2
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss

@@ -183,17 +183,39 @@ class DecoderBasicBlock(nn.Module):
 
         inchans = in_channels + skip_channels
         self.prehook = prehook if prehook is not None else torch.nn.Identity()
-        self.block = block(inchans,
-                           out_channels,
-                           **kwargs)
+        self.block = block(inchans, out_channels, **kwargs)
 
 
     def forward(self, x, skip=None):
         x = self.prehook(x)
-
         if skip is not None:
             x = torch.hstack([x, skip])
         x = self.block(x)
+        return x
+
+
+class RevDecoderBasicBlock(nn.Module):
+    def __init__(self, in_channels,
+                 skip_channels,
+                 out_channels,
+                 prehook=None,
+                 use_skip=True,
+                 block=timm.models.byobnet.BasicBlock,
+                 **kwargs):
+        super().__init__()
+        self.prehook = prehook if prehook is not None else torch.nn.Identity()
+        self.block = block(in_channels, out_channels, **kwargs)
+
+        skip_channels = skip_channels if use_skip else 0
+        self.down = nn.Conv2d(skip_channels + out_channels, out_channels, 1,1)
+        self.use_skip = use_skip
+
+    def forward(self, x, skip=None):
+        x = self.block(x)
+        x = self.prehook(x)
+        if skip is not None and self.use_skip:
+            x = torch.hstack([x, skip])
+        x = self.down(x)
         return x
 
 
@@ -205,7 +227,9 @@ class Decoder(nn.Module):
         block_kwargs,
         all_kwargs,
         use_bottleneck=False,
-        Block=DecoderBasicBlock,
+        # Block=DecoderBasicBlock,
+        last_scale=False,
+        Block=RevDecoderBasicBlock,
     ):
         super().__init__()
 
@@ -233,6 +257,8 @@ class Decoder(nn.Module):
 
         self.blocks = nn.ModuleList(blocks)
         self.out_channels = out_channels
+        self.in_channels = in_channels
+        self.last_scale = last_scale
 
     def forward(self, *features):
         features = features[::-1]
@@ -241,12 +267,14 @@ class Decoder(nn.Module):
         padded_skips = skips + [None] * (len(self.blocks) - len(skips)) # always do exact N decoder blocks from cfg
 
         xx = [x,]
-        # print(x.shape)
         x = self.bottleneck(x)
         for block, skip in zip(self.blocks, padded_skips):
             x = block(x, skip)
             xx.append(x)
 
+        if self.last_scale:
+            x = nn.functional.interpolate(xx[-1], scale_factor=(self.last_scale, self.last_scale))
+            xx[-1] = x
         return xx
 
 
