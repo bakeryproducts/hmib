@@ -33,6 +33,7 @@ data structure:
 # TODO
 
 ## Basic
+- rle masks, check diff vs polygon masks on lungs
 - Proper val, whole image 
 - build scale regressor, do not rely on kaggle scales
 - ~~deep supervision~~
