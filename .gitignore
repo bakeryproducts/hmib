@@ -10,4 +10,5 @@ multirun
 *.csv
 *.pth
 *.npy
+**/*.svs
 kaggle_upload

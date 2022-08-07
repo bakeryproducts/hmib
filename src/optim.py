@@ -43,7 +43,7 @@ def build_optim(cfg, model, init_fn):
         #  HEAD_LR:
         #    - name: 'segmentation_head'
 
-        group_names = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.FINE_LR])}
+        group_names = {k:i for i,k in enumerate([i['name'] for i in cfg.OPTIMIZER.get('FINE_LR', [])])}
         groups = defaultdict(list)
         for name, param in model.named_parameters():
             for gname in group_names:
@@ -54,9 +54,9 @@ def build_optim(cfg, model, init_fn):
                 groups['rest'].append(param)
 
         options = []
-        for group in cfg.OPTIMIZER.FINE_LR:
+        for group in cfg.OPTIMIZER.get('FINE_LR', []):
             # group  == {'name': 'seg_head', group_params: {'lr_scale': 3, ...}}
-            goptions = dict(group['group_options'])
+            goptions = dict(group.get('group_options', {}))
             gname = group['name']
             goptions["params"] = groups[gname]
             options.append(goptions)
@@ -102,8 +102,8 @@ class LrCB(sh.callbacks.Callback):
             scale = cfg.TRAIN.BATCH_SIZE / _base_scale / cfg.PARALLEL.WORLD_SIZE
 
         l0,l1,l2 = l0 * scale, l1 * scale, l2 * scale # scale if for DDP , cfg.PARALLEL.WORLD_SIZE
-        warmup_duration = .1
-        main_dur = .3
+        warmup_duration = .02
+        main_dur = .15
 
         if cfg.MODEL.INIT_MODEL:
             warmup_duration = .1

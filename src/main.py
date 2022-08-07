@@ -37,6 +37,7 @@ def parallel_init(cfg):
     seed = torch.randint(0,MAX_SEED, (1,)).cuda()
     if cfg.PARALLEL.DDP: torch.distributed.broadcast(seed, 0)
     cfg.TRAIN.SEED = int(seed.cpu())
+    logger.warning(f"SEED: {cfg.TRAIN.SEED}")
 
 
 def copy_src(cfg, src, dst):

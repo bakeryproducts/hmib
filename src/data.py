@@ -253,15 +253,15 @@ class ExtDfDataset:
 
         df = base_df.iloc[inddf[0].values]
         self.labels = read_meta(df)
-        ll = []
-        for l in self.labels:
-            for i in range(9):
-            # for i in range(4):
-                lc = replace(l) # copy for dataclass
-                name, ext = lc.fname.split('.')
-                lc.fname = f'{name}_{i}.{ext}'
-                ll.append(lc)
-        self.labels = ll
+        # ll = []
+        # for l in self.labels:
+        #     for i in range(9):
+        #     # for i in range(4):
+        #         lc = replace(l) # copy for dataclass
+        #         name, ext = lc.fname.split('.')
+        #         lc.fname = f'{name}_{i}.{ext}'
+        #         ll.append(lc)
+        # self.labels = ll
         self.data = data
 
     def __getitem__(self, idx):
@@ -303,8 +303,8 @@ class MainDataset:
         ind_df = load_index_df(index_paths)
 
         rate = kwargs.pop('rate')
-        # ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
-        ds = ExtDfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+        ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+        # ds = ExtDfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
         self.ds = Mult(ds, rate)
 
     def __len__(self): return len(self.ds)

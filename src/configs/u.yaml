@@ -5,8 +5,10 @@ SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++S
 DATA:
   # root: 'preprocessed/png1024overlap/images/'
   # ann_root: 'preprocessed/png1024overlap/masks/'
-  root: 'preprocessed/fixed1024_overlap512/images/'
-  ann_root: 'preprocessed/fixed1024_overlap512/masks/'
+  root: 'preprocessed/rle1024/images/'
+  ann_root: 'preprocessed/rle1024/masks/'
+  # root: 'preprocessed/fixed1024_overlap512/images/'
+  # ann_root: 'preprocessed/fixed1024_overlap512/masks/'
   # root: 'preprocessed/fixed768_overlap512/images/'
   # ann_root: 'preprocessed/fixed768_overlap512/masks/'
   # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
@@ -17,7 +19,8 @@ DATA:
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      rate: 8 # make single epoch longer
+      # rate: 8 # make single epoch longer
+      rate: 50 # make single epoch longer
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
@@ -43,11 +46,13 @@ AUGS:
 
   AUG_MULTIPLICITY: 1
   # CROP: [192, 192]
-  CROP: [256,256]
+  # CROP: [256,256]
   # VALCROP: [192,192]
   # CROP: [384,384]
+  CROP: [512,512]
   # VALCROP: [384,384]
-  VALCROP: [512,512]
+  # VALCROP: [512,512]
+  VALCROP: [768,768]
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
@@ -61,7 +66,7 @@ AUGS:
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      # - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -98,8 +103,8 @@ MODEL:
       - ch: 64
         use_skip: False
         e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
-      - ch: 32
-        e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
+      # - ch: 32
+      #   e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
     # all_stages:
 
   SEGHEAD:
@@ -162,7 +167,7 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.00001, 0.0002, 0.0001, 1]
+  LRS: [0.000001, 0.0002, 0.0001, 1]
   # LRS: [0.00001, 0.00025, 0.0001, 1]
   # LRS: [0.000001, 0.00006, 0.00001, 0]
   
@@ -176,7 +181,7 @@ OPTIMIZER:
     _target_: torch.optim.AdamW
     # _target_: timm.optim.MADGRAD
     _partial_: true
-    weight_decay: 0.01
+    weight_decay: 0.001
 
 PARALLEL:
   DDP: True

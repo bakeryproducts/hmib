@@ -33,10 +33,11 @@ data structure:
 # TODO
 
 ## Basic
-- rle masks, check diff vs polygon masks on lungs
-- Proper val, whole image 
-- build scale regressor, do not rely on kaggle scales
+- ~~rle masks, check diff vs polygon masks on lungs~~ rle is better
+- ~~Proper val, whole image~~ big center crop for now
+- ~~build scale regressor, do not rely on kaggle scales~~ test.csv should contain scale, but still nice to have?
 - ~~deep supervision~~
+- tissue / non tissue mask? white background depends on scanner
 - boundary loss weight-in
 - layer-wise LR decay
 - trivial aug w/ gt
