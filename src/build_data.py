@@ -21,16 +21,21 @@ class DatasetsGen:
 
         train_ds_args = dict(self.cfg.DATA.TRAIN.DATASET_ARGS)
         val_ds_args = dict(self.cfg.DATA.VALID.DATASET_ARGS)
-        root = DATA_DIR / cfg.DATA.root
-        ann_path = DATA_DIR / cfg.DATA.ann_root
+
+        train_imgs = DATA_DIR / cfg.DATA.train_imgs
+        train_anns = DATA_DIR / cfg.DATA.train_anns
+
+        valid_imgs = DATA_DIR / cfg.DATA.valid_imgs
+        valid_anns = DATA_DIR / cfg.DATA.valid_anns
+
         base_path = DATA_DIR / 'hmib/train.csv'
         img_loader = eval(cfg.DATA.img_loader)
         ann_loader = eval(cfg.DATA.ann_loader)
 
         ext_train = partial(data.MainDataset,
                             cfg=cfg,
-                            root=root,
-                            ann_path=ann_path,
+                            root=train_imgs,
+                            ann_path=train_anns,
                             base_path=base_path,
                             ImgLoader=img_loader,
                             AnnLoader=ann_loader,
@@ -39,8 +44,8 @@ class DatasetsGen:
 
         ext_val = partial(data.MainDataset,
                           cfg=cfg,
-                          root=root,
-                          ann_path=ann_path,
+                          root=valid_imgs,
+                          ann_path=valid_anns,
                           base_path=base_path,
                           ImgLoader=img_loader,
                           AnnLoader=ann_loader,

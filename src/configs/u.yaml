@@ -5,8 +5,12 @@ SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++S
 DATA:
   # root: 'preprocessed/png1024overlap/images/'
   # ann_root: 'preprocessed/png1024overlap/masks/'
-  root: 'preprocessed/rle1024/images/'
-  ann_root: 'preprocessed/rle1024/masks/'
+  # root: 'preprocessed/rle1024/images/'
+  train_imgs: 'preprocessed/rle512_overlap.5/images/'
+  train_anns: 'preprocessed/rle512_overlap.5/masks/'
+
+  valid_imgs: 'preprocessed/rle1024/images/'
+  valid_anns: 'preprocessed/rle1024/masks/'
   # root: 'preprocessed/fixed1024_overlap512/images/'
   # ann_root: 'preprocessed/fixed1024_overlap512/masks/'
   # root: 'preprocessed/fixed768_overlap512/images/'
@@ -19,8 +23,8 @@ DATA:
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      # rate: 8 # make single epoch longer
-      rate: 50 # make single epoch longer
+      rate: 4 # make single epoch longer
+      # rate: 50 # make single epoch longer
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
@@ -48,8 +52,8 @@ AUGS:
   # CROP: [192, 192]
   # CROP: [256,256]
   # VALCROP: [192,192]
-  # CROP: [384,384]
-  CROP: [512,512]
+  CROP: [384,384]
+  # CROP: [512,512]
   # VALCROP: [384,384]
   # VALCROP: [512,512]
   VALCROP: [768,768]
@@ -66,7 +70,7 @@ AUGS:
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      # - {m : albu.ColorJitter, args: [.2, .2, .4, .4], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      # - {m : albu.ColorJitter, args: [.3, .3, .4, .1], kwargs : {'p': .25}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -100,9 +104,9 @@ MODEL:
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 128
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
-      - ch: 64
-        use_skip: False
-        e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
+      # - ch: 64
+      #   use_skip: False
+      #   e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
       # - ch: 32
       #   e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
     # all_stages:
