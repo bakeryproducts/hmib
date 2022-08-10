@@ -1,0 +1,46 @@
+#!/usr/bin/python3
+
+import json
+import zipfile
+import subprocess
+from pathlib import Path
+
+import fire
+
+
+def create_zip(model_path, kgl=False):
+    # zips and optionaly uploads src folder and one weight file
+    DST = Path('kgl_out')
+    PRJ = 'HM'
+    USERNAME = 'bakeryproducts'
+    model_path = Path(model_path)
+
+    root = model_path.parent.parent.parent
+    name = root.name
+    name = name.replace('_', '-')
+    name = root.parent.name + '-' + name
+    title = PRJ + '-' + name
+    dst = DST / name
+    dst.mkdir(exist_ok=True)
+
+    metadata = dict(title=title, id=f'{USERNAME}/{title}', licenses=[dict(name="CC0-1.0")])
+    with open(str(dst / 'dataset-metadata.json'), 'w') as f:
+        json.dump(metadata, f, indent=4)
+
+    with zipfile.ZipFile(str(dst / dst.with_suffix('.zip').name), 'w', zipfile.ZIP_STORED) as zipf:
+        src_files = list((root / 'src').rglob('*'))
+        for f in src_files:
+            if ('__py' not in str(f)) and ('.ipynb' not in str(f)):
+                zipf.write(str(f), f.relative_to(root))
+
+        zipf.write(str(model_path), model_path.relative_to(root))
+
+    if kgl:
+        # TODO: check token?
+        cmd = f'kaggle datasets create -p {dst}'
+        p = subprocess.Popen(cmd, shell=True)
+        p.communicate()
+
+
+if __name__ == '__main__':
+    fire.Fire(create_zip)
