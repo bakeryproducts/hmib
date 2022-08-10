@@ -14,9 +14,6 @@ from omegaconf import OmegaConf
 import pandas as pd
 import numpy as np
 
-#from data import Case
-
-
 
 def norm_2d(xb, mode='batch', mean=None, std=None):
     if mean is None:
