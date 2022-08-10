@@ -14,7 +14,7 @@ from omegaconf import OmegaConf
 import pandas as pd
 import numpy as np
 
-from data import Case
+#from data import Case
 
 
 
@@ -102,15 +102,17 @@ def init_data_module_from_checkpoint(root, name, file_name):
     return mod
 
 
-def init_modules(p):
+def init_modules(p, module_name='network'):
     p = Path(p)
     sys.path.insert(0, str(p / 'src'))
-    if 'network' in sys.modules:
-        del sys.modules["network"]
+#    if 'network' in sys.modules:
+#        del sys.modules["network"]
+    if module_name in sys.modules:
+        del sys.modules[module_name]
 
-    network = init_data_module_from_checkpoint(p, 'network', 'network.py')
+    module = init_data_module_from_checkpoint(p, module_name, f'{module_name}.py')
     sys.path.pop(0)
-    return network
+    return module
 
 
 def init_model(cfg, model_path, network, to_gpu=False):
