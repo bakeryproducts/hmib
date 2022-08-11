@@ -1,7 +1,3 @@
-##############################
-#  from prev competition, redo
-##############################
-
 import sys
 import importlib
 from pathlib import Path
@@ -102,8 +98,7 @@ def init_data_module_from_checkpoint(root, name, file_name):
 def init_modules(p, module_name='network'):
     p = Path(p)
     sys.path.insert(0, str(p / 'src'))
-#    if 'network' in sys.modules:
-#        del sys.modules["network"]
+
     if module_name in sys.modules:
         del sys.modules[module_name]
 
@@ -199,50 +194,6 @@ def infer_loader(p):
     iq = torch.clamp(i, lq, rq)
     iq = (iq - iq.min()) / (iq.max() - iq.min())
     return i, np.array((H,W,y,x,h,w))
-
-
-def get_infer_days(case_root, return_cases=False):
-    # case_root = Path('input/damwu/train/')
-    case_root = Path(case_root)
-    cases_fn = list(case_root.glob('*'))
-
-    cases = []
-    for fn in cases_fn:
-        cs = Case(fn, get_data=True, loader=infer_loader)
-        cases.append(cs)
-
-    if return_cases:
-        return cases
-
-    days = [d for c in cases for d in c.days]
-    return days
-
-
-def get_val_days(SPLIT, SIZE, loader):
-    cases_root = Path(f'input/preprocessed/resize_{SIZE}_2crop_bin_npy/images/')
-    inddf = pd.read_csv(f'input/splits/valid_{SPLIT}.csv')
-    base_df = pd.read_csv('input/damwu/meta.csv')
-
-    df = []
-    for _, row in inddf.iterrows():
-        c,d = row.values
-        subdf = base_df[(base_df.case == c) & (base_df.day == d)]
-        df.append(subdf)
-    df = pd.concat(df)
-
-    case_days = defaultdict(set)
-    for _, row in df.iterrows():
-        case_days[row['case']].add(row['day'])
-
-    cases = []
-    for c, v in case_days.items():
-        cp = cases_root / f'case{c}'
-        cfiles = [cp / f'case{c}_day{d}' for d in v]
-        cs = Case(cp, files=cfiles, get_data=True, loader=loader)
-        cases.append(cs)
-
-    val_days = [d for c in cases for d in c.days]
-    return val_days, cases_root
 
 
 # ref.: https://www.kaggle.com/stainsby/fast-tested-rle
