@@ -101,7 +101,7 @@ class TiffImage:
         return fd
 
     @lru_cache(None)
-    def load(self, *, **read_kwargs):
+    def load(self, *args, **read_kwargs):
         img_data = self().read(**read_kwargs)
         if len(img_data.shape) < 3:
             img_data = np.expand_dims(img_data, 0)
