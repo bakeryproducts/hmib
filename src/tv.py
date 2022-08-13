@@ -205,6 +205,8 @@ class ValCB(sh.callbacks.Callback):
                 if self.cfg.MODEL.ARCH != 'ssl':
                     sega = pred['yb']
                     sega = sega.sigmoid()
+                    if sega.shape[1] != 1: # TODO: multilabel
+                        sega = sega.sum(1, keepdims=True)
 
                     segb = batch['yb']
                     dice = metrics.calc_score(sega, segb)

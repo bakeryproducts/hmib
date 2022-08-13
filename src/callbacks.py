@@ -259,6 +259,9 @@ class TBPredictionsCB(sh.callbacks.Callback):
         yb = yb[:self.num_images].cpu().float()
         pr = pr[:self.num_images].cpu().float()
 
+        if pr.shape[1] != 1: # TODO: multilabel
+            pr = pr.sum(1, keepdims=True)
+
 
         # print(sh.utils.common.st(xb))
         # print(sh.utils.common.st(yb))
