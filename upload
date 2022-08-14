@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import json
 import zipfile
 import subprocess
@@ -8,12 +9,25 @@ from pathlib import Path
 import fire
 
 
+def read_username_from_os():
+    USERNAME = os.environ.get('KGL_USERNAME', None)#'bakeryproducts'
+    if USERNAME is None:
+        raise Exception("""
+        To use uploader, please set your kaggle username as env variable:
+            export KGL_USERNAME="myname"
+        """)
+    return USERNAME
+
+
 def create_zip(model_path, kgl=False):
     # zips and optionaly uploads src folder and one weight file
     DST = Path('kgl_out')
     PRJ = 'HM'
-    USERNAME = 'bakeryproducts'
+
+    USERNAME = read_username_from_os()
+    print(f'\t{USERNAME=}') # python3.8
     model_path = Path(model_path)
+    assert model_path.exists(), model_path.absolute()
 
     root = model_path.parent.parent.parent
     name = root.name
