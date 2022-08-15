@@ -29,38 +29,48 @@ class MLP(nn.Module):
 
 
 class SaneSegFormerHead(torch.nn.Module):
-    def __init__(self, feature_channels, embedding_dim, num_classes, dropout=0, **kwargs):
+    def __init__(self, feature_channels, embedding_dim, dropout=0, last_scale=1, **kwargs):
         super().__init__()
-        self.num_classes = num_classes
-        self.lin_layers = torch.nn.ModuleList([MLP(ic, embedding_dim) for ic in feature_channels]) # TODO: conv 1
+        # self.lin_layers = torch.nn.ModuleList([MLP(ic, embedding_dim) for ic in feature_channels]) # TODO: conv 1
+        self.lin_layers = torch.nn.ModuleList([nn.Conv2d(ic, embedding_dim, 1, 1) for ic in feature_channels])
+        self.last_scale = last_scale
 
         self.linear_fuse = nn.Sequential(
-            nn.Conv2d(in_channels=embedding_dim * 4, out_channels=embedding_dim, kernel_size=1, stride=1),
-            nn.LazyBatchNorm2d(),
+            nn.Conv2d(in_channels=embedding_dim * 3, out_channels=embedding_dim, kernel_size=1, stride=1),
+            nn.BatchNorm2d(embedding_dim),
             nn.ReLU(inplace=True),
         )
 
         self.dropout = nn.Dropout(dropout)
-        self.linear_pred = nn.Conv2d(embedding_dim, self.num_classes, kernel_size=1)
 
-    def forward(self, features):
-        H, W = features[-1].shape[2:]
+        self.out_channels = feature_channels
+        # self.linear_pred = nn.Conv2d(embedding_dim, self.num_classes, kernel_size=1)
+
+    def forward(self, *features):
+        features = features[::-1]
+        H, W = features[len(self.lin_layers)].shape[2:]
         resize = partial(nn.functional.interpolate, size=(H,W), mode='bilinear',align_corners=False)
 
         cc = []
-        for i in range(len(features)):
+        for i in range(len(self.lin_layers)):
             ll = self.lin_layers[i]
             f = features[i]
             c = ll(f)
 
-            if i < len(features) - 1:
-                c = resize(c)
+            # if i < len(self.lin_layers) - 1:
+            c = resize(c)
+            # print(i, c.shape)
             cc.append(c)
 
-        _c = self.linear_fuse(torch.cat(cc, dim=1))
-        x = self.dropout(_c)
-        x = self.linear_pred(x)
-        return x
+        _c = torch.cat(cc, dim=1)
+        x = self.linear_fuse(_c)
+        x = self.dropout(x)
+        xx = [x]
+
+        if self.last_scale:
+            x = nn.functional.interpolate(x, scale_factor=(self.last_scale, self.last_scale))
+            xx = [x]
+        return xx
 
 
 class SegFormerHead(torch.nn.Module):

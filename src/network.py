@@ -4,10 +4,12 @@ import torch.nn as nn
 from functools import partial
 
 from basemodels import SegmentationModel, DecoderBasicBlock, UnetDecoder, get_staged_head, get_head, get_simple_head
-from buildingblocks import create_encoder, create_decoder, create_swin, Adapter
+from buildingblocks import create_encoder, create_decoder, create_swin, Adapter, create_segdec
 
 from swin import SwinTransformerForSimMIM
 from vit import VisionTransformerForSimMIM
+
+from segformer import SaneSegFormerHead
 
 
 def model_select(cfg):
@@ -85,7 +87,8 @@ class SaneUnet(nn.Module):
         super().__init__()
         self.encoder, encoder_cfg = create_encoder(encoder_cfg) # will update cfg with stage channels
         # self.encoder, encoder_cfg = create_swin(encoder_cfg) # will update cfg with stage channels
-        self.decoder = create_decoder(encoder_cfg, decoder_cfg)
+        # self.decoder = create_decoder(encoder_cfg, decoder_cfg)
+        self.decoder = create_segdec(encoder_cfg, decoder_cfg)
 
         dec_out = decoder_cfg['blocks'][-1]['ch']
         self.seg_head = nn.Conv2d(dec_out, **seg_cfg) # TODO : full head
