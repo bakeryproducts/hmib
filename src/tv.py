@@ -206,9 +206,24 @@ class ValCB(sh.callbacks.Callback):
                     sega = pred['yb']
                     sega = sega.sigmoid()
                     if sega.shape[1] != 1: # TODO: multilabel
-                        sega = sega.sum(1, keepdims=True)
+                        # sega = sega.sum(1, keepdims=True)
+                        r = []
+                        for i,hm in enumerate(sega):
+                            idx = batch['cls'][i]
+                            r.append(hm[idx:idx+1])
+                        sega = torch.stack(r)
 
                     segb = batch['yb']
+                    # lung drop:
+                    a,b = [], []
+                    for i in range(len(sega)):
+                        idx = batch['cls'][i]
+                        if idx == ORGANS['lung']:
+                            sega[i] = segb[i]
+                            # a.append(sega[i])
+                            # b.append(segb[i])
+                    # sega = torch.stack(a)
+                    # segb = torch.stack(b)
                     dice = metrics.calc_score(sega, segb)
 
                     # run_once(441, self.log_warning, 'dice', sh.utils.common.st(dice))
