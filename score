@@ -1,0 +1,15 @@
+#!/usr/bin/python3
+
+import fire
+
+
+def rescale_scores(hpa=0, hub=0):
+    N = 210
+    M = 81
+    a = hpa *(N+M)/M
+    b = hub * (N+M)/N
+    print(f"\t HPA score: {a: .3f}")
+    print(f"\t HUB score: {b: .3f}")
+
+if __name__ == '__main__':
+    fire.Fire(rescale_scores)
