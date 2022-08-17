@@ -6,6 +6,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from swin import SwinTransformer
+from segformer import SaneSegFormerHead
 
 
 
@@ -144,6 +145,32 @@ def create_decoder(enc, dec):
         all_kwargs=dec_all_stages,
         **dec.get('base', {}),
     )
+    return decoder
+
+
+def create_segdec(enc, dec):
+    enc_channels = [b['ch'] for b in enc['blocks']]
+
+    blocks_kwargs = []
+    dec_channels = []
+    for i, block in enumerate(dec['blocks']):
+        block = dict(block)
+        dec_ch = block.pop('ch')
+        dec_channels.append(dec_ch)
+        block = dict(check_eval(k, v) for k, v in block.items())
+        blocks_kwargs.append(block)
+
+    embedding_dim = 128
+    decoder = SaneSegFormerHead(dec_channels, embedding_dim, dropout=0, **dec.get('base', {}), )
+    # dec_all_stages = dict(dec.get('all_stages', {}))
+
+    # decoder = Decoder(
+    #     encoder_channels=enc_channels,
+    #     decoder_channels=dec_channels,
+    #     block_kwargs=blocks_kwargs,
+    #     all_kwargs=dec_all_stages,
+    #     **dec.get('base', {}),
+    # )
     return decoder
 
 

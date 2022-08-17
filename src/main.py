@@ -53,6 +53,18 @@ def warnings_init(cfg):
     logger.warning('ALL WARNING MESSAGES ON NON-MASTER PROCESSES ARE SUPPRESSED')
 
 
+def get_hydra_dir():
+    cc = HydraConfig.get()
+    #https://github.com/facebookresearch/hydra/blob/36707bbbe7653af3f7a2f3165fcfffc98cbef43d/hydra/types.py#L45
+    if cc.mode == hydra.types.RunMode(1): # RUN
+        output_folder = Path(cc.run.dir)
+    elif cc.mode == hydra.types.RunMode(2):  # multurun
+        output_folder = Path(cc.sweep.dir) / cc.sweep.subdir
+    else:
+        raise Exception('Unknown run mode, should be RUN or MULTIRUN')
+    return output_folder
+
+
 @hydra.main(config_path="configs", config_name="u", version_base=None)
 def main(cfg):
     # print(OmegaConf.to_yaml(cfg, resolve=True))
@@ -62,7 +74,7 @@ def main(cfg):
     warnings_init(cfg)
 
     src_folder = Path(os.getcwd())
-    output_folder = Path(HydraConfig.get().run.dir)
+    output_folder = get_hydra_dir()
     copy_src(cfg, src=src_folder, dst=output_folder)
     log_init(cfg, output_folder)
     start(cfg, output_folder)

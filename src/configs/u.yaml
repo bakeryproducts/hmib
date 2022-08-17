@@ -112,7 +112,7 @@ MODEL:
     # all_stages:
 
   SEGHEAD:
-    out_channels: 1
+    out_channels: 5
     kernel_size: 1
 
 TRAIN:
@@ -143,7 +143,8 @@ LOSS:
       weight: .8
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
-        mode: 'binary'
+        # mode: 'binary'
+        mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'

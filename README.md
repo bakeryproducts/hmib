@@ -34,7 +34,8 @@ data structure:
 
 ## Basic
 - ~~rle masks, check diff vs polygon masks on lungs~~ rle is better
-- ~~Proper val, whole image~~ big center crop for now
+- ~~multilabel , looks the same~~
+- ~~Proper val, whole image~~ ~~big center crop for now~~ separate datasets, merge them
 - ~~build scale regressor, do not rely on kaggle scales~~ test.csv should contain scale, but still nice to have?
 - ~~deep supervision~~
 - tissue / non tissue mask? white background depends on scanner
@@ -46,7 +47,7 @@ data structure:
 - proper regularization, stoch depth, LayerScale? dropouts
 - fix seg head, check for heavier heads, CBA -> Nxtimes
 - SAM
-- upernet
+- upernet, aspp fuse? 
 - nfnets?
 - swin bb
 - uptrain helps.

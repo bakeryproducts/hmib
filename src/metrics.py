@@ -66,8 +66,18 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
 
         pr = pred['yb']
         gt = target['yb']
+
+        MULTILABEL = True
+        if MULTILABEL:
+            num_classes = 5
+            multilabel = torch.zeros_like(gt).repeat(1, num_classes, 1, 1)
+            for j,i in enumerate(target['cls']):
+                multilabel[j,i] = gt[j]
+            gt = multilabel
+
         segd_l = loss['seg_dice'](pr, gt)
         sege_l = loss['seg_ce'](pr, gt)
+
         # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
         if cfg.FEATURES.USE_DS:
             ds = pred['ds']
