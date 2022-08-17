@@ -70,7 +70,7 @@ AUGS:
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      # - {m : albu.ColorJitter, args: [.3, .3, .4, .1], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      - {m : albu.ColorJitter, args: [.3, .3, .4, .1], kwargs : {'p': .25}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -131,8 +131,8 @@ TRAIN:
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.97
-    end: .99
+    start: 0.99
+    end: .995
     type: 'linear'
 
 VALID:
@@ -191,9 +191,15 @@ OPTIMIZER:
 PARALLEL:
   DDP: True
 
+
+_postfix : ${MODEL.ARCH}_${MODEL.ENCODER.model_name}
 hydra:
-    run:
-        dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${MODEL.ARCH}_${MODEL.ENCODER.model_name}
+  run:
+    dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${_postfix}
+  sweep:
+    # dir: ${hydra.runtime.cwd}/outputs/ 
+    dir : ./output/${now:%m-%d}/${now:%H-%M-%S}_SWEEP
+    subdir: J${hydra.job.num}_${_postfix}
 
 defaults: 
     - PARALLEL: _parallel

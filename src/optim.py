@@ -96,7 +96,7 @@ class LrCB(sh.callbacks.Callback):
         self.sched = self.init_sched(cfg)
 
     def init_sched(self, cfg):
-        _base_scale = 64 / 3
+        _base_scale = 32 * 4
         l0,l1,l2, scale = cfg.OPTIMIZER.LRS
         if scale == 0:
             scale = cfg.TRAIN.BATCH_SIZE / _base_scale / cfg.PARALLEL.WORLD_SIZE

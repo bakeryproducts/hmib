@@ -161,7 +161,7 @@ def create_segdec(enc, dec):
         blocks_kwargs.append(block)
 
     embedding_dim = 128
-    decoder = SaneSegFormerHead(dec_channels, embedding_dim, dropout=0, **dec.get('base', {}), )
+    decoder = SaneSegFormerHead(enc_channels[::-1], embedding_dim, dropout=0, **dec.get('base', {}), )
     # dec_all_stages = dict(dec.get('all_stages', {}))
 
     # decoder = Decoder(

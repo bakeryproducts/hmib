@@ -120,7 +120,7 @@ def build_dataloaders(cfg, datasets, **all_kwargs):
             kwargs['batch_size'] = cfg[kind]['BATCH_SIZE']
             kwargs['pin_memory'] = True
             # kwargs['shuffle'] = False
-            kwargs['drop_last'] = True
+            kwargs['drop_last'] = False
             # kwargs['sampler'] = None
             kwargs['sampler'] = DistributedSampler(dataset,
                                                    num_replicas=cfg.PARALLEL.WORLD_SIZE,

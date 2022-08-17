@@ -36,7 +36,7 @@ class SaneSegFormerHead(torch.nn.Module):
         self.last_scale = last_scale
 
         self.linear_fuse = nn.Sequential(
-            nn.Conv2d(in_channels=embedding_dim * 3, out_channels=embedding_dim, kernel_size=1, stride=1),
+            nn.Conv2d(in_channels=embedding_dim * 4, out_channels=embedding_dim, kernel_size=1, stride=1),
             nn.BatchNorm2d(embedding_dim),
             nn.ReLU(inplace=True),
         )
@@ -48,11 +48,13 @@ class SaneSegFormerHead(torch.nn.Module):
 
     def forward(self, *features):
         features = features[::-1]
-        H, W = features[len(self.lin_layers)].shape[2:]
+        features = features[:4]
+        # H, W = features[len(self.lin_layers)].shape[2:]
+        H, W = features[-1].shape[2:]
         resize = partial(nn.functional.interpolate, size=(H,W), mode='bilinear',align_corners=False)
 
         cc = []
-        for i in range(len(self.lin_layers)):
+        for i in range(len(features)):
             ll = self.lin_layers[i]
             f = features[i]
             c = ll(f)

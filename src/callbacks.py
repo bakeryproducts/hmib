@@ -129,7 +129,7 @@ class TrackResultsCB(sh.callbacks.Callback):
             value = [i.value for i in track_item]
             # print(k)
             # print([i.value.shape for i in track_item])
-            value = torch.vstack(value)
+            value = torch.hstack(value)
             value = value.unsqueeze(0)
             # print(k, value.shape, value.dtype)
 
@@ -259,8 +259,6 @@ class TBPredictionsCB(sh.callbacks.Callback):
         yb = yb[:self.num_images].cpu().float()
         pr = pr[:self.num_images].cpu().float()
 
-        if pr.shape[1] != 1: # TODO: multilabel
-            pr = pr.sum(1, keepdims=True)
 
 
         # print(sh.utils.common.st(xb))
@@ -275,11 +273,15 @@ class TBPredictionsCB(sh.callbacks.Callback):
 
         if self.cfg.MODEL.ARCH != 'ssl':
             pr = pr.sigmoid()
+            if pr.shape[1] != 1: # TODO: multilabel
+                pr = pr.sum(1, keepdims=True)
+                pr = pr.clamp(0,1)
+
             yb = yb.repeat(1,3,1,1)
             yb[:,2] = 0
             yb[:,1] = pr[:,0]
             pr = pr.repeat(1,3,1,1)
-            xb = xb * 69  + 176 
+            xb = xb * 69 + 176
             xb = xb / xb.max()
             yb = yb / yb.max()
 
