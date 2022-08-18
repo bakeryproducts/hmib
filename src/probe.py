@@ -75,12 +75,13 @@ df_file = TRAIN_CSV_FILE if DEBUG else TEST_CSV_FILE
 df = pd.read_csv(df_file)
 
 means = []
+# to do: valid csv
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
     if row.data_source == DATA_SOURCE and row.organ == ORGAN:
         image = load_tiff(images_dir / f"{row.id}.tiff")
         gray_image = image.mean(0)
         mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
-        tissue = image[RED_CHANNEL, mask]
+        tissue = image[RED_CHANNEL][mask] # CHW, 3chan
         means.append(tissue.mean())  # median?
 
 
