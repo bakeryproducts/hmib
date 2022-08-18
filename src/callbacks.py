@@ -127,7 +127,6 @@ class TrackResultsCB(sh.callbacks.Callback):
         for k, track_item in self.accs.items():
             # print(k, track_item[:3])
             value = [i.value for i in track_item]
-            # print(k)
             # print([i.value.shape for i in track_item])
             value = torch.hstack(value)
             value = value.unsqueeze(0)

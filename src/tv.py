@@ -1,4 +1,3 @@
-import random
 from collections import defaultdict
 
 import torch
@@ -35,17 +34,16 @@ def prepare_batch(batch, cb, train):
         # cc = xb.byte().chunk(16)
         # xb = torch.vstack([cb.augmenter(c) for c in cc])
         # xb = xb.float()
-        # xb, yb = cb.mixup(xb, yb)
+        xb, yb = cb.mixup(xb, yb)
         xb, yb = cb.fmix(xb, yb)
         xb, yb = cb.msr(xb, yb, cb)
     #     xb = cb.ampaug(xb)
-    #     xb, yb = cb.hdr(xb, yb)
 
     run_once(3, cb.log_debug, 'After train aug, XB', sh.utils.common.st(xb))
     run_once(35, cb.log_debug, 'After train aug, YB', sh.utils.common.st(yb))
 
-    xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.MEAN, std=cb.cfg.AUGS.STD)
-    # xb = (xb-xb.min()) / (xb.max() - xb.min())
+    # xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.MEAN, std=cb.cfg.AUGS.STD)
+    xb = (xb - xb.min()) / (xb.max() - xb.min())
     # xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
 
@@ -89,13 +87,11 @@ class TrainCB(_TrainCallback):
         self.mixup = MixUpAug(self.cfg)
         self.fmix = FMixAug(self.cfg)
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
-        # self.hdr = HDRAug(max_shift=3, p=.1)
         # self.ampaug = AmpAug(scale=20, p=.2)
         self.augmenter = T.TrivialAugmentWide()
-        self.mg = MaskGenerator(input_size=192, mask_ratio=.3, model_patch_size=4)
+        # self.mg = MaskGenerator(input_size=192, mask_ratio=.3, model_patch_size=4)
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
-
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}
         self.loss_weights['ssl'] = 1
 
@@ -133,21 +129,6 @@ class TrainCB(_TrainCallback):
             self.L.pred = pred
             run_once(41, self.log_debug, 'Pred', sh.utils.common.st(pred['yb']))
 
-            # pred_cls = pred['cls'].softmax(1)
-            # pred_cls = torch.max(pred_cls, 1)[1]
-            # gt_cls = batch['cls']
-            # acc = (pred_cls == gt_cls).float().mean()
-            # self.L.tracker_cb.set('cls_acc', acc)
-
-            # sega = pred['yb']
-            # sega = sega.sigmoid()
-            # sega = (sega > .5) .float()
-
-            # segb = batch['yb']
-            # # print(sega.shape, segb.shape, )
-            # dice = metrics.calc_score(sega, segb)
-            # run_once(441, self.log_warning, 'dice', dice)
-
             loss_d.update(self.L.loss_func(pred, batch))
             total_loss = self.get_total_loss(loss_d, tracking=True, ohem=None)
 
@@ -166,7 +147,7 @@ class ValCB(sh.callbacks.Callback):
         self.L.model_ema = self.model_ema
         self.loss_kwargs = {}
         self.clamp = self.cfg.FEATURES.CLAMP
-        self.mg = MaskGenerator(input_size=192, mask_ratio=.5, model_patch_size=4)
+        # self.mg = MaskGenerator(input_size=192, mask_ratio=.5, model_patch_size=4)
 
     def sched(self):
         e = self.L.n_epoch
@@ -177,7 +158,7 @@ class ValCB(sh.callbacks.Callback):
     @sh.utils.call.on_validation
     def before_epoch(self):
         run_once.__wrapped__._clear()
-        # if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
+        if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
 
     @sh.utils.call.on_validation
     def after_epoch(self):
@@ -203,27 +184,19 @@ class ValCB(sh.callbacks.Callback):
                 self.L.pred = pred
 
                 if self.cfg.MODEL.ARCH != 'ssl':
-                    sega = pred['yb']
-                    sega = sega.sigmoid()
-                    if sega.shape[1] != 1: # TODO: multilabel
-                        # sega = sega.sum(1, keepdims=True)
+                    pred_hm = pred['yb']
+                    gt = batch['yb']
+                    if pred_hm.shape[1] > 1: # multilabel mode
                         r = []
-                        for i,hm in enumerate(sega):
-                            idx = batch['cls'][i]
-                            r.append(hm[idx:idx+1])
-                        sega = torch.stack(r)
+                        for i,hm in enumerate(pred_hm):
+                            organ_idx = batch['cls'][i]
+                            hm = hm[organ_idx:organ_idx+1]
+                            if organ_idx == ORGANS['lung']:
+                                hm = gt[i]
+                            r.append(hm)
+                        pred_hm = torch.stack(r) # B,1,H,W
 
-                    segb = batch['yb']
-                    # lung drop:
-                    for i in range(len(sega)):
-                        idx = batch['cls'][i]
-                        if idx == ORGANS['lung']:
-                            sega[i] = segb[i]
-
-                    dice = metrics.calc_score(sega, segb)
-
-                    # run_once(441, self.log_warning, 'dice', sh.utils.common.st(dice))
-                    # run_once(442, self.log_warning, 'classes', sh.utils.common.st(batch['cls'].float()))
+                    dice = metrics.calc_score(pred_hm, gt)
 
                     op = 'gather'
                     self.L.tracker_cb.set('dices', dice, operation=op)
@@ -240,7 +213,6 @@ class ValCB(sh.callbacks.Callback):
 
 
                 self.L.tracker_cb.set('ema_dice', dice)
-                # self.L.tracker_cb.set('val_score', dice)
                 self.L.tracker_cb.set('ema_score', dice)
                 self.L.tracker_cb.set('score', dice)
 
