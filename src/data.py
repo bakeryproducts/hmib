@@ -290,6 +290,7 @@ class MainDataset:
                  base_path,
                  index_paths,
                  train,
+                 overlap,
                  ImgLoader,
                  AnnLoader,
                  **kwargs):
@@ -306,7 +307,10 @@ class MainDataset:
         if train:
             # overlap mode, 1234_{i}.png, i c [0..N]
             # TODO: forward train flag into DfDataset, merge ExtDfDataset, DfDataset
-            ds = ExtDfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+            if overlap:
+                ds = ExtDfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+            else:
+                ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
         else:
             ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
         self.ds = Mult(ds, rate)

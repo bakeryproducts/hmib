@@ -6,8 +6,10 @@ DATA:
   # root: 'preprocessed/png1024overlap/images/'
   # ann_root: 'preprocessed/png1024overlap/masks/'
   # root: 'preprocessed/rle1024/images/'
-  train_imgs: 'preprocessed/rle512_overlap.5/images/'
-  train_anns: 'preprocessed/rle512_overlap.5/masks/'
+  # train_imgs: 'preprocessed/rle512_overlap.5/images/'
+  # train_anns: 'preprocessed/rle512_overlap.5/masks/'
+  train_imgs: 'preprocessed/rle1024/images/'
+  train_anns: 'preprocessed/rle1024/masks/'
 
   valid_imgs: 'preprocessed/rle1024/images/'
   valid_anns: 'preprocessed/rle1024/masks/'
@@ -23,12 +25,14 @@ DATA:
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      rate: 4 # make single epoch longer
-      # rate: 50 # make single epoch longer
+      overlap: False
+      # rate: 4 # make single epoch longer
+      rate: 20 # make single epoch longer
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
     DATASET_ARGS:
+      overlap: False
       rate: 1
 
 AUGS:
@@ -66,11 +70,11 @@ AUGS:
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      # - {m : albu.ChannelShuffle, args: [.5,]}
+      - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      - {m : albu.ColorJitter, args: [.3, .3, .4, .1], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -89,6 +93,7 @@ MODEL:
     # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
     # model_name: 'convnext_small_in22ft1k'
+    # model_name: 'convnext_base_in22ft1k'
     # model_name: 'dm_nfnet_f2'
     # model_name: 'convnext_tiny'
     in_chans: 3
@@ -120,19 +125,19 @@ TRAIN:
   AMP: True
   GPUS: [0,1,2,3]
   NUM_WORKERS: 3
-  SAVE_STEP: 50
+  SAVE_STEP: 20
   SCALAR_STEP: 1
   TB_STEP: 1
   START_VAL: 0
-  EPOCH_COUNT: 100
-  BATCH_SIZE: 64
-  EARLY_EXIT: 20
+  EPOCH_COUNT: 200
+  BATCH_SIZE: 32
+  EARLY_EXIT: 30
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.99
-    end: .995
+    start: 0.97
+    end: .99
     type: 'linear'
 
 VALID:
@@ -140,7 +145,7 @@ VALID:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .8
+      weight: .7
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         # mode: 'binary'
@@ -148,7 +153,7 @@ LOSS:
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .2
+      weight: .3
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
