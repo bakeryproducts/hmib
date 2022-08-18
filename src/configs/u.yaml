@@ -6,10 +6,10 @@ DATA:
   # root: 'preprocessed/png1024overlap/images/'
   # ann_root: 'preprocessed/png1024overlap/masks/'
   # root: 'preprocessed/rle1024/images/'
-  # train_imgs: 'preprocessed/rle512_overlap.5/images/'
-  # train_anns: 'preprocessed/rle512_overlap.5/masks/'
-  train_imgs: 'preprocessed/rle1024/images/'
-  train_anns: 'preprocessed/rle1024/masks/'
+  train_imgs: 'preprocessed/rle512_overlap.5/images/'
+  train_anns: 'preprocessed/rle512_overlap.5/masks/'
+  # train_imgs: 'preprocessed/rle1024/images/'
+  # train_anns: 'preprocessed/rle1024/masks/'
 
   valid_imgs: 'preprocessed/rle1024/images/'
   valid_anns: 'preprocessed/rle1024/masks/'
@@ -25,14 +25,14 @@ DATA:
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      overlap: False
-      # rate: 4 # make single epoch longer
-      rate: 20 # make single epoch longer
+      overlap: 9 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
+      rate: 4 # make single epoch longer
+      # rate: 20 
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
     DATASET_ARGS:
-      overlap: False
+      overlap: 0
       rate: 1
 
 AUGS:
