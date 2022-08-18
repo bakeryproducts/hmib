@@ -13,6 +13,8 @@ Submission Scoring Error: Your notebook generated a submission file with incorre
 WHITE_THRESH = 240
 BLACK_THRSH = 10
 
+images = [i for i in images if i.ishubmap() and i.organ == 'kidney']
+
 for i in images:
     tissue = i[(i > BLACK_THRSH) & (i < WHITE_THRESH)]
     red += tissue[red_channel].mean()# median?
@@ -28,7 +30,7 @@ elif red_mean > T3:
 elif red_mean > T2:
     throw E2
 elif red_mean > T1:
-    throw E3
+    throw E1
 
 
 
