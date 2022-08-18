@@ -38,8 +38,8 @@ def SubmissionNotFound():
 
 def NotebookExceededRes():
     import torch
-    MAX_SIZE = int(1e20)
-    t = torch.zeros(MAX_SIZE + 1).cuda()
+    gb20 = 20 * 1024 * 1024 * 1024 # ~kinda
+    t = torch.zeros(gb20 + 1, dtype=torch.int)
 
 
 def SubmissionScoringError():
@@ -58,8 +58,8 @@ OUTPUT_FILE = "/kaggle/working/submission.csv"
 DUMMY_RLE = ""
 
 
-WHITE_THRESH = 240
-BLACK_THRSH = 10
+WHITE_THRESH = 230
+BLACK_THRSH = 20
 RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
 
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
@@ -74,26 +74,28 @@ df_file = TRAIN_CSV_FILE if DEBUG else TEST_CSV_FILE
 
 df = pd.read_csv(df_file)
 
-red_means = []
+means = []
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
     if row.data_source == DATA_SOURCE and row.organ == ORGAN:
         image = load_tiff(images_dir / f"{row.id}.tiff")
-        tissue = image[(image > BLACK_THRSH) & (image < WHITE_THRESH)]
-        red_means.append(tissue[..., RED_CHANNEL].mean())  # median?
+        gray_image = image.mean(0)
+        mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
+        tissue = image[mask]
+        means.append(tissue[..., RED_CHANNEL].mean())  # median?
 
 
-red_mean = np.mean(red_means)
-red_std = np.std(red_means)
+stat = np.mean(means)
+# stat = np.std(means)
 
 T0, T1, T2, T3 = 180, 130, 110, 80
 
 assert T0 > T1 > T2 > T3
 
-if red_mean > T0:
+if stat > T0:
     NotebookException()
-elif red_mean > T1:
+elif stat > T1:
     NotebookExceededRes()
-elif red_mean > T2:
+elif stat > T2:
     SubmissionNotFound()
-elif red_mean > T3:
+elif stat > T3:
     SubmissionScoringError()
