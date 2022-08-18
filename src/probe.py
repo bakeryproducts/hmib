@@ -80,8 +80,8 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
         image = load_tiff(images_dir / f"{row.id}.tiff")
         gray_image = image.mean(0)
         mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
-        tissue = image[mask]
-        means.append(tissue[..., RED_CHANNEL].mean())  # median?
+        tissue = image[RED_CHANNEL, mask]
+        means.append(tissue.mean())  # median?
 
 
 stat = np.mean(means)
