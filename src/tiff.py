@@ -2,6 +2,9 @@ import albumentations.augmentations.geometric.functional as AGF
 import numpy as np
 import rasterio as rio
 
+import warnings
+warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
+
 from block_utils import (
     generate_block_coords,
     pad_block,
