@@ -6,7 +6,7 @@ import numpy as np
 from timm.utils.agc import adaptive_clip_grad
 
 from tools_tv import run_once
-from callbacks_fn import weight_watcher, set_dropout, freeze_stages
+from callbacks_fn import weight_watcher, set_dropout, freeze_stages, denorm
 import shallow as sh
 
 
@@ -239,13 +239,12 @@ class FrozenEncoderCB(sh.callbacks.Callback):
                 self.enc_frozen = False
 
 
+
+
 class TBPredictionsCB(sh.callbacks.Callback):
     def __init__(self, cfg, writer, batch_read=lambda x: x, denorm=sh.utils.common.denorm, upscale=sh.utils.common.upscale, logger=None):
         sh.utils.file_op.store_attr(self, locals())
         self.num_images, self.hw = 8, (256*3,256)
-
-    def before_fit(self):
-        self.mean, self.std = self.cfg.AUGS.MEAN, self.cfg.AUGS.STD
 
     @torch.no_grad()
     def process_batch(self, training):
@@ -257,8 +256,6 @@ class TBPredictionsCB(sh.callbacks.Callback):
         xb = xb[:self.num_images].cpu().float()
         yb = yb[:self.num_images].cpu().float()
         pr = pr[:self.num_images].cpu().float()
-
-
 
         # print(sh.utils.common.st(xb))
         # print(sh.utils.common.st(yb))
@@ -280,7 +277,8 @@ class TBPredictionsCB(sh.callbacks.Callback):
             yb[:,2] = 0
             yb[:,1] = pr[:,0]
             pr = pr.repeat(1,3,1,1)
-            xb = xb * 69 + 176
+            # xb = denorm(xb, mode=self.cfg.AUGS.NORM.MODE, mean=176, std=69)
+            xb = denorm(xb, mode=self.cfg.AUGS.NORM.MODE)
             xb = xb / xb.max()
             yb = yb / yb.max()
 

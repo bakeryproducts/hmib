@@ -229,40 +229,26 @@ class DataPair:
 
 
 class DfDataset:
-    def __init__(self, data, base_df, ind_df=None, index_paths=None):
+    def __init__(self, data, base_df, ind_df=None, index_paths=None, overlap=0):
         if index_paths:
             ind_df = load_index_df(index_paths)
         inddf = ind_df.reset_index(drop=True)
 
         df = base_df.iloc[inddf[0].values]
         self.labels = read_meta(df)
+        if overlap: self.labels = self.convert_to_overlap(self.labels, overlap)
         self.data = data
 
-    def __getitem__(self, idx):
-        label = self.labels[idx]
-        return self.data(label)
-
-    def __len__(self): return len(self.labels)
-
-
-class ExtDfDataset:
-    def __init__(self, data, base_df, ind_df=None, index_paths=None):
-        if index_paths:
-            ind_df = load_index_df(index_paths)
-        inddf = ind_df.reset_index(drop=True)
-
-        df = base_df.iloc[inddf[0].values]
-        self.labels = read_meta(df)
+    def convert_to_overlap(self, labels, overlap):
         ll = []
-        for l in self.labels:
-            for i in range(9):
-            # for i in range(4):
+        for l in labels:
+            for i in range(overlap):
                 lc = replace(l) # copy for dataclass
                 name, ext = lc.fname.split('.')
                 lc.fname = f'{name}_{i}.{ext}'
                 ll.append(lc)
-        self.labels = ll
-        self.data = data
+        return ll
+
 
     def __getitem__(self, idx):
         label = self.labels[idx]
@@ -290,7 +276,6 @@ class MainDataset:
                  base_path,
                  index_paths,
                  train,
-                 overlap,
                  ImgLoader,
                  AnnLoader,
                  **kwargs):
@@ -304,15 +289,7 @@ class MainDataset:
         ind_df = load_index_df(index_paths)
 
         rate = kwargs.pop('rate')
-        if train:
-            # overlap mode, 1234_{i}.png, i c [0..N]
-            # TODO: forward train flag into DfDataset, merge ExtDfDataset, DfDataset
-            if overlap:
-                ds = ExtDfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
-            else:
-                ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
-        else:
-            ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+        ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
         self.ds = Mult(ds, rate)
 
     def __len__(self): return len(self.ds)

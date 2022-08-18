@@ -4,6 +4,17 @@ import torch
 def default_zero_tensor(): return lambda: torch.tensor([0.])
 
 
+def denorm(x, mode, **kwargs):
+    if mode == 'minmax':
+        # [0,1]
+        pass
+    elif mode == 'meanstd':
+        mean = kwargs['mean']
+        std = kwargs['std']
+        x = x * std + mean
+    return x
+
+
 @torch.no_grad()
 def weight_watcher(cb):
     if cb.cfg.PARALLEL.IS_MASTER:
