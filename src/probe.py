@@ -10,16 +10,62 @@ Submission Scoring Error: Your notebook generated a submission file with incorre
 
 """
 
+from pathlib import Path
+
+import pandas as pd
+from tqdm import tqdm
+
+from tiff import load_tiff
+
+
+DATA_DIR = Path("/kaggle/input/hubmap-organ-segmentation")
+
+TEST_IMAGES_DIR = DATA_DIR / "test_images"
+TRAIN_IMAGES_DIR = DATA_DIR / "train_images"
+TEST_CSV_FILE = DATA_DIR / "test.csv"
+TRAIN_CSV_FILE = DATA_DIR / "train.csv"
+OUTPUT_FILE = "/kaggle/working/submission.csv"
+DUMMY_RLE = ""
+
+DEBUG = False
+
 WHITE_THRESH = 240
 BLACK_THRSH = 10
+RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
 
-images = [i for i in images if i.ishubmap() and i.organ == 'kidney']
+DATA_SOURCES = ['Hubmap', 'HPA']
+ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
-for i in images:
-    tissue = i[(i > BLACK_THRSH) & (i < WHITE_THRESH)]
-    red += tissue[red_channel].mean()# median?
 
-red_mean = [N]
+images_dir = TRAIN_IMAGES_DIR if DEBUG else TEST_IMAGES_DIR
+df_file = TRAIN_CSV_FILE if DEBUG else TEST_CSV_FILE
+
+df = pd.read_csv(df_file)
+
+red_means = []
+result = []
+for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
+    if row.data_source in DATA_SOURCES and row.organ in ORGANS:
+        image = load_tiff(images_dir / f"{row.id}.tiff")
+        tissue = image[(image > BLACK_THRSH) & (image < WHITE_THRESH)]
+        red_means.append(tissue[..., RED_CHANNEL].mean())  # median?
+
+    result.append({
+        "id": row.id,
+        "rle": DUMMY_RLE,
+    })
+
+result = pd.DataFrame(result)
+result.to_csv(OUTPUT_FILE, index=False)
+
+
+# images = [i for i in images if i.ishubmap() and i.organ == 'kidney']
+#
+# for i in images:
+#     tissue = i[(i > BLACK_THRSH) & (i < WHITE_THRESH)]
+#     red += tissue[red_channel].mean()# median?
+
+red_mean = np.mean(red_means)
 
 T0, T1, T2, T3 = 180, 80, 110, 130
 
