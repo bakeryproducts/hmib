@@ -42,8 +42,10 @@ def prepare_batch(batch, cb, train):
     run_once(3, cb.log_debug, 'After train aug, XB', sh.utils.common.st(xb))
     run_once(35, cb.log_debug, 'After train aug, YB', sh.utils.common.st(yb))
 
-    # xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.MEAN, std=cb.cfg.AUGS.STD)
-    xb = (xb - xb.min()) / (xb.max() - xb.min())
+    if cb.cfg.AUGS.NORM.MODE == 'meanstd':
+        xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.NORM.MEAN, std=cb.cfg.AUGS.NORM.STD)
+    elif cb.cfg.AUGS.NORM.MODE == 'minmax':
+        xb = (xb - xb.min()) / (xb.max() - xb.min())
     # xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
 

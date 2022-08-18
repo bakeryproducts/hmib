@@ -36,8 +36,10 @@ DATA:
       rate: 1
 
 AUGS:
-  STD: [69] # TODO: fix stats
-  MEAN: [176.]
+  NORM:
+    MODE: 'minmax'
+    STD: [69] 
+    MEAN: [176.]
   TRAIN_RESIZE: [0]
   VALID_RESIZE: [0]
   MSR:
