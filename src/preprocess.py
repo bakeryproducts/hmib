@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from src.tiff import load_tiff
+from tiff import load_tiff
 
 
 def rle_decode(rle_str, mask_shape, mask_dtype=np.uint8):
