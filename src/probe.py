@@ -11,20 +11,41 @@ Submission Scoring Error: Your notebook generated a submission file with incorre
 """
 from pathlib import Path
 
-import pandas as pd
-from tqdm import tqdm
-import rasterio as rio
 import numpy as np
+import pandas as pd
+import rasterio as rio
+from tqdm import tqdm
 
-#from tiff import load_tiff
+
+DATA_DIR = Path("/kaggle/input/hubmap-organ-segmentation")
+
+TEST_IMAGES_DIR = DATA_DIR / "test_images"
+TRAIN_IMAGES_DIR = DATA_DIR / "train_images"
+TEST_CSV_FILE = DATA_DIR / "test.csv"
+TRAIN_CSV_FILE = DATA_DIR / "train.csv"
+SUBMISSION_PATH = "/kaggle/working/submission.csv"
+DUMMY_RLE = ""
+
+
+DEBUG = True
+
+
+WHITE_THRESH = 230
+BLACK_THRSH = 20
+RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
+
+
+T0, T1, T2, T3 = 180, 130, 110, 80
+assert T0 > T1 > T2 > T3
+
+
+ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
+ORGAN = "kidney"
+DATA_SOURCE = "HPA" if DEBUG else "Hubmap"
 
 
 def load_tiff(p):
     return rio.open(str(p)).read()
-
-
-# !cp /kaggle/input/hubmap-organ-segmentation/sample_submission.csv ./submission.csv
-SUBMISSION_PATH = './submission.csv'
 
 
 def NotebookException():
@@ -38,7 +59,7 @@ def SubmissionNotFound():
 
 def NotebookExceededRes():
     import torch
-    gb20 = 20 * 1024 * 1024 * 1024 # ~kinda
+    gb20 = 20 * 1024 * 1024 * 1024  # ~kinda
     t = torch.zeros(gb20 + 1, dtype=torch.int)
 
 
@@ -47,50 +68,32 @@ def SubmissionScoringError():
         f.write('This is a test')
 
 
-
-DATA_DIR = Path("/kaggle/input/hubmap-organ-segmentation")
-
-TEST_IMAGES_DIR = DATA_DIR / "test_images"
-TRAIN_IMAGES_DIR = DATA_DIR / "train_images"
-TEST_CSV_FILE = DATA_DIR / "test.csv"
-TRAIN_CSV_FILE = DATA_DIR / "train.csv"
-OUTPUT_FILE = "/kaggle/working/submission.csv"
-DUMMY_RLE = ""
-
-
-WHITE_THRESH = 230
-BLACK_THRSH = 20
-RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
-
-ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
-DEBUG = True
-DATA_SOURCE = "HPA"
-# DATA_SOURCE = "Hubmap"
-ORGAN = ORGANS[0]
-
-
 images_dir = TRAIN_IMAGES_DIR if DEBUG else TEST_IMAGES_DIR
 df_file = TRAIN_CSV_FILE if DEBUG else TEST_CSV_FILE
 
 df = pd.read_csv(df_file)
 
 means = []
-# to do: valid csv
+result = []
+
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
     if row.data_source == DATA_SOURCE and row.organ == ORGAN:
         image = load_tiff(images_dir / f"{row.id}.tiff")
         gray_image = image.mean(0)
         mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
-        tissue = image[RED_CHANNEL][mask] # CHW, 3chan
+        tissue = image[RED_CHANNEL][mask]  # CHW, 3chan
         means.append(tissue.mean())  # median?
+
+    result.append({
+        "id": row.id,
+        "rle": DUMMY_RLE,
+    })
+
+result = pd.DataFrame(result)
+result.to_csv(SUBMISSION_PATH, index=False)
 
 
 stat = np.mean(means)
-# stat = np.std(means)
-
-T0, T1, T2, T3 = 180, 130, 110, 80
-
-assert T0 > T1 > T2 > T3
 
 if stat > T0:
     NotebookException() # x > T0
