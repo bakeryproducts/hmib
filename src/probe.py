@@ -26,22 +26,23 @@ TRAIN_CSV_FILE = DATA_DIR / "train.csv"
 SUBMISSION_PATH = "/kaggle/working/submission.csv"
 DUMMY_RLE = ""
 
-
-DEBUG = True
-
-
 WHITE_THRESH = 230
 BLACK_THRSH = 20
 RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
-
-
-T0, T1, T2, T3 = 180, 130, 110, 80
-assert T0 > T1 > T2 > T3
-
-
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
+
+
+
+################ fix us #########################
+DEBUG = False
+ERROR_DEBUG_SCORING = False
+ERROR_DEBUG_RESOURSES = False
+# TODO check for not found and 1/0 ?
 ORGAN = "kidney"
 DATA_SOURCE = "HPA" if DEBUG else "Hubmap"
+T0, T1, T2, T3 = 180, 130, 110, 80
+assert T0 > T1 > T2 > T3
+################ fix us #########################
 
 
 def load_tiff(p):
@@ -59,8 +60,10 @@ def SubmissionNotFound():
 
 def NotebookExceededRes():
     import torch
-    gb20 = 20 * 1024 * 1024 * 1024  # ~kinda
-    t = torch.zeros(gb20 + 1, dtype=torch.int)
+    gb20 = 100 * 1024 * 1024 * 1024  # ~kinda
+    tt = []
+    while True:
+        tt.append(torch.zeros(gb20 + 1, dtype=torch.int))
 
 
 def SubmissionScoringError():
@@ -76,6 +79,7 @@ df = pd.read_csv(df_file)
 means = []
 result = []
 
+cnt = 0
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
     if row.data_source == DATA_SOURCE and row.organ == ORGAN:
         image = load_tiff(images_dir / f"{row.id}.tiff")
@@ -84,6 +88,11 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
         tissue = image[RED_CHANNEL][mask]  # CHW, 3chan
         means.append(tissue.mean())  # median?
 
+    if ERROR_DEBUG_RESOURSES and cnt > 5:
+        # cnt to skip through saving with single test image
+        NotebookExceededRes()
+
+    cnt += 1
     result.append({
         "id": row.id,
         "rle": DUMMY_RLE,
@@ -92,16 +101,22 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
 result = pd.DataFrame(result)
 result.to_csv(SUBMISSION_PATH, index=False)
 
+if ERROR_DEBUG_SCORING:
+    if cnt > 5:
+        # cnt to skip through saving with single test image
+        SubmissionScoringError()
 
-stat = np.mean(means)
-
-if stat > T0:
-    NotebookException() # x > T0
-elif stat > T1:
-    NotebookExceededRes() # T1 < x < T0
-elif stat > T2:
-    SubmissionNotFound() # T2 < x < T1
-elif stat > T3:
-    SubmissionScoringError() # T3 < x < T2
 else:
-    pass # x < T3
+    # can throw another exception, while we test for scoring, thou else
+    stat = np.mean(means)
+
+    if stat > T0:
+        NotebookException() # x > T0
+    elif stat > T1:
+        NotebookExceededRes() # T1 < x < T0
+    elif stat > T2:
+        SubmissionNotFound() # T2 < x < T1
+    elif stat > T3:
+        SubmissionScoringError() # T3 < x < T2
+    else:
+        pass # x < T3
