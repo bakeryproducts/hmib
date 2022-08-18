@@ -93,10 +93,12 @@ T0, T1, T2, T3 = 180, 130, 110, 80
 assert T0 > T1 > T2 > T3
 
 if stat > T0:
-    NotebookException()
+    NotebookException() # x > T0
 elif stat > T1:
-    NotebookExceededRes()
+    NotebookExceededRes() # T1 < x < T0
 elif stat > T2:
-    SubmissionNotFound()
+    SubmissionNotFound() # T2 < x < T1
 elif stat > T3:
-    SubmissionScoringError()
+    SubmissionScoringError() # T3 < x < T2
+else:
+    pass # x < T3
