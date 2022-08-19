@@ -32,6 +32,12 @@ RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double c
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
 
+def thrs(a,d):
+    e = (a - d)//3
+    b = a - e
+    c = a - 2 * e
+    return a, b, c, d
+
 
 ################ fix us #########################
 DEBUG = False
@@ -40,7 +46,7 @@ ERROR_DEBUG_RESOURSES = False
 # TODO check for not found and 1/0 ?
 ORGAN = "kidney"
 DATA_SOURCE = "HPA" if DEBUG else "Hubmap"
-T0, T1, T2, T3 = 180, 130, 110, 80
+T0, T1, T2, T3 = thrs(180, 130)
 assert T0 > T1 > T2 > T3
 ################ fix us #########################
 
