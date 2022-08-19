@@ -80,3 +80,19 @@ data structure:
 
 
 mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
+
+# Probing:
+
+
+## Hubmap
+### Kidney
+ - R:
+ 1) test 180-130, csv, in 164-148
+ 2) test 160-152, csv, in 158-156
+ - G
+ 1) 180-130, pass, in 0-130
+ 2) 110-65, pass, in 0-65
+ 3) 55-30, pass , in 0-30
+
+
+

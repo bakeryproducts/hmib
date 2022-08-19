@@ -26,8 +26,8 @@ TRAIN_CSV_FILE = DATA_DIR / "train.csv"
 SUBMISSION_PATH = "/kaggle/working/submission.csv"
 DUMMY_RLE = ""
 
-WHITE_THRESH = 230
-BLACK_THRSH = 20
+WHITE_THRESH = 240
+BLACK_THRSH = 15
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
 
