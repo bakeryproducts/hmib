@@ -28,14 +28,13 @@ DUMMY_RLE = ""
 
 WHITE_THRESH = 230
 BLACK_THRSH = 20
-RED_CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
 
 def thrs(a,d):
     e = (a - d)//3
     b = a - e
-    c = a - 2 * e
+    c = d + e
     return a, b, c, d
 
 
@@ -45,6 +44,7 @@ ERROR_DEBUG_SCORING = False
 ERROR_DEBUG_RESOURSES = False
 # TODO check for not found and 1/0 ?
 ORGAN = "kidney"
+CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
 DATA_SOURCE = "HPA" if DEBUG else "Hubmap"
 T0, T1, T2, T3 = thrs(180, 130)
 assert T0 > T1 > T2 > T3
@@ -91,7 +91,7 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
         image = load_tiff(images_dir / f"{row.id}.tiff")
         gray_image = image.mean(0)
         mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
-        tissue = image[RED_CHANNEL][mask]  # CHW, 3chan
+        tissue = image[CHANNEL][mask]  # CHW, 3chan
         means.append(tissue.mean())  # median?
 
     if ERROR_DEBUG_RESOURSES and cnt > 5:
