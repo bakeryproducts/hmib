@@ -626,11 +626,10 @@ class SwinTransformer(nn.Module):
         self._freeze_stages()
 
 
-# from _cls_swin import SwinTransformer as CSwin
+from _cls_swin import SwinTransformer as CSwin
 
-
-class SwinTransformerForSimMIM(SwinTransformer):
-# class SwinTransformerForSimMIM(CSwin):
+# class SwinTransformerForSimMIM(SwinTransformer):
+class SwinTransformerForSimMIM(CSwin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))

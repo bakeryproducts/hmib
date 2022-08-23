@@ -10,6 +10,16 @@ from segformer import SaneSegFormerHead
 
 
 
+
+class ClassificationHead(nn.Sequential):
+    def __init__(self, in_channels, classes, dropout=0.2):
+        pool = nn.AdaptiveAvgPool2d(1)
+        flatten = nn.Flatten()
+        dropout = nn.Dropout(p=dropout, inplace=True)
+        linear = nn.Linear(in_channels, classes, bias=True)
+        super().__init__(pool, flatten, dropout, linear)
+
+
 def oh_my_god(s):
     return eval(s)
 
@@ -162,15 +172,6 @@ def create_segdec(enc, dec):
 
     embedding_dim = 128
     decoder = SaneSegFormerHead(enc_channels[::-1], embedding_dim, dropout=0, **dec.get('base', {}), )
-    # dec_all_stages = dict(dec.get('all_stages', {}))
-
-    # decoder = Decoder(
-    #     encoder_channels=enc_channels,
-    #     decoder_channels=dec_channels,
-    #     block_kwargs=blocks_kwargs,
-    #     all_kwargs=dec_all_stages,
-    #     **dec.get('base', {}),
-    # )
     return decoder
 
 
