@@ -8,8 +8,8 @@ from callbacks import _TrainCallback
 from callbacks_fn import default_zero_tensor
 from tools_tv import run_once, norm_2d, batch_quantile
 
-from mixup import MSR, MixUpAug
-from fmix import FMixAug, AmpAug
+from augment.mixup import MSR, MixUpAug
+from augment.fmix import FMixAug, AmpAug
 from data import MaskGenerator, ORGANS
 
 

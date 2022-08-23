@@ -5,8 +5,8 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from swin import SwinTransformer
-from segformer import SaneSegFormerHead
+from encoders.swin import SwinTransformer
+from decoders.segformer import SaneSegFormerHead
 
 
 

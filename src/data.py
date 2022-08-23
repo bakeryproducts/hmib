@@ -3,15 +3,13 @@ import json
 import random
 import numpy as np
 from pathlib import Path
-from functools import partial
+from functools import partial, lru_cache
 from dataclasses import dataclass, replace
 
 import rasterio
 import pandas as pd
-from shapely.geometry import Polygon
 from rasterio.features import rasterize
 
-from functools import lru_cache
 
 import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
