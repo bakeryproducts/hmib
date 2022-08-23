@@ -10,10 +10,12 @@ Submission Scoring Error: Your notebook generated a submission file with incorre
 
 """
 from pathlib import Path
+from time import sleep
 
 import numpy as np
 import pandas as pd
 import rasterio as rio
+import torch
 from tqdm import tqdm
 
 
@@ -31,11 +33,22 @@ BLACK_THRSH = 15
 ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
 
-def thrs(a,d):
-    e = (a - d)//3
+def thrs_closed(a, d, n_points=4):
+    step = (d - a) // (n_points + 1)
+    return (a + step * i for i in range(1, n_points + 1))
+
+
+def thrs(a, d):
+    e = (a - d) // 3
     b = a - e
     c = d + e
     return a, b, c, d
+
+
+def load_gpu():
+    result = torch.zeros(1000).to("cuda")
+    for i in range(1000):
+        result += i
 
 
 ################ fix us #########################
@@ -104,6 +117,8 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
         "rle": DUMMY_RLE,
     })
 
+load_gpu()
+
 result = pd.DataFrame(result)
 result.to_csv(SUBMISSION_PATH, index=False)
 
@@ -126,3 +141,5 @@ else:
         SubmissionScoringError() # T3 < x < T2
     else:
         pass # x < T3
+
+sleep(10)
