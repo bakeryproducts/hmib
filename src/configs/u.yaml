@@ -1,11 +1,8 @@
 INPUTS: input
 OUTPUTS: output
 
-SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++SPLITS=3
+SPLIT: 0
 DATA:
-  # root: 'preprocessed/png1024overlap/images/'
-  # ann_root: 'preprocessed/png1024overlap/masks/'
-  # root: 'preprocessed/rle1024/images/'
   # train_imgs: 'preprocessed/rle512_overlap.5/images/'
   # train_anns: 'preprocessed/rle512_overlap.5/masks/'
   train_imgs: 'preprocessed/rle_1024/images/'
@@ -13,10 +10,6 @@ DATA:
 
   valid_imgs: 'preprocessed/rle_1024/images/'
   valid_anns: 'preprocessed/rle_1024/masks/'
-  # root: 'preprocessed/fixed1024_overlap512/images/'
-  # ann_root: 'preprocessed/fixed1024_overlap512/masks/'
-  # root: 'preprocessed/fixed768_overlap512/images/'
-  # ann_root: 'preprocessed/fixed768_overlap512/masks/'
   # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
   # ann_loader: 'partial(data.Names, suffix=".png")'
   img_loader: 'partial(data.PngImages, suffix=".png")'
@@ -26,7 +19,6 @@ DATA:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
       overlap: 0 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
-      # rate: 4 # make single epoch longer
       rate: 20 
 
   VALID:
@@ -55,9 +47,7 @@ AUGS:
     PROB: .0
 
   AUG_MULTIPLICITY: 1
-  # CROP: [192, 192]
   # CROP: [256,256]
-  # VALCROP: [192,192]
   CROP: [384,384]
   # CROP: [512,512]
   # VALCROP: [384,384]
@@ -90,6 +80,9 @@ MODEL:
   ARCH: 'unet' # 'ssl'
   INIT_MODEL: ''
   ENCODER:
+    runner: 
+        _target_: encoders.encoder.create_encoder
+        _partial_: true
     model_name: 'resnet34'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
@@ -101,6 +94,9 @@ MODEL:
     in_chans: 3
 
   DECODER:
+    runner: 
+        _target_: decoders.decoder.create_decoder
+        _partial_: true
     base:
       use_bottleneck: False
       last_scale: 4
@@ -180,7 +176,6 @@ FEATURES:
 
 OPTIMIZER:
   LRS: [0.000001, 0.0002, 0.0001, 1]
-  # LRS: [0.00001, 0.00025, 0.0001, 1]
   # LRS: [0.000001, 0.00006, 0.00001, 0]
   
   FINE_LR:
@@ -204,15 +199,12 @@ hydra:
   run:
     dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${_postfix}
   sweep:
-    # dir: ${hydra.runtime.cwd}/outputs/ 
     dir : ./output/${now:%m-%d}/${now:%H-%M-%S}_SWEEP
     subdir: J${hydra.job.num}_${_postfix}
 
 defaults: 
     - PARALLEL: _parallel
-    # - TRAIN: _train
     - VALID: _valid
-    - TEST: _test
     - FEATURES.SAM: _sam
     - AUGS.MIXUP: _mixup
     - _self_

@@ -1,4 +1,5 @@
 import timm
+import hydra
 import torch
 import torch.nn as nn
 from functools import partial
@@ -16,17 +17,27 @@ def model_select(cfg):
 
     archs = dict(unet=EncoderDecoder, )
 
-    seg = partial(archs[cfg.MODEL.ARCH], cfg=cfg, encoder_cfg=enc_kwargs, decoder_cfg=dec_kwargs, seg_cfg=seghead_kwargs)
+    # POP AGAIN!
+    encoder_fact = hydra.utils.instantiate(enc_kwargs.pop('runner'))
+    decoder_fact = hydra.utils.instantiate(dec_kwargs.pop('runner'))
+
+    seg = partial(archs[cfg.MODEL.ARCH],
+                  cfg=cfg,
+                  encoder_fact=encoder_fact,
+                  encoder_cfg=enc_kwargs,
+                  decoder_fact=decoder_fact,
+                  decoder_cfg=dec_kwargs,
+                  seg_cfg=seghead_kwargs)
     return seg
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, cfg, encoder_cfg, decoder_cfg, seg_cfg):
+    def __init__(self, cfg, encoder_fact, encoder_cfg, decoder_fact, decoder_cfg, seg_cfg):
         super().__init__()
-        self.encoder, encoder_cfg = create_encoder(encoder_cfg) # will update cfg with stage channels
+        self.encoder, encoder_cfg = encoder_fact(encoder_cfg) # will update cfg with stage channels
         # self.encoder, encoder_cfg = create_swin(encoder_cfg) # will update cfg with stage channels
         # self.decoder = create_decoder(encoder_cfg, decoder_cfg)
-        self.decoder = create_segdec(encoder_cfg, decoder_cfg)
+        self.decoder = decoder_fact(encoder_cfg, decoder_cfg)
 
         dec_out = decoder_cfg['blocks'][-1]['ch']
         self.seg_head = nn.Conv2d(dec_out, **seg_cfg) # TODO : full head
