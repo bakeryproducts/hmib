@@ -35,11 +35,10 @@ class EncoderDecoder(nn.Module):
     def __init__(self, cfg, encoder_fact, encoder_cfg, decoder_fact, decoder_cfg, seg_cfg):
         super().__init__()
         self.encoder, encoder_cfg = encoder_fact(encoder_cfg) # will update cfg with stage channels
-        # self.encoder, encoder_cfg = create_swin(encoder_cfg) # will update cfg with stage channels
-        # self.decoder = create_decoder(encoder_cfg, decoder_cfg)
         self.decoder = decoder_fact(encoder_cfg, decoder_cfg)
 
-        dec_out = decoder_cfg['blocks'][-1]['ch']
+        # dec_out = decoder_cfg['blocks'][-1]['ch']
+        dec_out = self.decoder.embedding_dim
         self.seg_head = nn.Conv2d(dec_out, **seg_cfg) # TODO : full head
         torch.nn.init.constant_(self.seg_head.bias, -4.59)
 

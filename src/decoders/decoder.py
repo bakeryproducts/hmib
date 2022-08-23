@@ -150,7 +150,7 @@ def create_decoder(enc, dec):
     return decoder
 
 
-def create_segdec(enc, dec):
+def create_segdec(enc, dec, embedding_dim):
     enc_channels = [b['ch'] for b in enc['blocks']]
 
     blocks_kwargs = []
@@ -162,6 +162,5 @@ def create_segdec(enc, dec):
         block = dict(check_eval(k, v) for k, v in block.items())
         blocks_kwargs.append(block)
 
-    embedding_dim = 128
     decoder = SaneSegFormerHead(enc_channels[::-1], embedding_dim, dropout=0, **dec.get('base', {}), )
     return decoder

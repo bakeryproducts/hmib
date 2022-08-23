@@ -6,6 +6,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from encoders.swin import SwinTransformer
+from encoders.mixt import mit_b0
 
 
 def oh_my_god(s):
@@ -29,7 +30,7 @@ class SwinE(SwinTransformer):
         return d
 
 
-def load_pretrained(m):
+def load_pretrained_swin(m):
     st = torch.load('input/weights/upernet_swin_tiny_patch4_window7_512x512.pth')
     stf = {}
     for k, v in st['state_dict'].items():
@@ -41,10 +42,21 @@ def load_pretrained(m):
     return m
 
 
+def create_mixt(enc_cfg):
+    name = enc_cfg.pop('model_name')
+    names = dict(mit_b0=mit_b0)
+    assert name in names, (name, names)
+    enc = names[name](**enc_cfg)
+    # TODO: load_pretrained(enc)
+    blocks = [{'ch': i} for i in enc.embed_dims]
+    enc_cfg['blocks'] = blocks
+    return enc, enc_cfg
+
+
 def create_swin(enc_cfg):
     enc_cfg.pop('model_name')
     enc = SwinE(**enc_cfg)
-    load_pretrained(enc)
+    load_pretrained_swin(enc)
 
     blocks = []
     for stage in enc.feature_info:
