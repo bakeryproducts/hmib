@@ -4,7 +4,9 @@ import torch.nn as nn
 from functools import partial
 
 from basemodels import ClassificationHead
-from buildingblocks import create_encoder, create_decoder, create_swin, Adapter, create_segdec
+from buildingblocks import Adapter
+from decoders.decoder import create_decoder, create_segdec
+from encoders.encoder import create_swin, create_encoder
 
 
 def model_select(cfg):
