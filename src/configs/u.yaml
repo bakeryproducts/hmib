@@ -82,6 +82,7 @@ MODEL:
   ENCODER:
     runner: 
         _target_: encoders.encoder.create_mixt
+        # _target_: encoders.encoder.create_encoder
         _partial_: true
     model_name: 'mit_b0'
     # model_name: 'resnet34'
@@ -97,6 +98,7 @@ MODEL:
   DECODER:
     runner: 
         _target_: decoders.decoder.create_segdec
+        # _target_: decoders.decoder.create_decoder
         _partial_: true
         embedding_dim: 128
     base:
@@ -178,7 +180,8 @@ FEATURES:
 
 OPTIMIZER:
   # LRS: [0.000001, 0.0002, 0.0001, 1]
-  LRS: [0.000001, 0.00006, 0.00001, 1]
+  LRS: [0.000001, 0.0008, 0.0001, 1]
+  # LRS: [0.000001, 0.00006, 0.00001, 1]
   
   FINE_LR:
     - name: 'seg_head'

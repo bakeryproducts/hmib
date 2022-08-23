@@ -100,7 +100,6 @@ is_private = len(df) > 1
 means = []
 result = []
 
-cnt = 0
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
     if row.data_source == DATA_SOURCE and row.organ == ORGAN:
         image = load_tiff(images_dir / f"{row.id}.tiff")
@@ -109,11 +108,10 @@ for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
         tissue = image[CHANNEL][mask]  # CHW, 3chan
         means.append(tissue.mean())  # median?
 
-    if ERROR_DEBUG_RESOURSES and cnt > 5:
+    if ERROR_DEBUG_RESOURSES and is_private:
         # cnt to skip through saving with single test image
         NotebookExceededRes()
 
-    cnt += 1
     result.append({
         "id": row.id,
         "rle": DUMMY_RLE,
@@ -125,10 +123,8 @@ result = pd.DataFrame(result)
 result.to_csv(SUBMISSION_PATH, index=False)
 
 if ERROR_DEBUG_SCORING:
-    if cnt > 5:
-        # cnt to skip through saving with single test image
+    if is_private:
         SubmissionScoringError()
-
 else:
     # can throw another exception, while we test for scoring, thou else
     stat = np.mean(means)

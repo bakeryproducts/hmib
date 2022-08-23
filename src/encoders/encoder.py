@@ -6,7 +6,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from encoders.swin import SwinTransformer
-from encoders.mixt import mit_b0
+from encoders.mixt import mit_b0, mit_b1
 
 
 def oh_my_god(s):
@@ -44,7 +44,7 @@ def load_pretrained_swin(m):
 
 def create_mixt(enc_cfg):
     name = enc_cfg.pop('model_name')
-    names = dict(mit_b0=mit_b0)
+    names = dict(mit_b0=mit_b0, mit_b1=mit_b1)
     assert name in names, (name, names)
     enc = names[name](**enc_cfg)
     # TODO: load_pretrained(enc)
