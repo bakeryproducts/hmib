@@ -95,6 +95,8 @@ df_file = TRAIN_CSV_FILE if DEBUG else TEST_CSV_FILE
 
 df = pd.read_csv(df_file)
 
+is_private = len(df) > 1
+
 means = []
 result = []
 
