@@ -214,11 +214,14 @@ class ValCB(sh.callbacks.Callback):
                         sega = torch.stack(r)
 
                     segb = batch['yb']
+                    lung = []
                     # lung drop:
                     for i in range(len(sega)):
                         idx = batch['cls'][i]
-                        if idx == ORGANS['lung']:
-                            sega[i] = segb[i]
+                        lung.append(idx == ORGANS['lung'])
+#                        if idx == ORGANS['lung']:
+#                            sega[i] = segb[i]
+                    lung = torch.as_tensor(lung)
 
                     dice = metrics.calc_score(sega, segb)
 
@@ -226,7 +229,7 @@ class ValCB(sh.callbacks.Callback):
                     # run_once(442, self.log_warning, 'classes', sh.utils.common.st(batch['cls'].float()))
 
                     op = 'gather'
-                    self.L.tracker_cb.set('dices', dice, operation=op)
+                    self.L.tracker_cb.set('dices', dice.clone(), operation=op)
                     self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
 
                     pred_cls = pred['cls'].softmax(1)
@@ -234,6 +237,8 @@ class ValCB(sh.callbacks.Callback):
                     gt_cls = batch['cls']
                     acc = (pred_cls == gt_cls).float().mean()
                     self.L.tracker_cb.set('cls_acc', acc)
+
+                    dice[lung] = 1.0
 
                 else:
                     dice = torch.zeros(1).cuda()
