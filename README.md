@@ -86,13 +86,23 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 ## Hubmap
 ### Kidney
- - R:
- 1) test 180-130, csv, in 164-148
- 2) test 160-152, csv, in 158-156
+ - R
+ 1) 
+ 2) 
  - G
- 1) 180-130, pass, in 0-130
- 2) 110-65, pass, in 0-65
- 3) 55-30, pass , in 0-30
+ 1) 
+
+### prostate
+- R
+1)
 
 
-
+### spleen
+- R
+1) 200, 50, res, in 150-200
+2) 190, 160, score, in 160-170
+3) TODO
+- G
+1) 190, 110, pass, in 0-110
+2) 90, 10, note, in 90-110
+3) 105, 94, pass, in 90-94
