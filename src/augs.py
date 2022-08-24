@@ -1,10 +1,53 @@
+import random
 from functools import partial
 
+import cv2
 import torch
+import staintools
 import numpy as np
 import albumentations as albu
 
 import shallow as sh
+
+
+class ShiftScaleRotate(albu.ShiftScaleRotate):
+    def get_params(self):
+        params = super().get_params()
+
+        # Make scale to be < 0 and > 0 with equal probabilities
+        if self.scale_limit[0] * self.scale_limit[1] < 0:
+            if np.random.random() < 0.5:
+                params["scale"] = np.random.uniform(self.scale_limit[0], 0)
+            else:
+                params["scale"] = np.random.uniform(0, self.scale_limit[1])
+
+        return params
+
+
+def pixel_scale(image, scale_factor):
+    result = staintools.LuminosityStandardizer.standardize(image)
+
+    result = cv2.resize(result, dsize=None, fx=scale_factor, fy=scale_factor)
+    result = cv2.resize(result, dsize=(image.shape[1], image.shape[0]))
+
+    result = staintools.LuminosityStandardizer.standardize(result)
+
+    return result
+
+
+class PixelScale(albu.ImageOnlyTransform):
+    def __init__(self, scale_limit=[0.8, 12.], always_apply=False, p=0.5):
+        super().__init__(always_apply, p)
+        self.scale_limit = scale_limit
+
+    def apply(self, image, scale, **params):
+        return pixel_scale(image, scale)
+
+    def get_params(self):
+        return {"scale": random.uniform(self.scale_limit[0], self.scale_limit[1])}
+
+    def get_transform_init_args_names(self):
+        return ("scale_limit",)
 
 
 class AugDataset:

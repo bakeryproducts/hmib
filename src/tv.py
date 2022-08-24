@@ -188,20 +188,21 @@ class ValCB(sh.callbacks.Callback):
                 if self.cfg.MODEL.ARCH != 'ssl':
                     pred_hm = pred['yb']
                     gt = batch['yb']
+                    lung = []
                     if pred_hm.shape[1] > 1: # multilabel mode
                         r = []
                         for i,hm in enumerate(pred_hm):
                             organ_idx = batch['cls'][i]
                             hm = hm[organ_idx:organ_idx+1]
-                            if organ_idx == ORGANS['lung']:
-                                hm = gt[i]
+                            lung.append(organ_idx == ORGANS['lung'])
                             r.append(hm)
                         pred_hm = torch.stack(r) # B,1,H,W
+                        lung = torch.as_tensor(lung)
 
                     dice = metrics.calc_score(pred_hm, gt)
 
                     op = 'gather'
-                    self.L.tracker_cb.set('dices', dice, operation=op)
+                    self.L.tracker_cb.set('dices', dice.clone(), operation=op)
                     self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
 
                     pred_cls = pred['cls'].softmax(1)
@@ -209,6 +210,8 @@ class ValCB(sh.callbacks.Callback):
                     gt_cls = batch['cls']
                     acc = (pred_cls == gt_cls).float().mean()
                     self.L.tracker_cb.set('cls_acc', acc)
+
+                    dice[lung] = 1.0
 
                 else:
                     dice = torch.zeros(1).cuda()
@@ -238,6 +241,7 @@ def collect_map_score(cb, ema=True, train=False):
     ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
 
     if cb.cfg.PARALLEL.IS_MASTER:
+        macro = []
         for i in range(5):
             idxs = classes.long() == i
             class_name = ORGANS_DECODE[i]
@@ -246,3 +250,6 @@ def collect_map_score(cb, ema=True, train=False):
             organ_dice_std = organ_dices.std()
             cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
             cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)
+            macro.append(organ_dice_mean)
+        cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
+
