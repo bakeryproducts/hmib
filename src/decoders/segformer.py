@@ -44,6 +44,7 @@ class SaneSegFormerHead(torch.nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         self.out_channels = feature_channels
+        self.embedding_dim = embedding_dim
         # self.linear_pred = nn.Conv2d(embedding_dim, self.num_classes, kernel_size=1)
 
     def forward(self, *features):

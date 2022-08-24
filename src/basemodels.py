@@ -3,8 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# import segmentation_models_pytorch as smp
-
 
 class ClassificationHead(nn.Sequential):
     def __init__(self, in_channels, classes, dropout=0.2):

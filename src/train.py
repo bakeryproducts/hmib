@@ -8,7 +8,7 @@ from fastprogress.fastprogress import master_bar, progress_bar
 from omegaconf import OmegaConf
 
 import shallow as sh
-import dali
+from augment import dali
 import build_data
 import augs
 import metrics

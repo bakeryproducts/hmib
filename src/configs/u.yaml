@@ -1,20 +1,15 @@
 INPUTS: input
 OUTPUTS: output
 
-SPLIT: 0 # changing splits overriding config on run, i.e. python3 starter.py ++SPLITS=3
+SPLIT: 0
 DATA:
-  # root: 'preprocessed/png1024overlap/images/'
-  # ann_root: 'preprocessed/png1024overlap/masks/'
-  # root: 'preprocessed/rle1024/images/'
-  train_imgs: 'preprocessed/rle512_overlap.5/images/'
-  train_anns: 'preprocessed/rle512_overlap.5/masks/'
+  # train_imgs: 'preprocessed/rle512_overlap.5/images/'
+  # train_anns: 'preprocessed/rle512_overlap.5/masks/'
+  train_imgs: 'preprocessed/rle_1024/images/'
+  train_anns: 'preprocessed/rle_1024/masks/'
 
-  valid_imgs: 'preprocessed/rle1024/images/'
-  valid_anns: 'preprocessed/rle1024/masks/'
-  # root: 'preprocessed/fixed1024_overlap512/images/'
-  # ann_root: 'preprocessed/fixed1024_overlap512/masks/'
-  # root: 'preprocessed/fixed768_overlap512/images/'
-  # ann_root: 'preprocessed/fixed768_overlap512/masks/'
+  valid_imgs: 'preprocessed/rle_1024/images/'
+  valid_anns: 'preprocessed/rle_1024/masks/'
   # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
   # ann_loader: 'partial(data.Names, suffix=".png")'
   img_loader: 'partial(data.PngImages, suffix=".png")'
@@ -23,17 +18,20 @@ DATA:
   TRAIN:
     DATASETS: ['train_${SPLIT}', ]
     DATASET_ARGS:
-      rate: 4 # make single epoch longer
-      # rate: 50 # make single epoch longer
+      overlap: 0 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
+      rate: 20 
 
   VALID:
     DATASETS: ['valid_${SPLIT}', ]
     DATASET_ARGS:
+      overlap: 0
       rate: 1
 
 AUGS:
-  STD: [69] # TODO: fix stats
-  MEAN: [176.]
+  NORM:
+    MODE: 'minmax'
+    STD: [69] 
+    MEAN: [176.]
   TRAIN_RESIZE: [0]
   VALID_RESIZE: [0]
   MSR:
@@ -49,9 +47,7 @@ AUGS:
     PROB: .0
 
   AUG_MULTIPLICITY: 1
-  # CROP: [192, 192]
   # CROP: [256,256]
-  # VALCROP: [192,192]
   CROP: [384,384]
   # CROP: [512,512]
   # VALCROP: [384,384]
@@ -66,11 +62,11 @@ AUGS:
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      # - {m : albu.ChannelShuffle, args: [.5,]}
+      - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      - {m : albu.ColorJitter, args: [.3, .3, .4, .1], kwargs : {'p': .25}}  # bright, contr, sat , hue
+      - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -84,16 +80,27 @@ MODEL:
   ARCH: 'unet' # 'ssl'
   INIT_MODEL: ''
   ENCODER:
-    model_name: 'resnet34'
+    runner: 
+        _target_: encoders.encoder.create_mixt
+        # _target_: encoders.encoder.create_encoder
+        _partial_: true
+    model_name: 'mit_b0'
+    # model_name: 'resnet34'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
     # model_name: 'convnext_small_in22ft1k'
+    # model_name: 'convnext_base_in22ft1k'
     # model_name: 'dm_nfnet_f2'
     # model_name: 'convnext_tiny'
     in_chans: 3
 
   DECODER:
+    runner: 
+        _target_: decoders.decoder.create_segdec
+        # _target_: decoders.decoder.create_decoder
+        _partial_: true
+        embedding_dim: 128
     base:
       use_bottleneck: False
       last_scale: 4
@@ -120,19 +127,19 @@ TRAIN:
   AMP: True
   GPUS: [0,1,2,3]
   NUM_WORKERS: 3
-  SAVE_STEP: 50
+  SAVE_STEP: 20
   SCALAR_STEP: 1
   TB_STEP: 1
   START_VAL: 0
-  EPOCH_COUNT: 100
+  EPOCH_COUNT: 200
   BATCH_SIZE: 64
-  EARLY_EXIT: 20
+  EARLY_EXIT: 10
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.99
-    end: .995
+    start: 0.97
+    end: .99
     type: 'linear'
 
 VALID:
@@ -140,7 +147,7 @@ VALID:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .8
+      weight: .7
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         # mode: 'binary'
@@ -148,7 +155,7 @@ LOSS:
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .2
+      weight: .3
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
@@ -172,15 +179,15 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.000001, 0.0002, 0.0001, 1]
-  # LRS: [0.00001, 0.00025, 0.0001, 1]
-  # LRS: [0.000001, 0.00006, 0.00001, 0]
+  # LRS: [0.000001, 0.0002, 0.0001, 1]
+  LRS: [0.000001, 0.0008, 0.0001, 1]
+  # LRS: [0.000001, 0.00006, 0.00001, 1]
   
   FINE_LR:
     - name: 'seg_head'
       group_options:
         lr_scale: 1
-        weight_decay: 1
+        weight_decay: .001
 
   OPT:
     _target_: torch.optim.AdamW
@@ -197,15 +204,12 @@ hydra:
   run:
     dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${_postfix}
   sweep:
-    # dir: ${hydra.runtime.cwd}/outputs/ 
     dir : ./output/${now:%m-%d}/${now:%H-%M-%S}_SWEEP
     subdir: J${hydra.job.num}_${_postfix}
 
 defaults: 
     - PARALLEL: _parallel
-    # - TRAIN: _train
     - VALID: _valid
-    - TEST: _test
     - FEATURES.SAM: _sam
     - AUGS.MIXUP: _mixup
     - _self_

@@ -12,3 +12,4 @@ multirun
 *.npy
 **/*.svs
 kaggle_upload
+.idea/
