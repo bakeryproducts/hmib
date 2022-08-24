@@ -10,6 +10,35 @@ import albumentations as albu
 import shallow as sh
 
 
+
+class _ExampleAug(albu.core.transforms_interface.DualTransform):
+    def __init__(self, p=1.):
+        super().__init__(p=p)
+
+    @property
+    def targets(self):
+        return {"image": self.apply, 'mask':self.apply}
+
+    @property
+    def targets_as_params(self):
+        return ["seed"]
+
+    def get_params_dependent_on_targets(self, params):
+        return params
+
+    def apply(self, image, **params):
+        seed = params['seed'] # call should be like : albu.compose([aug1, aug2])(image=img, mask=m, seed=42)
+        image = __my_fn_aug(image, seed)
+        return image
+
+
+def __my_fn_aug(image, seed):
+    #logic
+    return image
+
+
+
+
 class ShiftScaleRotate(albu.ShiftScaleRotate):
     def get_params(self):
         params = super().get_params()
