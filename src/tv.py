@@ -269,6 +269,7 @@ def collect_map_score(cb, ema=True, train=False):
     ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
 
     if cb.cfg.PARALLEL.IS_MASTER:
+        macro = []
         for i in range(5):
             idxs = classes.long() == i
             class_name = ORGANS_DECODE[i]
@@ -277,3 +278,6 @@ def collect_map_score(cb, ema=True, train=False):
             organ_dice_std = organ_dices.std()
             cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
             cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)
+            macro.append(organ_dice_mean)
+        cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
+
