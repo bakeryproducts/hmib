@@ -17,7 +17,7 @@ import fire
 DEBUG = True
 SCALE = (3 * 1000 / 1024)
 _base_wh = 1024
-TOTAL = 20 # 50 crops per image
+TOTAL = 5 # 50 crops per image
 
 
 def cut_glomi(imgs_path, masks_path, dst_path):
@@ -33,18 +33,19 @@ def cut_glomi(imgs_path, masks_path, dst_path):
     for i_fn, m_fn, a_fn in tqdm(zip(img_fns, masks_fns, ann_fns)):
         s = sampler.GdalSampler(i_fn, m_fn, a_fn, wh)
 
-        img_dir = dst_path / 'imgs' / i_fn.with_suffix('').name
+        base_name = i_fn.with_suffix('').name
+        img_dir = dst_path / 'images'
         os.makedirs(str(img_dir), exist_ok=True)
 
-        mask_dir = dst_path / 'masks' / i_fn.with_suffix('').name
+        mask_dir = dst_path / 'masks'
         os.makedirs(str(mask_dir), exist_ok=True)
 
         for idx, (i, m) in enumerate(s):
 
             orig_name = (str(idx).zfill(6) + '.png')
 
-            img_name = img_dir / orig_name
-            mask_name = mask_dir / orig_name
+            img_name = img_dir / (base_name + '_' + orig_name)
+            mask_name = mask_dir / (base_name + '_' + orig_name)
 
             i = i.transpose(1, 2, 0)
             m = m.transpose(1, 2, 0)

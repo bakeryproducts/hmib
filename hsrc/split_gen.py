@@ -11,7 +11,7 @@ import utils
 
 
 def get_images(root):
-    imgs = list((root / 'imgs').glob('*'))
+    imgs = list((root / 'images').glob('*'))
     for img in imgs:
         filenames = list(img.glob('*'))
         yield filenames
@@ -110,28 +110,27 @@ def do_split(src, dst):
 
     root = Path(src)
     dst = Path(dst)
-
-    filt = partial(utils.filter_ban_str_in_name, bans=['-', '_ell', '_sc'])
-    masks_fns = sorted(utils.get_filenames(root / 'masks', '*', filt))
-    img_fns = sorted([m.parent.parent / 'imgs' / m.name for m in masks_fns])
+    imgs = sorted(list((root / 'images').glob('*.png')))
+    masks = sorted(list((root / 'masks').glob('*.png')))
 
     for split in split_stems:
         name = split[0][0] + split[1][0]
         path = dst / name
         train_path, val_path = path / 'train', path / 'val'
-        os.makedirs(str(path))
-        os.makedirs(str(train_path))
-        os.makedirs(str(val_path))
+        train_path.mkdir(parents=True)
+        val_path.mkdir(parents=True)
 
-        for imgs, masks in zip(img_fns, masks_fns):
-
-            if imgs.stem in split:
+        for img, mask in zip(imgs, masks):
+            base_name = img.stem.split('_')[0]
+            if base_name in split:
                 dst_path = val_path
             else:
                 dst_path = train_path
 
-            imgs_dst = dst_path / 'imgs' / imgs.stem
-            masks_dst = dst_path / 'masks' / imgs.stem
+            imgs_dst = dst_path / 'images' / img.name
+            masks_dst = dst_path / 'masks' / mask.name
+            imgs_dst.parent.mkdir(exist_ok=True)
+            masks_dst.parent.mkdir(exist_ok=True)
 
-            shutil.copytree(imgs, imgs_dst)
-            shutil.copytree(masks, masks_dst)
+            shutil.copy(img, imgs_dst)
+            shutil.copy(mask, masks_dst)
