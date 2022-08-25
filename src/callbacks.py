@@ -46,7 +46,7 @@ class WeightWatchCB(sh.callbacks.Callback):
     def __init__(self, logger=None):
         sh.utils.file_op.store_attr(self, locals())
 
-    @sh.utils.call.on_train
+    @sh.utils.call.on_mode(mode='TRAIN')
     def before_epoch(self):
         weight_watcher(self)
 
@@ -79,7 +79,7 @@ class ScorerCB(sh.callbacks.Callback):
                 if self.chpt_cb is not None:
                     self.chpt_cb.do_saving(f'{prefix}_{suffix}_{round(score, 4)}', save_ema=ema)
 
-    @sh.utils.call.on_validation
+    @sh.utils.call.on_mode(mode='VALID')
     def after_epoch(self):
         if self.cfg.PARALLEL.IS_MASTER:
             if hasattr(self.L.tracker_cb, 'val_score'):
@@ -186,7 +186,7 @@ class EarlyExit(sh.callbacks.Callback):
     def before_fit(self):
         self.cfg = self.L.kwargs['cfg']
 
-    @sh.utils.call.on_validation
+    @sh.utils.call.on_mode(mode='VALID')
     def after_epoch(self):
         if self.L.np_epoch < self.start_p_epoch: return
 
@@ -209,7 +209,7 @@ class EarlyExit(sh.callbacks.Callback):
         if self.cfg.PARALLEL.DDP: torch.distributed.all_reduce(self.exit_signal)
         if self.exit_signal > 0:
             self.log_info('EarlyExit!')
-            raise sh.learner.CancelFitException
+            raise sh.exceptions.CancelFitException
 
 
 class FrozenEncoderCB(sh.callbacks.Callback):

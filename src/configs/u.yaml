@@ -133,7 +133,7 @@ TRAIN:
   START_VAL: 0
   EPOCH_COUNT: 200
   BATCH_SIZE: 64
-  EARLY_EXIT: 10
+  EARLY_EXIT: 1
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     # TODO: step 

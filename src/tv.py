@@ -158,7 +158,7 @@ class ValCB(sh.callbacks.Callback):
         if self.sched() and self.cfg.MODEL.ARCH != 'ssl':
             self.run_valid()
         else:
-            raise sh.learner.CancelEpochException
+            raise sh.exceptions.CancelEpochException
 
     def run_valid(self):
         ema = self.L.model_ema is not None
