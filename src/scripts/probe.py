@@ -28,9 +28,6 @@ TRAIN_CSV_FILE = DATA_DIR / "train.csv"
 SUBMISSION_PATH = "/kaggle/working/submission.csv"
 DUMMY_RLE = ""
 
-WHITE_THRESH = 240
-BLACK_THRSH = 15
-ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
 
 
 def thrs_closed(a, d, n_points=4):
@@ -52,14 +49,19 @@ def load_gpu():
 
 
 ################ fix us #########################
+WHITE_THRESH = 240
+BLACK_THRSH = 15
+ORGANS = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
+
+
 DEBUG = False
 ERROR_DEBUG_SCORING = False
 ERROR_DEBUG_RESOURSES = False
 # TODO check for not found and 1/0 ?
-ORGAN = "kidney"
-CHANNEL = 0  # or 2? Seems that rasterio read in RGB, but better to double check
-DATA_SOURCE = "HPA" if DEBUG else "Hubmap"
-T0, T1, T2, T3 = thrs(180, 130)
+ORGAN = "spleen"
+CHANNEL = 1  # or 2? Seems that rasterio read in RGB, but better to double check
+DATA_SOURCE = "hpa" if DEBUG else "hubmap"
+T0, T1, T2, T3 = thrs(105, 94)
 assert T0 > T1 > T2 > T3
 ################ fix us #########################
 
@@ -101,43 +103,34 @@ means = []
 result = []
 
 for row in tqdm(df.itertuples(), total=len(df), desc="Inference"):
-    if row.data_source == DATA_SOURCE and row.organ == ORGAN:
+    if (row.data_source.lower() == DATA_SOURCE) and (row.organ.lower() == ORGAN):
         image = load_tiff(images_dir / f"{row.id}.tiff")
         gray_image = image.mean(0)
         mask = (gray_image > BLACK_THRSH) & (gray_image < WHITE_THRESH)
         tissue = image[CHANNEL][mask]  # CHW, 3chan
         means.append(tissue.mean())  # median?
 
-    if ERROR_DEBUG_RESOURSES and is_private:
-        # cnt to skip through saving with single test image
-        NotebookExceededRes()
-
     result.append({
         "id": row.id,
         "rle": DUMMY_RLE,
     })
 
+result = pd.DataFrame(result)
 load_gpu()
 
-result = pd.DataFrame(result)
-result.to_csv(SUBMISSION_PATH, index=False)
-
-if ERROR_DEBUG_SCORING:
-    if is_private:
-        SubmissionScoringError()
-else:
-    # can throw another exception, while we test for scoring, thou else
+if is_private:
     stat = np.mean(means)
-
     if stat > T0:
         NotebookException() # x > T0
     elif stat > T1:
         NotebookExceededRes() # T1 < x < T0
-    elif stat > T2:
+
+result.to_csv(SUBMISSION_PATH, index=False)
+
+if is_private:
+    if stat > T2:
         SubmissionNotFound() # T2 < x < T1
     elif stat > T3:
         SubmissionScoringError() # T3 < x < T2
-    else:
-        pass # x < T3
 
 sleep(10)
