@@ -29,6 +29,20 @@ data structure:
 `python3 starter.py -m +SPLIT=0,1,2,3  +nproc=4`
 
 
+# Old hubmap data cuts:
+
+src folder : input/extra/hubmap/
+
+there should be unpacked kaggle comp data: train, test, train.csv, etc..
+
+`python3 hsrc/data_gen.py`
+
+Creates input/extra/hubmap/preprocessed folder with :
+ - bigmasks - json to tiff
+ - CUTS - glomeruli cut from images, SCALE, WH, N in data_gen.py
+ - SPLITS - copy paste cuts into 4 train val folds
+ 
+
 
 # TODO
 
