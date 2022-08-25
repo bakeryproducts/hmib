@@ -81,11 +81,11 @@ MODEL:
   INIT_MODEL: ''
   ENCODER:
     runner: 
-        _target_: encoders.encoder.create_mixt
-        # _target_: encoders.encoder.create_encoder
+        # _target_: encoders.encoder.create_mixt
+        _target_: encoders.encoder.create_encoder
         _partial_: true
-    model_name: 'mit_b0'
-    # model_name: 'resnet34'
+    # model_name: 'mit_b0'
+    model_name: 'resnet34'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
@@ -138,8 +138,8 @@ TRAIN:
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.97
-    end: .99
+    start: 0.95
+    end: .97
     type: 'linear'
 
 VALID:
@@ -179,8 +179,8 @@ FEATURES:
 
 
 OPTIMIZER:
-  # LRS: [0.000001, 0.0002, 0.0001, 1]
-  LRS: [0.000001, 0.0008, 0.0001, 1]
+  LRS: [0.000001, 0.0002, 0.0001, 1]
+  # LRS: [0.000001, 0.0008, 0.0001, 1]
   # LRS: [0.000001, 0.00006, 0.00001, 1]
   
   FINE_LR:

@@ -46,25 +46,11 @@ def prepare_batch(batch, cb, train):
         xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.NORM.MEAN, std=cb.cfg.AUGS.NORM.STD)
     elif cb.cfg.AUGS.NORM.MODE == 'minmax':
         xb = (xb - xb.min()) / (xb.max() - xb.min())
-    # xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
-
-    # if train:
-    #     xb = cb.noise(xb)
 
     if cb.clamp is not None: xb.clamp_(-cb.clamp,cb.clamp)
 
-    # mask = []
-    # progress = cb.L.np_epoch
-    # run_once(44, cb.log_debug, 'Progress ', progress)
-    # for i in range(xb.shape[0]):
-    #     m = cb.mg(progress)
-    #     m = torch.from_numpy(m)
-    #     mask.append(m)
-    # mask = torch.stack(mask,0)
-    # mask = mask.cuda()
     mask = None
-
 
     batch['xb'] = xb
     batch['yb'] = yb
@@ -98,7 +84,7 @@ class TrainCB(_TrainCallback):
         self.loss_weights['ssl'] = 1
 
 
-    @sh.utils.call.on_train
+    @sh.utils.call.on_mode(mode='TRAIN')
     def before_epoch(self):
         run_once.__wrapped__._clear()
         try:
@@ -108,7 +94,8 @@ class TrainCB(_TrainCallback):
 
     def sched(self): return (self.L.n_epoch % 5) == 0
 
-    def train_step(self):
+    @sh.utils.call.on_mode(mode='TRAIN')
+    def step(self):
         self.supervised_train_step()
         if self.cfg.TRAIN.EMA.ENABLE: self.L.model_ema.update(self.L.model, self.L.ema_decay)
 
@@ -157,17 +144,17 @@ class ValCB(sh.callbacks.Callback):
         elif e % self.cfg.TRAIN.SCALAR_STEP == 0:
             return True
 
-    @sh.utils.call.on_validation
+    @sh.utils.call.on_mode(mode='VALID')
     def before_epoch(self):
         run_once.__wrapped__._clear()
         if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
 
-    @sh.utils.call.on_validation
+    @sh.utils.call.on_mode(mode='VALID')
     def after_epoch(self):
         collect_map_score(self)
 
-    @sh.utils.call.on_validation
-    def val_step(self):
+    @sh.utils.call.on_mode(mode='VALID')
+    def step(self):
         if self.sched() and self.cfg.MODEL.ARCH != 'ssl':
             self.run_valid()
         else:
@@ -186,23 +173,24 @@ class ValCB(sh.callbacks.Callback):
                 self.L.pred = pred
 
                 if self.cfg.MODEL.ARCH != 'ssl':
-                    pred_hm = pred['yb']
-                    gt = batch['yb']
-                    lung = []
+                    pred_hm = pred['yb'].float()
+                    gt = batch['yb'].float()
                     if pred_hm.shape[1] > 1: # multilabel mode
                         r = []
-                        for i,hm in enumerate(pred_hm):
+                        for i, hm in enumerate(pred_hm):
                             organ_idx = batch['cls'][i]
                             hm = hm[organ_idx:organ_idx+1]
-                            lung.append(organ_idx == ORGANS['lung'])
                             r.append(hm)
                         pred_hm = torch.stack(r) # B,1,H,W
-                        lung = torch.as_tensor(lung)
 
-                    dice = metrics.calc_score(pred_hm, gt)
+                    all_organs_dice = metrics.calc_score(pred_hm, gt)
+
+                    is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])
+                    pred_hm[is_lung] = gt[is_lung]
+                    dice_fix_lung = metrics.calc_score(pred_hm, gt)
 
                     op = 'gather'
-                    self.L.tracker_cb.set('dices', dice.clone(), operation=op)
+                    self.L.tracker_cb.set('dices', all_organs_dice, operation=op)
                     self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
 
                     pred_cls = pred['cls'].softmax(1)
@@ -210,16 +198,11 @@ class ValCB(sh.callbacks.Callback):
                     gt_cls = batch['cls']
                     acc = (pred_cls == gt_cls).float().mean()
                     self.L.tracker_cb.set('cls_acc', acc)
-
-                    dice[lung] = 1.0
-
                 else:
-                    dice = torch.zeros(1).cuda()
+                    dice_fix_lung = torch.zeros(1).cuda()
 
-
-                self.L.tracker_cb.set('ema_dice', dice)
-                self.L.tracker_cb.set('ema_score', dice)
-                self.L.tracker_cb.set('score', dice)
+                self.L.tracker_cb.set('ema_score', dice_fix_lung)
+                self.L.tracker_cb.set('score', dice_fix_lung)
 
                 loss_d = defaultdict(default_zero_tensor)
                 loss_d.update(self.L.loss_func(pred, batch, **self.loss_kwargs))
@@ -252,4 +235,3 @@ def collect_map_score(cb, ema=True, train=False):
             cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)
             macro.append(organ_dice_mean)
         cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
-

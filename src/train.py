@@ -183,5 +183,5 @@ def start_split(cfg, output_folder, datasets):
 
     val_rate = cfg.TRAIN.SCALAR_STEP
     logger.log("WARNING", 'Start learner')
-    learner = sh.learner.Learner(model, optimizer, sh.utils.file_op.AttrDict(dls), criterion, 0, cbs, batch_bar, epoch_bar, cfg=cfg, val_rate=val_rate)
+    learner = sh.general_learner.Learner(model, optimizer, sh.utils.file_op.AttrDict(dls), criterion, 0, cbs, batch_bar, epoch_bar, cfg=cfg,)
     learner.fit(n_epochs)

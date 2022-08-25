@@ -288,6 +288,7 @@ class MainDataset:
 
         rate = kwargs.pop('rate')
         ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
+        # TODO: ds = ScaleDataset(ds)
         self.ds = Mult(ds, rate)
 
     def __len__(self): return len(self.ds)
