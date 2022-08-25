@@ -1,0 +1,52 @@
+#!/usr/bin/python3
+
+import fire
+from pathlib import Path
+import numpy as np
+import rasterio
+
+import warnings
+warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
+
+
+def tiff_merge_mask(tiff, mask, dst, path_mask2=None):
+    print('\tusing use shitload of mem')
+    img = rasterio.open(tiff).read()
+    mask = rasterio.open(mask).read()
+    print(f"{img.shape=}")
+    print(f"{mask.shape=}")
+    #assert mask.max() <= 1 + 1e-6
+
+    if img.shape[0] == 1:
+        img = np.repeat(img, 3, 0)
+
+    if mask.shape[0] == 3:
+        mask = mask[0]
+
+    red = mask * 200 if mask.max() <= 1 + 1e-6 else mask
+    img[1] = img.mean(0)
+    img[0] = red
+
+    if path_mask2 is not None:
+        mask2 = rasterio.open(path_mask2).read()
+        blue = mask2 * 200 if mask2.max() <= 1 + 1e-6 else mask2
+        #assert mask2.max() <= 1 + 1e-6
+        img[2, ...] = blue
+
+    _, h, w = img.shape
+
+    dst_f = str(Path(dst) / Path(tiff).name)
+    dst = rasterio.open(dst_f,
+                        'w',
+                        driver='GTiff',
+                        height=h,
+                        width=w,
+                        count=3,
+                        dtype=np.uint8)
+    dst.write(img, [1, 2, 3])  # 3 bands
+    dst.close()
+    del dst
+
+
+if __name__ == '__main__':
+    fire.Fire(tiff_merge_mask)
