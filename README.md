@@ -101,10 +101,11 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 ## Hubmap
 ### Kidney
  - R
- 1) 
- 2) 
+ 1) 195, 140, scoring, in 140-158
+ 2) 154, 144, note, in 154-158
  - G
- 1) 
+ 1) 150, 80, scoring, in 80-103
+ 2) 98, 84, 
 
 ### prostate
 - R
@@ -120,3 +121,6 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 190, 110, pass, in 0-110
 2) 90, 10, note, in 90-110
 3) 105, 94, pass, in 90-94
+- B
+1) 195, 110, scoring, in 110-138
+2) 130, 118, res, in 126-130 
