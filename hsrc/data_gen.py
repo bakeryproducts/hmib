@@ -52,7 +52,8 @@ def cut_glomi(imgs_path, masks_path, dst_path):
 
             i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
             #m = m.repeat(3,-1).astype(np.uint8)
-            m = 255 * m.repeat(3, -1).astype(np.uint8)  # as our masks are one bit : 0-1
+            # m = 255 * m.repeat(3, -1).astype(np.uint8)  # as our masks are one bit : 0-1
+            m = (m.squeeze()).astype(np.uint8)
 
             # i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
             # m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
@@ -65,49 +66,50 @@ def cut_glomi(imgs_path, masks_path, dst_path):
             if DEBUG and idx > TOTAL: break
 
 
-def cut_grid(imgs_path, masks_path, dst_path):
-    filt = partial(utils.filter_ban_str_in_name, bans=['-', '_ell'])
-    img_fns = sorted(utils.get_filenames(imgs_path, '*.tiff', filt))
-    masks_fns = sorted(utils.get_filenames(masks_path, '*.tiff', filt))
+# def cut_grid(imgs_path, masks_path, dst_path):
+#     filt = partial(utils.filter_ban_str_in_name, bans=['-', '_ell'])
+#     img_fns = sorted(utils.get_filenames(imgs_path, '*.tiff', filt))
+#     masks_fns = sorted(utils.get_filenames(masks_path, '*.tiff', filt))
 
-    wh = (_base_wh * SCALE, _base_wh * SCALE)
+#     wh = (_base_wh * SCALE, _base_wh * SCALE)
 
-    print(img_fns, masks_fns)
+#     print(img_fns, masks_fns)
 
-    for i_fn, m_fn, in tqdm(zip(img_fns, masks_fns)):
-        s = sampler.GridSampler(i_fn, m_fn, wh)
+#     for i_fn, m_fn, in tqdm(zip(img_fns, masks_fns)):
+#         s = sampler.GridSampler(i_fn, m_fn, wh)
 
-        img_dir = dst_path / 'imgs' / i_fn.with_suffix('').name
-        os.makedirs(str(img_dir), exist_ok=True)
+#         img_dir = dst_path / 'imgs' / i_fn.with_suffix('').name
+#         os.makedirs(str(img_dir), exist_ok=True)
 
-        mask_dir = dst_path / 'masks' / i_fn.with_suffix('').name
-        os.makedirs(str(mask_dir), exist_ok=True)
+#         mask_dir = dst_path / 'masks' / i_fn.with_suffix('').name
+#         os.makedirs(str(mask_dir), exist_ok=True)
 
-        for idx, (i, m) in enumerate(s):
-            if (i.mean() < 10 or (i.mean() > 205 and i.std() < 20) or
-                ((i.mean(0) < 10).sum() > 0.1 * wh[0] * wh[1])) and (
-                    np.random.random() > .05):
-                continue
-            orig_name = (str(idx).zfill(6) + '.png')
-            print(i.shape, i.mean(), i.std(),
-                  (i.mean(0) < 10).sum() / (wh[0] * wh[1]), orig_name)
+#         for idx, (i, m) in enumerate(s):
+#             if (i.mean() < 10 or (i.mean() > 205 and i.std() < 20) or
+#                 ((i.mean(0) < 10).sum() > 0.1 * wh[0] * wh[1])) and (
+#                     np.random.random() > .05):
+#                 continue
+#             orig_name = (str(idx).zfill(6) + '.png')
+#             print(i.shape, i.mean(), i.std(),
+#                   (i.mean(0) < 10).sum() / (wh[0] * wh[1]), orig_name)
 
-            img_name = img_dir / orig_name
-            mask_name = mask_dir / orig_name
+#             img_name = img_dir / orig_name
+#             mask_name = mask_dir / orig_name
 
-            i = i.transpose(1, 2, 0)
-            i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
+#             i = i.transpose(1, 2, 0)
+#             i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
 
-            m = m.transpose(1, 2, 0)
-            m = 255 * m.repeat(3, -1).astype(np.uint8)
+#             m = m.transpose(1, 2, 0)
+#             # m = 255 * m.repeat(3, -1).astype(np.uint8)
+#             m = (255 * m.squeeze()).astype(np.uint8)
 
-            i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
-            m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_NEAREST)
+#             i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
+#             m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_NEAREST)
 
-            cv2.imwrite(str(img_name), i)
-            cv2.imwrite(str(mask_name), m)
+#             cv2.imwrite(str(img_name), i)
+#             cv2.imwrite(str(mask_name), m)
 
-            if DEBUG and idx > TOTAL: break
+#             if DEBUG and idx > TOTAL: break
 
 
 if __name__ == "__main__":
