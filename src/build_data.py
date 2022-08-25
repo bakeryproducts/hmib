@@ -52,6 +52,15 @@ class DatasetsGen:
                           train=False,
                           **val_ds_args)
 
+        ext_val2 = partial(data.ExtraValDataset,
+                           cfg=cfg,
+                           root=DATA_DIR / 'extra/hubmap/preprocessed/SPLITS/glomi_2.930_1024/0e/train/images',
+                           ann_path=DATA_DIR / 'extra/hubmap/preprocessed/SPLITS/glomi_2.930_1024/0e/train/masks',
+                           base_path=base_path,
+                           ImgLoader=img_loader,
+                           AnnLoader=ann_loader,
+                           **val_ds_args)
+
         split_path = Path(DATA_DIR / 'splits')
         # (t0, v0), (t1,v1),(t2,v2),(t3,v3) = [[f'train_{i}.csv', f'valid_{i}.csv'] for i in [0,1,2,3]]
         f0, f1, f2, f3 = [split_path / f'{i}.csv' for i in [0,1,2,3]]
@@ -83,6 +92,7 @@ class DatasetsGen:
             train_3=dict(ds=ext_train, kwargs={'index_paths':train_3}),
             valid_3=dict(ds=ext_val,   kwargs={'index_paths':valid_3,}),
 
+            hkid=dict(ds=ext_val2),
         )
 
     def generate_by_key(self, key):
@@ -126,6 +136,17 @@ def build_dataloaders(cfg, datasets, **all_kwargs):
                                                    num_replicas=cfg.PARALLEL.WORLD_SIZE,
                                                    rank=cfg.PARALLEL.LOCAL_RANK,
                                                    shuffle=False,
+                                                   seed=cfg.TRAIN.SEED)
+        elif kind == 'VALID2':
+            kwargs['batch_size'] = cfg[kind]['BATCH_SIZE']
+            kwargs['pin_memory'] = True
+            # kwargs['shuffle'] = False
+            kwargs['drop_last'] = False
+            # kwargs['sampler'] = None
+            kwargs['sampler'] = DistributedSampler(dataset,
+                                                   num_replicas=cfg.PARALLEL.WORLD_SIZE,
+                                                   rank=cfg.PARALLEL.LOCAL_RANK,
+                                                   shuffle=True,
                                                    seed=cfg.TRAIN.SEED)
 
         elif kind == 'TRAIN':

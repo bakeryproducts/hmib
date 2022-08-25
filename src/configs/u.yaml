@@ -26,6 +26,11 @@ DATA:
     DATASET_ARGS:
       overlap: 0
       rate: 1
+  VALID2:
+    DATASETS: ['hkid', ]
+    DATASET_ARGS:
+      overlap: 0
+      rate: 1
 
 AUGS:
   NORM:
@@ -72,6 +77,10 @@ AUGS:
 
       - {m : sh.augmentation.ToTensor,}
   VALID:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+  VALID2:
     AUGS:
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
       - {m : sh.augmentation.ToTensor,}
@@ -133,16 +142,18 @@ TRAIN:
   START_VAL: 0
   EPOCH_COUNT: 200
   BATCH_SIZE: 64
-  EARLY_EXIT: 1
+  EARLY_EXIT: 10
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     # TODO: step 
     ENABLE: True
-    start: 0.95
-    end: .97
+    start: 0.97
+    end: .99
     type: 'linear'
 
 VALID:
+  BATCH_SIZE: 8
+VALID2:
   BATCH_SIZE: 8
 
 LOSS:

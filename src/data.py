@@ -298,6 +298,32 @@ class MainDataset:
         return r
 
 
+class ExtraValDataset:
+    def __init__(self,
+                 cfg,
+                 root,
+                 ann_path,
+                 base_path,
+                 ImgLoader,
+                 AnnLoader,
+                 **kwargs):
+
+        imgs = ImgLoader(root)
+        anns = AnnLoader(ann_path)
+        self.data = DataPair(imgs, anns)
+        # rate = kwargs.pop('rate')
+        imgs = list(root.glob('*.png'))
+
+        label_kwargs = dict(lid=-1, data_source='hubmap', w=-1, h=-1, rle='')
+        self.labels = [Label(fname=f.name, organ=ORGANS['kidney'], **label_kwargs) for f in imgs]
+
+    def __len__(self): return len(self.labels)
+
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        r = self.data(label)
+        return r
+
 
 def item_reader(item):
     i, a = item

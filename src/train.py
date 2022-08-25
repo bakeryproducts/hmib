@@ -29,7 +29,7 @@ def start(cfg, output_folder):
         output.mkdir()
 
     datasets_generator = build_data.DatasetsGen(cfg)
-    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID'])
+    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID2'])
     if not cfg.DATA.DALI:
         datasets = augs.create_augmented(cfg, datasets)
 
