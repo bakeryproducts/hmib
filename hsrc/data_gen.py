@@ -15,8 +15,10 @@ import fire
 
 
 DEBUG = True
-SCALE = 3
+SCALE = (3 * 1000 / 1024)
 _base_wh = 1024
+TOTAL = 20 # 50 crops per image
+
 
 def cut_glomi(imgs_path, masks_path, dst_path):
     filt = partial(utils.filter_ban_str_in_name, bans=['-', '_ell'])
@@ -49,19 +51,17 @@ def cut_glomi(imgs_path, masks_path, dst_path):
 
             i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
             #m = m.repeat(3,-1).astype(np.uint8)
-            m = 255 * m.repeat(3, -1).astype(
-                np.uint8)  # as our masks are one bit : 0-1
+            m = 255 * m.repeat(3, -1).astype(np.uint8)  # as our masks are one bit : 0-1
 
-            i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE),
-                           interpolation=cv2.INTER_AREA)
-            m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE),
-                           interpolation=cv2.INTER_AREA)
+            # i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
+            # m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
+            i = cv2.resize(i, (0,0), fx=1/SCALE, fy=1/SCALE, interpolation=cv2.INTER_AREA)
+            m = cv2.resize(m, (0,0), fx=1/SCALE, fy=1/SCALE, interpolation=cv2.INTER_AREA)
 
             cv2.imwrite(str(img_name), i)
             cv2.imwrite(str(mask_name), m)
 
-            # DEBUG MODE:
-            if DEBUG and idx > 5: break
+            if DEBUG and idx > TOTAL: break
 
 
 def cut_grid(imgs_path, masks_path, dst_path):
@@ -69,8 +69,6 @@ def cut_grid(imgs_path, masks_path, dst_path):
     img_fns = sorted(utils.get_filenames(imgs_path, '*.tiff', filt))
     masks_fns = sorted(utils.get_filenames(masks_path, '*.tiff', filt))
 
-    SCALE = 3
-    _base_wh = 1024
     wh = (_base_wh * SCALE, _base_wh * SCALE)
 
     print(img_fns, masks_fns)
@@ -102,34 +100,33 @@ def cut_grid(imgs_path, masks_path, dst_path):
             m = m.transpose(1, 2, 0)
             m = 255 * m.repeat(3, -1).astype(np.uint8)
 
-            i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE),
-                           interpolation=cv2.INTER_AREA)
-            m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE),
-                           interpolation=cv2.INTER_NEAREST)
+            i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
+            m = cv2.resize(m, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_NEAREST)
 
             cv2.imwrite(str(img_name), i)
             cv2.imwrite(str(mask_name), m)
 
-            # DEBUG MODE:
-            if idx > 10: break
+            if DEBUG and idx > TOTAL: break
 
 
 if __name__ == "__main__":
     hub_src = Path('input/extra/hubmap')
     assert hub_src.exists()
     dst = hub_src / 'preprocessed'
-    dst.mkdir()
+    dst.mkdir(exist_ok=True)
 
+    imgs_path = hub_src / 'train'
     masks_path = dst / 'bigmasks'  # will be created
+
     try:
         masks_path.mkdir(exist_ok=False)
         create_masks(str(hub_src), str(masks_path))
     except FileExistsError:
         print('\n\nMASKS ALREADY CREATED? SKIPING BIG TIFF MASK CREATION')
 
-    imgs_path = hub_src / 'train'
     # grid_path = dst / 'CUTS/grid_x33_1024/'
-    glomi_path = dst / 'CUTS/glomi_x33_1024/'
+    name = f'glomi_{SCALE:.3f}_{_base_wh}'
+    glomi_path = dst / 'CUTS' / name
 
     # this cuts big tiffs based on annotation json, each object get its own cut
     if not glomi_path.exists(): cut_glomi(imgs_path, masks_path, glomi_path)
@@ -138,4 +135,4 @@ if __name__ == "__main__":
 
     # This breaks cutted tiff's into train and val splits based in tiff ids
     # do_split(grid_path, dst / 'SPLITS/grid_split' )
-    do_split(glomi_path, dst / 'SPLITS/glomi_split')
+    do_split(glomi_path, dst / f'SPLITS/{name}')
