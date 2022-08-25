@@ -48,5 +48,26 @@ def tiff_merge_mask(tiff, mask, dst, path_mask2=None):
     del dst
 
 
+def start(tiff=None, mask=None, dst=None, folder=None, mode='S', ext='png'):
+    assert dst is not None
+    if mode == 'S':
+        assert tiff is not None
+        assert mask is not None
+        tiff_merge_mask(tiff, mask, dst)
+    elif mode == 'F':
+        assert folder is not None
+        dst = Path(dst) / 'merged'
+        dst.mkdir()
+        folder = Path(folder)
+        imgs = list((folder / 'imgs').rglob(f'*.{ext}'))
+        masks = list((folder / 'masks').rglob(f'*.{ext}'))
+        print(len(imgs))
+        print(len(masks))
+        assert len(imgs) == len(masks)
+
+        for i,m in zip(imgs, masks):
+            tiff_merge_mask(i, m, dst)
+
+
 if __name__ == '__main__':
-    fire.Fire(tiff_merge_mask)
+    fire.Fire(start)
