@@ -130,3 +130,6 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 - R
 1) 180, 120, scoring => in 120-140
 2) 136, 124, not found => in 128-132
+- G
+1) 130, 70, res => in 110-130
+2) 126, 114, scoring => in 114-118
