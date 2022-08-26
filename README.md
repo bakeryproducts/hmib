@@ -109,7 +109,12 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 ### prostate
 - R
-1)
+1) 180, 120, notebook => in 180-255
+2) 240, 195, pass => in 180-195
+3) 192, 183, not found => in 186-189
+- G
+1) 130, 70, notebook => in 130-255
+2) TODO
 
 
 ### spleen
@@ -126,7 +131,7 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 2) 130, 118, res, in 126-130 
 
 
-### largeintestine
+### largeintestine :heavy_check_mark:
 - R
 1) 180, 120, scoring => in 120-140
 2) 136, 124, not found => in 128-132
@@ -135,4 +140,4 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 2) 126, 114, scoring => in 114-118
 - B
 1) 160, 100, not found => in 120-140
-2) TODO
+2) 136, 120, notebook => in 136-140
