@@ -247,7 +247,7 @@ class TBPredictionsCB(sh.callbacks.Callback):
         self.num_images, self.hw = 8, (256*3,256)
 
     @torch.no_grad()
-    def process_batch(self, training):
+    def process_batch(self, mode):
         batch = self.batch_read(self.L.batch)
         xb = batch['xb']
         yb = batch['yb']
@@ -293,21 +293,20 @@ class TBPredictionsCB(sh.callbacks.Callback):
         r = self.upscale(x, self.hw)
         return r
 
-    def process_write_predictions(self, training=False):
-        diff = self.process_batch(training=training) # takes last batch that been used
-        label = 'train predictions' if training else 'val_predictions'
+    def process_write_predictions(self, mode):
+        diff = self.process_batch(mode)
         diff = torchvision.utils.make_grid(diff, nrow=8, pad_value=4)
         diff = (diff * 255).numpy().astype(np.uint8)
-        self.writer.add_image(label+'diff', diff, self.L.n_epoch)
+        self.writer.add_image(mode+'diff', diff, self.L.n_epoch)
         self.writer.flush()
 
     def after_epoch(self):
         if self.L.model.training:
             if self.L.n_epoch % self.cfg.TRAIN.TB_STEP == 0:
-                self.process_write_predictions(training=True)
+                self.process_write_predictions(self.L.mode)
         else:
             # try:
-            self.process_write_predictions(training=False)
+            self.process_write_predictions(self.L.mode)
             # except Exception as e:
             #     self.log_error('TB error', e)
             # pred = self.L.pred['seg'].cpu().float().flatten()

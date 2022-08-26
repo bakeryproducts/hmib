@@ -26,8 +26,8 @@ DATA:
     DATASET_ARGS:
       overlap: 0
       rate: 1
-  VALID2:
-    DATASETS: ['hkid', ]
+  VALID_HUB:
+    DATASETS: ['hkid', "hcol"]
     DATASET_ARGS:
       overlap: 0
       rate: 1
@@ -80,7 +80,7 @@ AUGS:
     AUGS:
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
       - {m : sh.augmentation.ToTensor,}
-  VALID2:
+  VALID_HUB:
     AUGS:
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
       - {m : sh.augmentation.ToTensor,}
@@ -153,7 +153,7 @@ TRAIN:
 
 VALID:
   BATCH_SIZE: 8
-VALID2:
+VALID_HUB:
   BATCH_SIZE: 8
 
 LOSS:

@@ -306,6 +306,7 @@ class ExtraValDataset:
                  base_path,
                  ImgLoader,
                  AnnLoader,
+                 organ,
                  **kwargs):
 
         imgs = ImgLoader(root)
@@ -313,9 +314,10 @@ class ExtraValDataset:
         self.data = DataPair(imgs, anns)
         # rate = kwargs.pop('rate')
         imgs = list(root.glob('*.png'))
+        assert len(imgs) > 0, root
 
         label_kwargs = dict(lid=-1, data_source='hubmap', w=-1, h=-1, rle='')
-        self.labels = [Label(fname=f.name, organ=ORGANS['kidney'], **label_kwargs) for f in imgs]
+        self.labels = [Label(fname=f.name, organ=ORGANS[organ], **label_kwargs) for f in imgs]
 
     def __len__(self): return len(self.labels)
 

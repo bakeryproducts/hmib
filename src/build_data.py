@@ -52,14 +52,27 @@ class DatasetsGen:
                           train=False,
                           **val_ds_args)
 
-        ext_val2 = partial(data.ExtraValDataset,
-                           cfg=cfg,
-                           root=DATA_DIR / 'extra/hubmap/preprocessed/SPLITS/glomi_2.930_1024/0e/train/images',
-                           ann_path=DATA_DIR / 'extra/hubmap/preprocessed/SPLITS/glomi_2.930_1024/0e/train/masks',
-                           base_path=base_path,
-                           ImgLoader=img_loader,
-                           AnnLoader=ann_loader,
-                           **val_ds_args)
+        ext_val_hkid = partial(data.ExtraValDataset,
+                               cfg=cfg,
+                               root=DATA_DIR / 'extra/hubmap_kidney/preprocessed/SPLITS/2.131_1024/S0/train/images',
+                               ann_path=DATA_DIR / 'extra/hubmap_kidney/preprocessed/SPLITS/2.131_1024/S0/train/masks',
+                               base_path=base_path,
+                               ImgLoader=img_loader,
+                               AnnLoader=ann_loader,
+                               organ='kidney',
+                               **val_ds_args)
+
+        ext_val_hcol = partial(data.ExtraValDataset,
+                               cfg=cfg,
+                               # root=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/images',
+                               # ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/masks',
+                               root=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.344_1024/S0/train/images',
+                               ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.344_1024/S0/train/masks',
+                               base_path=base_path,
+                               ImgLoader=img_loader,
+                               AnnLoader=ann_loader,
+                               organ='largeintestine',
+                               **val_ds_args)
 
         split_path = Path(DATA_DIR / 'splits')
         # (t0, v0), (t1,v1),(t2,v2),(t3,v3) = [[f'train_{i}.csv', f'valid_{i}.csv'] for i in [0,1,2,3]]
@@ -92,7 +105,8 @@ class DatasetsGen:
             train_3=dict(ds=ext_train, kwargs={'index_paths':train_3}),
             valid_3=dict(ds=ext_val,   kwargs={'index_paths':valid_3,}),
 
-            hkid=dict(ds=ext_val2),
+            hkid=dict(ds=ext_val_hkid),
+            hcol=dict(ds=ext_val_hcol),
         )
 
     def generate_by_key(self, key):
@@ -137,7 +151,7 @@ def build_dataloaders(cfg, datasets, **all_kwargs):
                                                    rank=cfg.PARALLEL.LOCAL_RANK,
                                                    shuffle=False,
                                                    seed=cfg.TRAIN.SEED)
-        elif kind == 'VALID2':
+        elif kind == 'VALID_HUB':
             kwargs['batch_size'] = cfg[kind]['BATCH_SIZE']
             kwargs['pin_memory'] = True
             # kwargs['shuffle'] = False

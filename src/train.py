@@ -19,6 +19,8 @@ from logger import logger
 
 from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB, get_ema_decay_cb
 
+import hub_cb
+
 
 
 def start(cfg, output_folder):
@@ -29,7 +31,7 @@ def start(cfg, output_folder):
         output.mkdir()
 
     datasets_generator = build_data.DatasetsGen(cfg)
-    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID2'])
+    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB'])
     if not cfg.DATA.DALI:
         datasets = augs.create_augmented(cfg, datasets)
 
@@ -149,6 +151,12 @@ def start_split(cfg, output_folder, datasets):
     train_cb = tv.TrainCB(amp_scaler=amp_scaler, logger=logger)
     val_cb = tv.ValCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
 
+    HUB = True
+    if HUB:
+        hcb = hub_cb.HubCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
+    else:
+        hcb = None
+
     loss = {}
     for ls in cfg.LOSS:
         loss_fn = hydra.utils.instantiate(ls.LOSS)
@@ -164,6 +172,10 @@ def start_split(cfg, output_folder, datasets):
     ema_cb = get_ema_decay_cb(cfg)
 
     cbs = [batch_setup_cb, lr_cb, ema_cb, train_cb, val_cb]
+
+    if hcb is not None:
+        cbs.append(hcb)
+
     if 'UNFREEZE_SCHED' in cfg:
         d = OmegaConf.to_container(cfg.UNFREEZE_SCHED)
         fr_cb = FrozenEncoderCB(d, logger=logger)

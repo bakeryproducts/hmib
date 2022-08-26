@@ -144,62 +144,21 @@ class ValCB(sh.callbacks.Callback):
         elif e % self.cfg.TRAIN.SCALAR_STEP == 0:
             return True
 
-    # @sh.utils.call.on_mode(mode='VALID')
+    @sh.utils.call.on_mode(mode='VALID')
     def before_epoch(self):
-        if self.L.mode not in ['VALID', 'VALID2']: return
         run_once.__wrapped__._clear()
         if self.cfg.PARALLEL.DDP: self.L.dl.sampler.set_epoch(self.L.n_epoch)
 
-    # @sh.utils.call.on_mode(mode='VALID')
+    @sh.utils.call.on_mode(mode='VALID')
     def after_epoch(self):
-        if self.L.mode == 'VALID':
-            collect_map_score(self)
-        elif self.L.mode == 'VALID2':
-            collect2(self)
+        collect_map_score(self)
 
-    # @sh.utils.call.on_mode(mode='VALID')
+    @sh.utils.call.on_mode(mode='VALID')
     def step(self):
-        # self.log_info(f'MODE IS {self.L.mode}')
-        if self.L.mode not in ['VALID', 'VALID2']: return
-
         if self.sched() and self.cfg.MODEL.ARCH != 'ssl':
-            if self.L.mode == 'VALID':
-                self.run_valid()
-            else:
-                self.run2()
+            self.run_valid()
         else:
             raise sh.exceptions.CancelEpochException
-
-    def run2(self):
-        ema = self.L.model_ema is not None
-        model = self.L.model if not ema else self.L.model_ema.module
-        batch = self.batch_read(self.L.batch)
-        batch = prepare_batch(batch, self, train=False)
-
-        with torch.cuda.amp.autocast(enabled=True):
-            with torch.no_grad():
-                pred = model(batch)
-                self.L.pred = pred
-
-                pred_hm = pred['yb'].float()
-                gt = batch['yb'].float()
-
-                # gt = gt[:,:1] # TODO resave masks in 1channel
-
-                if pred_hm.shape[1] > 1: # multilabel mode
-                    r = []
-                    for i, hm in enumerate(pred_hm):
-                        organ_idx = batch['cls'][i]
-                        hm = hm[organ_idx:organ_idx+1]
-                        r.append(hm)
-                    pred_hm = torch.stack(r) # B,1,H,W
-
-                # print(pred_hm.shape, gt.shape)
-                all_organs_dice = metrics.calc_score(pred_hm, gt)
-                op = 'gather'
-                self.L.tracker_cb.set('dices2', all_organs_dice, operation=op)
-                self.L.tracker_cb.set('classes2', batch['cls'].float(), operation=op)
-
 
 
     def run_valid(self):
@@ -255,30 +214,6 @@ class ValCB(sh.callbacks.Callback):
                     self.L.tracker_cb.set(f'{k}_{prefix}_loss', loss)
 
 
-def collect2(cb, ema=True, train=False):
-    cb.L.tracker_cb._collect_all()
-    dices = cb.L.tracker_cb.dices2.cpu()
-    classes = cb.L.tracker_cb.classes2.cpu()
-
-    dices = dices.view(-1, dices.shape[-1])
-    classes = classes.view(-1, classes.shape[-1])
-    ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
-
-    if cb.cfg.PARALLEL.IS_MASTER:
-        # macro = []
-        for i in range(5):
-            idxs = classes.long() == i
-            if not idxs.any(): continue
-            class_name = ORGANS_DECODE[i]
-            organ_dices = dices[idxs]
-            organ_dice_mean = organ_dices.mean()
-            organ_dice_std = organ_dices.std()
-            cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
-            cb.L.writer.add_scalar(f'organs2/{class_name}', organ_dice_mean, cb.L.n_epoch)
-            # macro.append(organ_dice_mean)
-        # cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
-
-
 def collect_map_score(cb, ema=True, train=False):
     cb.L.tracker_cb._collect_all()
     dices = cb.L.tracker_cb.dices.cpu()
@@ -296,7 +231,7 @@ def collect_map_score(cb, ema=True, train=False):
             organ_dices = dices[idxs]
             organ_dice_mean = organ_dices.mean()
             organ_dice_std = organ_dices.std()
-            cb.log_warning(f'\t Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
-            cb.L.writer.add_scalar(f'organs/{class_name}', organ_dice_mean, cb.L.n_epoch)
+            cb.log_warning(f'\t {cb.L.mode} Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
+            cb.L.writer.add_scalar(f'organs_{cb.L.mode}/{class_name}', organ_dice_mean, cb.L.n_epoch)
             macro.append(organ_dice_mean)
         cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)

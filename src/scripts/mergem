@@ -59,7 +59,7 @@ def start(tiff=None, mask=None, dst=None, folder=None, mode='S', ext='png'):
         dst = Path(dst) / 'merged'
         dst.mkdir()
         folder = Path(folder)
-        imgs = list((folder / 'imgs').rglob(f'*.{ext}'))
+        imgs = list((folder / 'images').rglob(f'*.{ext}'))
         masks = list((folder / 'masks').rglob(f'*.{ext}'))
         print(len(imgs))
         print(len(masks))
