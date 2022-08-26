@@ -14,8 +14,16 @@ from split_gen import do_split
 import fire
 
 
+# MODE = 'KIDNEY'
+MODE = 'COLON'
 DEBUG = True
-SCALE = (3 * 1000 / 1024)
+_base_scale = (3 * 1000 / 1024)
+
+KIDNEY_SCALE = .55 #um; .5 or .65 to be accurate
+COLON_SCALE = .5 # TODO i have no idea
+HPA_SCALE = .4
+SCALE = _base_scale * HPA_SCALE / (KIDNEY_SCALE if MODE == 'KIDNEY' else COLON_SCALE)
+
 _base_wh = 1024
 TOTAL = 5 # 50 crops per image
 
@@ -53,6 +61,7 @@ def cut_glomi(imgs_path, masks_path, dst_path):
             i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
             #m = m.repeat(3,-1).astype(np.uint8)
             # m = 255 * m.repeat(3, -1).astype(np.uint8)  # as our masks are one bit : 0-1
+            m = m / m.max() # 0-1
             m = (m.squeeze()).astype(np.uint8)
 
             # i = cv2.resize(i, (wh[0] // SCALE, wh[1] // SCALE), interpolation=cv2.INTER_AREA)
@@ -113,7 +122,11 @@ def cut_glomi(imgs_path, masks_path, dst_path):
 
 
 if __name__ == "__main__":
-    hub_src = Path('input/extra/hubmap')
+    if MODE == 'KIDNEY':
+        hub_src = Path('input/extra/hubmap_kidney')
+    elif MODE == 'COLON':
+        hub_src = Path('input/extra/hubmap_colon')
+
     assert hub_src.exists()
     dst = hub_src / 'preprocessed'
     dst.mkdir(exist_ok=True)
@@ -128,7 +141,8 @@ if __name__ == "__main__":
         print('\n\nMASKS ALREADY CREATED? SKIPING BIG TIFF MASK CREATION')
 
     # grid_path = dst / 'CUTS/grid_x33_1024/'
-    name = f'glomi_{SCALE:.3f}_{_base_wh}'
+    # name = f'glomi_{SCALE:.3f}_{_base_wh}'
+    name = f'{SCALE:.3f}_{_base_wh}'
     glomi_path = dst / 'CUTS' / name
 
     # this cuts big tiffs based on annotation json, each object get its own cut
@@ -138,4 +152,4 @@ if __name__ == "__main__":
 
     # This breaks cutted tiff's into train and val splits based in tiff ids
     # do_split(grid_path, dst / 'SPLITS/grid_split' )
-    do_split(glomi_path, dst / f'SPLITS/{name}')
+    do_split(glomi_path, dst / f'SPLITS/{name}', mode=MODE)

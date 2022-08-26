@@ -100,28 +100,34 @@ def create_save_splits(root, dst_path, split_pct=None):
             copy_split(m, root, dst_path / 'val')
 
 
-def do_split(src, dst):
-    split_stems = [
-        ['0486052bb', 'e79de561c'],
-        # ['2f6ecfcdf', 'afa5e8098'],
-        # ['1e2425f28', '8242609fa'],
-        # ['cb2d976f4', 'c68fe75ea'],
-    ]
+def do_split(src, dst, mode):
+    if mode == 'KIDNEY':
+        split_stems = [
+            ['0486052bb', 'e79de561c'],
+            # ['2f6ecfcdf', 'afa5e8098'],
+            # ['1e2425f28', '8242609fa'],
+            # ['cb2d976f4', 'c68fe75ea'],
+        ]
+    elif mode == 'COLON':
+        split_stems = [
+            ['CL_HandE_1234_B004_bottomright'],
+        ]
 
     root = Path(src)
     dst = Path(dst)
     imgs = sorted(list((root / 'images').glob('*.png')))
     masks = sorted(list((root / 'masks').glob('*.png')))
 
-    for split in split_stems:
-        name = split[0][0] + split[1][0]
+    for i, split in enumerate(split_stems):
+        name = f"S{i}"#split[0][0] + split[1][0]
         path = dst / name
         train_path, val_path = path / 'train', path / 'val'
         train_path.mkdir(parents=True)
         val_path.mkdir(parents=True)
 
         for img, mask in zip(imgs, masks):
-            base_name = img.stem.split('_')[0]
+            *base_name, _ = img.stem.split('_')
+            base_name = '_'.join(base_name)
             if base_name in split:
                 dst_path = val_path
             else:
