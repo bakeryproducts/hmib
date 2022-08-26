@@ -4,22 +4,11 @@ from pathlib import Path
 
 import fire
 import cv2
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from mask_utils import rle_decode
 from tiff import load_tiff
-
-
-def rle_decode(rle_str, mask_shape, mask_dtype=np.uint8):
-    s = rle_str.split()
-    starts, lengths = [np.asarray(x, dtype=int) for x in (s[0:][::2], s[1:][::2])]
-    starts -= 1
-    ends = starts + lengths
-    mask = np.zeros(np.prod(mask_shape), dtype=mask_dtype)
-    for lo, hi in zip(starts, ends):
-        mask[lo:hi] = 1
-    return mask.reshape(mask_shape[::-1]).T
 
 
 def crop_generator(size, crop_size, crop_step):
