@@ -196,26 +196,6 @@ def infer_loader(p):
     return i, np.array((H,W,y,x,h,w))
 
 
-# ref.: https://www.kaggle.com/stainsby/fast-tested-rle
-def rle_encode(img):
-    """ TBD
-
-    Args:
-        img (np.array):
-            - 1 indicating mask
-            - 0 indicating background
-
-    Returns:
-        run length as string formated
-    """
-
-    pixels = img.flatten()
-    pixels = np.concatenate([[0], pixels, [0]])
-    runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
-    runs[1::2] -= runs[::2]
-    return ' '.join(str(x) for x in runs)
-
-
 def rescale_mask(mask, params):
     H,W,y,x,h,w = params.flatten().int().numpy()
     #print(H,W,y,x,h,w)
