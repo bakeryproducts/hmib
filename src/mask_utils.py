@@ -14,7 +14,7 @@ def rle_decode(rle_str, mask_shape, mask_dtype=np.uint8):
     return mask.reshape(mask_shape[::-1]).T
 
 
-def convex2mask(convex_str, mask_shape, mask_dtype=np.uint8):
+def convex2mask(convex_str, mask_shape):
     convex_floats = list(map(float, convex_str.split()))
 
     points = []
