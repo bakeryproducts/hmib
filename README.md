@@ -52,6 +52,8 @@ Creates input/extra/hubmap/preprocessed folder with :
 - ~~Proper val, whole image~~ ~~big center crop for now~~ separate datasets, merge them
 - ~~build scale regressor, do not rely on kaggle scales~~ test.csv should contain scale, but still nice to have?
 - ~~deep supervision~~
+- more blur augs
+- harder regularization 
 - tissue / non tissue mask? white background depends on scanner
 - boundary loss weight-in
 - layer-wise LR decay
