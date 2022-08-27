@@ -152,3 +152,14 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 - B in 136-140
 1) 160, 100, not found => in 120-140
 2) 136, 120, notebook => in 136-140
+
+### lung 
+- R in 197-200
+1) 150, 80, note, in 150-255
+2) 200, 160, res, in 187-200
+3) 197, 190, note, in 197-200
+- G in 
+1) 140, 90, note, in 140-255 
+2) 180, 150, note, in 180-255
+- B 
+1) 
