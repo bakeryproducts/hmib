@@ -113,22 +113,26 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
  2) 220, 175, pass, in 160-175
  3) 173, 163, res, in 170-173
 
-### prostate
+
+### prostate ✔️
 - R in 186-189
 1) 180, 120, notebook => in 180-255
 2) 240, 195, pass => in 180-195
 3) 192, 183, not found => in 186-189
-- G in ?
+- G in 139-142
 1) 130, 70, notebook => in 130-255
 2) 180,142, pass, in 130-142 
-- B in ?
+3) 139, 133, notebook => in 139-142
+- B in 192-196
+1) 180, 120, notebook => in 180-255
+2) 196, 184, res => in 192-196
 
 
-### spleen
-- R in ?
+### spleen ✔️
+- R in 166-168
 1) 200, 50, res, in 150-200
 2) 190, 160, score, in 160-170
-3) TODO
+3) 168, 162, res, in 166-168
 - G in 90-94
 1) 190, 110, pass, in 0-110
 2) 90, 10, note, in 90-110
