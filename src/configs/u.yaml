@@ -5,11 +5,11 @@ SPLIT: 0
 DATA:
   # train_imgs: 'preprocessed/rle512_overlap.5/images/'
   # train_anns: 'preprocessed/rle512_overlap.5/masks/'
-  train_imgs: 'preprocessed/rle_1024/images/'
-  train_anns: 'preprocessed/rle_1024/masks/'
+  train_imgs: 'preprocessed/rle_1024_v2/images/'
+  train_anns: 'preprocessed/rle_1024_v2/masks/'
 
-  valid_imgs: 'preprocessed/rle_1024/images/'
-  valid_anns: 'preprocessed/rle_1024/masks/'
+  valid_imgs: 'preprocessed/rle_1024_v2/images/'
+  valid_anns: 'preprocessed/rle_1024_v2/masks/'
   # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
   # ann_loader: 'partial(data.Names, suffix=".png")'
   img_loader: 'partial(data.PngImages, suffix=".png")'
@@ -28,6 +28,11 @@ DATA:
       rate: 1
   VALID_HUB:
     DATASETS: ['hkid', "hcol"]
+    DATASET_ARGS:
+      overlap: 0
+      rate: 1
+  VALID_GTEX:
+    DATASETS: ["gcol"]
     DATASET_ARGS:
       overlap: 0
       rate: 1
@@ -67,11 +72,11 @@ AUGS:
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : albu.ChannelShuffle, args: [.5,]}
+      # - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
       - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
+      # - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
 
@@ -81,6 +86,10 @@ AUGS:
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
       - {m : sh.augmentation.ToTensor,}
   VALID_HUB:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+  VALID_GTEX:
     AUGS:
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
       - {m : sh.augmentation.ToTensor,}
@@ -154,6 +163,8 @@ TRAIN:
 VALID:
   BATCH_SIZE: 8
 VALID_HUB:
+  BATCH_SIZE: 8
+VALID_GTEX:
   BATCH_SIZE: 8
 
 LOSS:

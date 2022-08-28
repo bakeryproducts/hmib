@@ -181,9 +181,12 @@ class PngImages:
         if self.suffix is not None:
             path = path.with_suffix(self.suffix)
         i = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
+
         assert i is not None, path
         if len(i.shape) < 3:
             i = np.expand_dims(i, -1)
+        else:
+            i = cv2.cvtColor(i, cv2.COLOR_BGR2RGB)
         return i
 
 
