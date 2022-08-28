@@ -25,20 +25,25 @@ def main(ori_csv_file, new_csv_dir, result_csv_file, new_size=1024):
     new_df.id = new_df.id.apply(lambda filename: int(osp.splitext(filename)[0]))
 
     # Merge
-    for new_row in tqdm(new_df.itertuples(), desc=f"Updating rle from {new_csv_dir}", total=len(new_df)):
+    image_ids = new_df.id.unique()
+    for image_id in tqdm(image_ids, desc=f"Updating rle from {new_csv_dir}"):
         # Check occurence in df
-        n_occurrences = (ori_df.id == new_row.id).sum()
+        n_occurrences = (ori_df.id == image_id).sum()
         if n_occurrences == 0:
-            raise IndexError(f"No id {new_row.id} in original csv file {ori_csv_file}")
+            raise IndexError(f"No id {image_id} in original csv file {ori_csv_file}")
         if n_occurrences > 1:
-            raise IndexError(f"Non unique occurence {new_row.id} in original csv file {ori_csv_file}")
+            raise IndexError(f"Non unique occurence {image_id} in original csv file {ori_csv_file}")
 
-        ori_index = ori_df[ori_df.id == new_row.id].index[0]
+        # Build original mask
+        ori_index = ori_df[ori_df.id == image_id].index[0]
         ori_row = ori_df.loc[ori_index]
-
-        # Build masks
         ori_mask = rle_decode(ori_row.rle, (ori_row.img_height, ori_row.img_width))
-        new_mask = convex2mask(new_row.convex, (new_size, new_size))
+
+        # Build new mask
+        new_mask = np.zeros((new_size, new_size), dtype=np.uint8)
+        for new_row in new_df[new_df.id == image_id].itertuples():
+            poly_mask = convex2mask(new_row.convex, (new_size, new_size))
+            new_mask = np.maximum(new_mask, poly_mask)
 
         # Resize new mask to original size
         new_mask = cv2.resize(new_mask, ori_mask.shape[::-1], interpolation=cv2.INTER_CUBIC)
