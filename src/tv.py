@@ -234,4 +234,4 @@ def collect_map_score(cb, ema=True, train=False):
             cb.log_warning(f'\t {cb.L.mode} Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
             cb.L.writer.add_scalar(f'organs_{cb.L.mode}/{class_name}', organ_dice_mean, cb.L.n_epoch)
             macro.append(organ_dice_mean)
-        cb.L.writer.add_scalar(f'organs/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
+        cb.L.writer.add_scalar(f'general/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
