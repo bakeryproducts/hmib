@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 
+from rasterio.features import rasterize
+from shapely.geometry import Polygon
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
@@ -15,6 +17,20 @@ def mask2rle(img):
     runs = np.where(pixels[1:] != pixels[:-1])[0] + 1
     runs[1::2] -= runs[::2]
     return ' '.join(str(x) for x in runs)
+
+
+def convex2mask(poly, mask_shape):
+    polygon = Polygon(poly)
+    mask = rasterize([polygon], out_shape=mask_shape)
+    return mask
+
+
+def polys2mask(polys, h, w):
+    mask = np.zeros((h, w), dtype=np.uint8)
+    for poly in polys:
+        poly_mask = convex2mask(poly, (h, w))
+        mask = np.maximum(mask, poly_mask)
+    return mask
 
 
 def rle2mask(mask_rle, shape):
@@ -57,9 +73,11 @@ def save_mask(mask, path):
     del dst
 
 
-def start(root, dst_path):
+def create_masks(root, dst_path):
     root = Path(root)
     dst_path = Path(dst_path)
+
+    assert (root / 'train.csv').exists()
 
     tiff_files = list((root / 'train').glob('*.tiff'))
     for tiff_file in tqdm(tiff_files):

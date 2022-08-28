@@ -22,6 +22,7 @@ class GdalSampler:
                  img_polygons_path: str,
                  img_wh: Tuple[int, int],
                  border_path=None,
+                 shuffle=False,
                  rand_shift_range: Tuple[int, int] = (0, 0)) -> Tuple[np.ndarray, np.ndarray]:
         """If rand_shift_range ~ (0,0), then centroid of glomerulus corresponds centroid of output sample
         """
@@ -34,6 +35,8 @@ class GdalSampler:
         self._rand_shift_range = rand_shift_range
         # Get 1d list of polygons
         polygons = flatten_2dlist([json_record_to_poly(record) for record in self._records_json])
+        if shuffle:
+            random.shuffle(polygons)
         self._polygons_centroid = [np.round(polygon.centroid) for polygon in polygons]
 
     def __iter__(self):
