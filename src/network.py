@@ -37,8 +37,8 @@ class EncoderDecoder(nn.Module):
         self.encoder, encoder_cfg = encoder_fact(encoder_cfg) # will update cfg with stage channels
         self.decoder = decoder_fact(encoder_cfg, decoder_cfg)
 
-        # dec_out = decoder_cfg['blocks'][-1]['ch']
-        dec_out = self.decoder.embedding_dim
+        dec_out = decoder_cfg['blocks'][-1]['ch']
+        # dec_out = self.decoder.embedding_dim
         self.seg_head = nn.Conv2d(dec_out, **seg_cfg) # TODO : full head
         torch.nn.init.constant_(self.seg_head.bias, -4.59)
 

@@ -32,7 +32,7 @@ DATA:
       overlap: 0
       rate: 1
   VALID_GTEX:
-    DATASETS: ["gcol"]
+    DATASETS: ["gcol", "gspl", "gpro"]
     DATASET_ARGS:
       overlap: 0
       rate: 1
@@ -66,6 +66,7 @@ AUGS:
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 45, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       # - {m : ParamCrop, args : '${AUGS.CROP}'}
       # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
@@ -74,7 +75,7 @@ AUGS:
       - {m : albu.HorizontalFlip, }
       - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
-      - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
+      # - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
       # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
       - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
@@ -115,13 +116,13 @@ MODEL:
 
   DECODER:
     runner: 
-        _target_: decoders.decoder.create_segdec
-        # _target_: decoders.decoder.create_decoder
+        # _target_: decoders.decoder.create_segdec
+        _target_: decoders.decoder.create_decoder
         _partial_: true
-        embedding_dim: 128
+        # embedding_dim: 128
     base:
       use_bottleneck: False
-      last_scale: 4
+      last_scale: 1
     blocks:
       - ch: 512
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
@@ -129,11 +130,11 @@ MODEL:
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 128
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
-      # - ch: 64
-      #   use_skip: False
-      #   e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
-      # - ch: 32
-      #   e_prehook: 'torch.nn.Upsample(scale_factor=(1,1), mode="bilinear")'
+      - ch: 64
+        #use_skip: False
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 32
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
     # all_stages:
 
   SEGHEAD:
