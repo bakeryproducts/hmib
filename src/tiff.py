@@ -82,15 +82,12 @@ class BatchedTiffReader(TiffReader):
         self,
         path_to_tiff_file: str,
         block_size: int,
-        image_meter_scale: float,
         pad_ratio: float,
         batch_size: int,
     ):
         super().__init__(path_to_tiff_file)
 
         self.block_size = block_size
-        self.image_meter_scale = image_meter_scale
-        self.network_scale = 1.0
         self.pad_ratio = pad_ratio
         self.batch_size = batch_size
         self.next_block = 0
@@ -101,37 +98,15 @@ class BatchedTiffReader(TiffReader):
         return int(np.ceil(self.total_blocks / self.batch_size))
 
     def __iter__(self):
-        return self(network_scale=None)
-
-    def __call__(self, network_scale=None):
-        self.next_block = 0
-        self.network_scale = network_scale or 1.0
-        self._generate_block_coords()
         return iter(self.read_batch, None)
-
-    @property
-    def scale(self):
-        return (self.BASE_SCALE / self.image_meter_scale) * self.network_scale
-
-    @property
-    def scaled_block_size(self):
-        return int(round(self.block_size / self.scale))
 
     @property
     def pad_size(self):
         return int(round(self.block_size * self.pad_ratio))
 
     @property
-    def scaled_pad_size(self):
-        return int(round(self.scaled_block_size * self.pad_ratio))
-
-    @property
     def total_blocks(self):
         return len(self.blocks_coords)
-
-    @property
-    def inv_scale(self):
-        return 1.0 / self.scale
 
     def has_next_block(self):
         return self.next_block < len(self.blocks_coords)
@@ -147,7 +122,7 @@ class BatchedTiffReader(TiffReader):
                 break
 
             block_cd = self.blocks_coords[self.next_block]
-            padded_block_cd = pad_block(*block_cd, self.scaled_pad_size)
+            padded_block_cd = pad_block(*block_cd, self.pad_size)
             block = self.read_block(*padded_block_cd)
             batch_blocks.append(block)
             batch_coords.append(block_cd)
@@ -156,14 +131,14 @@ class BatchedTiffReader(TiffReader):
 
         return (
             torch.from_numpy(np.stack(batch_blocks)),
-            torch.from_numpy(np.stack(batch_coords)),
+            np.stack(batch_coords),
         )
 
     def _generate_block_coords(self):
         height, width = self.shape
-        scaled_block_size = self.scaled_block_size
+        block_size = self.block_size
         self.blocks_coords = list(generate_block_coords(
-            height, width, block_size=(scaled_block_size, scaled_block_size)
+            height, width, block_size=(block_size, block_size)
         ))
 
 
