@@ -136,6 +136,11 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 
 ### spleen ✔️
+- Count 113
+1) 110-60, note, in 110-448
+2) 140-120, pass, in 110-120
+3) 118-112, score, 113
+
 - R in 166-168
 1) 200, 50, res, in 150-200
 2) 190, 160, score, in 160-170

@@ -164,6 +164,7 @@ class ValCB(sh.callbacks.Callback):
     def run_valid(self):
         ema = self.L.model_ema is not None
         model = self.L.model if not ema else self.L.model_ema.module
+        model.eval()
         prefix = 'val' if not ema else 'ema'
         batch = self.batch_read(self.L.batch)
         batch = prepare_batch(batch, self, train=False)

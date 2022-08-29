@@ -48,6 +48,7 @@ class HubCB(sh.callbacks.Callback):
     def run_hub(self):
         ema = self.L.model_ema is not None
         model = self.L.model if not ema else self.L.model_ema.module
+        model.eval()
         batch = self.batch_read(self.L.batch)
         batch = prepare_batch(batch, self, train=False)
 

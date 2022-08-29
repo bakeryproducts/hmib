@@ -64,10 +64,8 @@ class DatasetsGen:
 
         ext_val_hcol = partial(data.ExtraValDataset,
                                cfg=cfg,
-                               # root=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/images',
-                               # ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/masks',
-                               root=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.344_1024/S0/train/images',
-                               ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.344_1024/S0/train/masks',
+                               root=DATA_DIR / 'extra/hubmap_colon/preprocessed/CUTS/2.344_1024/images',
+                               ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/CUTS/2.344_1024/masks',
                                base_path=base_path,
                                ImgLoader=img_loader,
                                AnnLoader=ann_loader,
@@ -76,14 +74,30 @@ class DatasetsGen:
 
         ext_val_gcol = partial(data.ExtraValDataset,
                                cfg=cfg,
-                               # root=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/images',
-                               # ann_path=DATA_DIR / 'extra/hubmap_colon/preprocessed/SPLITS/2.930_1024/S0/train/masks',
-                               root=DATA_DIR / 'extra/gtex/CUTS/colon/2.344_1024/images',
-                               ann_path=DATA_DIR / 'extra/gtex/CUTS/colon/2.344_1024/masks',
+                               root=DATA_DIR / 'extra/gtex/CUTS/colon/preprocessed/CUTS/2.344_1024/images',
+                               ann_path=DATA_DIR / 'extra/gtex/CUTS/colon/preprocessed/CUTS/2.344_1024/masks',
                                base_path=base_path,
                                ImgLoader=img_loader,
                                AnnLoader=ann_loader,
                                organ='largeintestine',
+                               **val_ds_args)
+        ext_val_gspl = partial(data.ExtraValDataset,
+                               cfg=cfg,
+                               root=DATA_DIR / 'extra/gtex/CUTS/spleen/preprocessed/CUTS/2.344_1024/images',
+                               ann_path=DATA_DIR / 'extra/gtex/CUTS/spleen/preprocessed/CUTS/2.344_1024/masks',
+                               base_path=base_path,
+                               ImgLoader=img_loader,
+                               AnnLoader=ann_loader,
+                               organ='spleen',
+                               **val_ds_args)
+        ext_val_gpro = partial(data.ExtraValDataset,
+                               cfg=cfg,
+                               root=DATA_DIR / 'extra/gtex/CUTS/prostate/preprocessed/CUTS/2.344_1024/images',
+                               ann_path=DATA_DIR / 'extra/gtex/CUTS/prostate/preprocessed/CUTS/2.344_1024/masks',
+                               base_path=base_path,
+                               ImgLoader=img_loader,
+                               AnnLoader=ann_loader,
+                               organ='prostate',
                                **val_ds_args)
 
         split_path = Path(DATA_DIR / 'splits')
@@ -121,6 +135,8 @@ class DatasetsGen:
             hcol=dict(ds=ext_val_hcol),
 
             gcol=dict(ds=ext_val_gcol),
+            gspl=dict(ds=ext_val_gspl),
+            gpro=dict(ds=ext_val_gpro),
 
         )
 

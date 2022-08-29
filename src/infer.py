@@ -86,12 +86,15 @@ class Inferer:
         self.tta_merge_mode = tta_merge_mode
         self.device = model.device
 
+        print(self.tta)
         if self.tta:
             self.model = ttach.SegmentationTTAWrapper(
                 self.model,
                 ttach.aliases.d4_transform(),
                 merge_mode=self.tta_merge_mode
             )
+            print('TTA', self.tta)
+
 
     def preprocess(self, batch):
         """Preprocessing
