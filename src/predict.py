@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 from functools import partial
+from pathlib import Path
 
 import albumentations.augmentations.geometric.functional as AGF
 import fire
@@ -10,7 +11,7 @@ import pandas as pd
 from block_utils import paste_crop
 from infer import Inferer
 from mask_utils import rle_encode
-from tiff import BatchedTiffReader
+from tiff import BatchedTiffReader, save_tiff
 
 
 def infer_image(image_reader, inferer, rle=True, organ=None):
@@ -29,7 +30,10 @@ def infer_image(image_reader, inferer, rle=True, organ=None):
             paste_crop(mask, block_mask, block_cd, image_reader.scaled_pad_size)
 
     # Build the result
-    return rle_encode(mask) if rle else mask
+    return {
+        "rle": rle_encode(mask),
+        "mask": mask.astype(np.uint8).transpose((1, 2, 0)),
+    }
 
 
 def image_file_generator(images_dir, images_csv=None):
@@ -60,18 +64,18 @@ def image_file_generator(images_dir, images_csv=None):
 
 
 def main(
-    experiment_dir,
     model_file,
-    config_file,
     images_dir,
-    output_csv,
+    output_dir=None,
+    output_csv=None,
+    config_file=None,
     block_size=512,
     network_scale=1024/3000,
     pad_ratio=0.25,
     batch_size=4,
     threshold=0.5,
     tta=False,
-    to_gpu=False,
+    device="cpu",
     tta_merge_mode="mean",
     images_csv=None,
 ):
@@ -82,16 +86,17 @@ def main(
 
     Params
     ------
-        experiment_dir: str
-            Path to dir where should be ./src dir
         model_file: str
             Path to .pth model file
-        config_file:
-            Path to .yml config file
         images_dir: str
             Path to images directory
-        output_csv: str
+        output_dir: str
+            Path to the directory where output masks will be stored
+        output_csv: str, optional, default None
             Path to .csv file where to store inference result
+            If None then no .csv result will be stored
+        config_file: str, optional, default None
+            Path to .yml config file
         block_size: int, default 512
             Inference block size
         network_scale: float, default 1024/3000
@@ -100,11 +105,10 @@ def main(
             Ratio of padding during the inference
         batch_size: int, default 4
             Batch size
-        tta:
-            bla
-
-        to_gpu: str, default "cpu"
-            Device for inference, should be "cpu" or "cuda"
+        tta: bool
+            Apply 8 TTA or not
+        device: str, default "cpu"
+            Device for inference, should be "cpu", "cuda" or "cuda:<i>"
         tta_merge_mode: str
             One of [mean, max]
         images_csv: str, default None
@@ -112,7 +116,14 @@ def main(
             If you pass this path only images from this df will be
             used for inference
     """
-    assert isinstance(tta, bool) and isinstance(to_gpu, bool)
+    # Check cmd args
+    assert isinstance(tta, bool)
+    experiment_dir = Path(model_file).parent.parent.parent
+    if config_file is None:
+        config_file = osp.join(experiment_dir, "src", "configs", "u.yaml")
+    if output_dir is None:
+        output_dir = osp.join(experiment_dir, "predicts")
+    os.makedirs(output_dir, exist_ok=True)
 
     # Create TiffReader initializer
     TiffReader = partial(
@@ -128,7 +139,7 @@ def main(
         model_file,
         config_file,
         experiment_dir,
-        to_gpu=to_gpu,
+        device=device,
         threshold=threshold,
         tta=tta,
         tta_merge_mode=tta_merge_mode,
@@ -136,15 +147,22 @@ def main(
 
     result = []
     for image_file, image_id, organ in image_file_generator(images_dir, images_csv):
-        image_reader = TiffReader(image_file)
-        result.append({
-            "id": image_id,
-            "rle": infer_image(image_reader, inferer, rle=True, organ=organ),
-        })
-        image_reader.close()
+        with TiffReader(image_file) as image_reader:
+            image_result = infer_image(image_reader, inferer, rle=True, organ=organ)
 
-    result = pd.DataFrame(result)
-    result.to_csv(output_csv, index=False)
+        if output_csv is not None:
+            result.append({
+                "id": image_id,
+                "rle": image_result["rle"],
+            })
+
+        if output_dir is not None:
+            mask_output_file = osp.join(output_dir, f"{image_id}.tiff")
+            save_tiff(mask_output_file, image_result["mask"] * 255)
+
+    if output_csv is not None:
+        result = pd.DataFrame(result)
+        result.to_csv(output_csv, index=False)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ from tqdm import tqdm
 from pathlib import Path
 
 
-
 def read_svs(p, x,y,h,w):
     slide = slideio.open_slide(str(p), 'SVS')
     scene = slide.get_scene(0)

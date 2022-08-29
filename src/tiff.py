@@ -22,6 +22,12 @@ class TiffReader:
         self.ds = rio.open(path_to_tiff_file)
         self.subds_list = [rio.open(subds_path) for subds_path in self.ds.subdatasets]
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     def read(self, window=None, boundless=True):
         """
         Returns
@@ -145,3 +151,17 @@ class BatchedTiffReader(TiffReader):
 def load_tiff(tiff_file):
     reader = TiffReader(tiff_file)
     return reader.read()
+
+
+def save_tiff(dst_tiff, image):
+    height, width, channels = image.shape
+
+    profile = rio.profiles.default_gtiff_profile
+    profile.update({
+        'height': height,
+        'width': width,
+        'count': channels,
+    })
+
+    with rio.open(dst_tiff, 'w', **profile) as f:
+        f.write(image.transpose(2, 0, 1))

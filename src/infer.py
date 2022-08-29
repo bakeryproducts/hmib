@@ -79,7 +79,6 @@ class Inferer:
         sigmoid=True,
         tta=False,
         tta_merge_mode="mean",
-        to_gpu=False,
     ):
         """
         Params
@@ -105,7 +104,7 @@ class Inferer:
         self.sigmoid = sigmoid
         self.tta = tta
         self.tta_merge_mode = tta_merge_mode
-        self.to_gpu = to_gpu
+        self.device = model.device
 
         if self.tta:
             self.model = ttach.SegmentationTTAWrapper(
@@ -125,9 +124,7 @@ class Inferer:
         -------
         X: torch.Tensor of shape (batch, channels, height, width); batch of preprocessed images.
         """
-        X = torch.from_numpy(batch).float()
-        if self.to_gpu:
-            X = X.cuda()
+        X = torch.from_numpy(batch).float().to(self.device)
         X = batch_quantile(X, q=.005)
         X = X.permute((0, 3, 1, 2))
         X, mean, std = norm_2d(X, mean=self.cfg.AUGS.MEAN, std=self.cfg.AUGS.STD)
@@ -178,7 +175,7 @@ class Inferer:
         return yb
 
     @classmethod
-    def create(cls, model_file, config_file, experiment_dir, to_gpu=False, **kwargs):
+    def create(cls, model_file, config_file, experiment_dir, device="cpu", **kwargs):
         # Load config
         cfg = OmegaConf.load(config_file)
         cfg.MODEL.ENCODER.pretrained = False
@@ -186,9 +183,9 @@ class Inferer:
         network_module = init_modules(experiment_dir, "network")
 
         # Load model
-        model = init_model(cfg, model_file, network_module, to_gpu)
+        model = init_model(cfg, model_file, network_module, device)
 
-        return cls(model, cfg, to_gpu=to_gpu, **kwargs)
+        return cls(model, cfg, **kwargs)
 
 
 class EnsembleInfer:
@@ -243,14 +240,12 @@ def init_modules(p, module_name='network'):
     return module
 
 
-def init_model(cfg, model_path, network, to_gpu=False):
-    # root = model_path.parent.parent.parent
+def init_model(cfg, model_path, network, device="cpu"):
     model = network.model_select(cfg)()
     saved_model = torch.load(model_path, map_location=torch.device('cpu'))
     model.load_state_dict(saved_model['model_state']['cls'])
-    model = model.eval()
-    if to_gpu:
-        model = model.cuda()
+    model = model.to(device).eval()
+    model.device = device
     return model
 
 
