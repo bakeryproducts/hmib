@@ -1,14 +1,16 @@
-import sys
 import importlib
-from pathlib import Path
+import sys
 from collections import defaultdict
-from functools import partial
+from pathlib import Path
 
 import cv2
-import torch
-from omegaconf import OmegaConf
-import pandas as pd
 import numpy as np
+import torch
+import ttach
+from omegaconf import OmegaConf
+
+from data import ORGANS
+from tools_tv import batch_quantile
 
 
 def norm_2d(xb, mode='batch', mean=None, std=None):
@@ -53,6 +55,140 @@ def preprocess(xb):
     xb,_,_ = norm_2d(xb, mode='example')
     xb.clamp_(-10,10)
     return xb
+
+
+class RawBatchModel(torch.nn.Module):
+    """
+    Model wrapper that convert input and output format
+    from dictionary to raw tensors.
+    """
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def __call__(self, batch):
+        return self.model({"xb": batch})["yb"]
+
+
+class Inferer:
+    def __init__(
+        self,
+        model,
+        cfg,
+        threshold=0.5,
+        sigmoid=True,
+        tta=False,
+        tta_merge_mode="mean",
+        to_gpu=False,
+    ):
+        """
+        Params
+        ------
+        model: torch.nn.Module
+            Model
+        cfg: OmegaConf.Config
+            Config
+        threshold: float, default 0.5
+            Confidence threshold
+            If None no thresholding will be done
+        sigmoid: bool, default True
+            Apply sigmoid or not
+        tta: bool, default False
+            Apply TTA or not
+        tta_merge_mode: str, default "mean"
+            TTA merge mode, should be one of [mean, max]
+        """
+        self.model = RawBatchModel(model)
+        self.cfg = cfg
+
+        self.threshold = threshold
+        self.sigmoid = sigmoid
+        self.tta = tta
+        self.tta_merge_mode = tta_merge_mode
+        self.to_gpu = to_gpu
+
+        if self.tta:
+            self.model = ttach.SegmentationTTAWrapper(
+                self.model,
+                ttach.aliases.d4_transform(),
+                merge_mode=self.tta_merge_mode
+            )
+
+    def preprocess(self, batch):
+        """Preprocessing
+
+        Params
+        ------
+        batch: np.array of shape (batch, height, width, channels); batch of raw images.
+
+        Returns
+        -------
+        X: torch.Tensor of shape (batch, channels, height, width); batch of preprocessed images.
+        """
+        X = torch.from_numpy(batch).float()
+        if self.to_gpu:
+            X = X.cuda()
+        X = batch_quantile(X, q=.005)
+        X = X.permute((0, 3, 1, 2))
+        X, mean, std = norm_2d(X, mean=self.cfg.AUGS.MEAN, std=self.cfg.AUGS.STD)
+        X.clamp_(-self.cfg.FEATURES.CLAMP, self.cfg.FEATURES.CLAMP)
+        return X
+
+    def __call__(self, batch, organ=None):
+        """Inference
+
+        Params
+        ------
+        batch: torch.Tensor of shape (batch, channels, height, width)
+            Batch of preprocessed images
+        organ: str, optional, default None
+            Which organ is on the images
+            None means we have no such information,
+            in this case max probability among all organs will be used
+
+        Returns
+        -------
+        yb: np.array of shape (batch, height, width, 1)
+            Batch masks
+        """
+        with torch.no_grad():
+            with torch.cuda.amp.autocast(enabled=True):
+                batch_pred = self.model(self.preprocess(batch))
+
+        yb = batch_pred.float()
+
+        if self.sigmoid:
+            yb.sigmoid_()
+
+        yb = yb.cpu().numpy()
+        yb = yb.transpose((0, 2, 3, 1))
+
+        # Extract organ mask
+        if organ is not None:
+            yb = yb[..., ORGANS[organ]][..., None]
+
+        # Extract mask for all organs
+        else:
+            yb = torch.max(yb, dim=-1, keepdim=True)
+
+        # Binarize the mask
+        if self.threshold is not None:
+            yb = (yb > self.threshold).astype(np.uint8)
+
+        return yb
+
+    @classmethod
+    def create(cls, model_file, config_file, experiment_dir, to_gpu=False, **kwargs):
+        # Load config
+        cfg = OmegaConf.load(config_file)
+        cfg.MODEL.ENCODER.pretrained = False
+
+        network_module = init_modules(experiment_dir, "network")
+
+        # Load model
+        model = init_model(cfg, model_file, network_module, to_gpu)
+
+        return cls(model, cfg, to_gpu=to_gpu, **kwargs)
 
 
 class EnsembleInfer:

@@ -14,3 +14,4 @@ multirun
 **/*.zip
 kaggle_upload
 .idea/
+.DS_Store/

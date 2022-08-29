@@ -1,5 +1,3 @@
-from functools import partial
-
 import torch
 
 import shallow as sh

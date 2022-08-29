@@ -18,6 +18,7 @@ class TiffReader:
     """
 
     def __init__(self, path_to_tiff_file: str):
+        self.tiff_file = path_to_tiff_file
         self.ds = rio.open(path_to_tiff_file)
         self.subds_list = [rio.open(subds_path) for subds_path in self.ds.subdatasets]
 
@@ -70,12 +71,12 @@ class TiffReader:
 
 class BatchedTiffReader(TiffReader):
     def __init__(
-            self,
-            path_to_tiff_file: str,
-            block_size: int,
-            network_scale: float,
-            pad_ratio: float,
-            batch_size: int
+        self,
+        path_to_tiff_file: str,
+        block_size: int,
+        network_scale: float,
+        pad_ratio: float,
+        batch_size: int,
     ):
         super().__init__(path_to_tiff_file)
 
