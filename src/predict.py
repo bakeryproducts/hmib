@@ -203,9 +203,8 @@ def main(
             })
 
         if output_dir is not None:
-            mask_output_file = osp.join(output_dir, f"{image_id}.tiff")
+            mask_output_file = osp.join(output_dir, osp.basename(image_file))
             mask = image_result["mask"] * 255
-            # mask = mask.transpose(2,0,1) # CHW
             save_tiff(mask_output_file, mask)
 
     if output_csv is not None:
