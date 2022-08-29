@@ -154,12 +154,18 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 2) 136, 120, notebook => in 136-140
 
 ### lung 
+- Count
+1) 110, 70, note, in 110-448
+2) 150, 115, pass, in 110 - 115
+3) 
 - R in 197-200
 1) 150, 80, note, in 150-255
 2) 200, 160, res, in 187-200
 3) 197, 190, note, in 197-200
-- G in 
+- G in 185-191
 1) 140, 90, note, in 140-255 
 2) 180, 150, note, in 180-255
-- B 
-1) 
+3) 205, 185, score, in 185-191
+- B in 205-211
+1) 200, 100, , note, in 200-255
+2) 225, 205,  score, in 205-211

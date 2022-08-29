@@ -20,6 +20,7 @@ from logger import logger
 from callbacks import CheckpointCB, TrackResultsCB, EarlyExit, TBPredictionsCB, RegistratorCB, ScorerCB, FrozenEncoderCB, get_ema_decay_cb
 
 import hub_cb
+import gtex_cb
 
 
 
@@ -31,7 +32,7 @@ def start(cfg, output_folder):
         output.mkdir()
 
     datasets_generator = build_data.DatasetsGen(cfg)
-    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB'])
+    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB', 'VALID_GTEX'])
     if not cfg.DATA.DALI:
         datasets = augs.create_augmented(cfg, datasets)
 
@@ -154,8 +155,10 @@ def start_split(cfg, output_folder, datasets):
     HUB = True
     if HUB:
         hcb = hub_cb.HubCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
+        gcb = gtex_cb.GtexCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
     else:
         hcb = None
+        gcb = None
 
     loss = {}
     for ls in cfg.LOSS:
@@ -175,6 +178,7 @@ def start_split(cfg, output_folder, datasets):
 
     if hcb is not None:
         cbs.append(hcb)
+        cbs.append(gcb)
 
     if 'UNFREEZE_SCHED' in cfg:
         d = OmegaConf.to_container(cfg.UNFREEZE_SCHED)

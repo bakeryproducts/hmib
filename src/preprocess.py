@@ -35,7 +35,7 @@ def folder_gen(src):
 
 def df_hubmap2(src):
     ori_images_dir = src / "train_images"
-    ori_train_csv = src / "train.csv"
+    ori_train_csv = src / "trv2.csv"
     df = pd.read_csv(ori_train_csv)
     print(f'\n\ttotal length: {len(df)}')
 
@@ -52,7 +52,7 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', size=1024, crop_size=512
     src = Path(src)
     dst = Path(dst)
 
-    output_dirname = f"rle_{size}"
+    output_dirname = f"rle_{size}_v2"
     if subcrops:
         overlap = crop_size - crop_step
         output_dirname += f"_c{crop_size}_o{overlap}"
