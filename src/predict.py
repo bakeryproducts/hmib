@@ -3,10 +3,12 @@ import os.path as osp
 from functools import partial
 from pathlib import Path
 
-import albumentations.augmentations.geometric.functional as AGF
+#import albumentations.augmentations.geometric.functional as AGF
 import fire
+import torch
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 from block_utils import paste_crop
 from infer import Inferer
@@ -14,25 +16,62 @@ from mask_utils import rle_encode
 from tiff import BatchedTiffReader, save_tiff
 
 
+def select_organ_from_predict(yb, organ=None):
+    # yb BCHW
+    # copy ORGANS from data, better not to source data.py
+    ORGANS = {k:i for i,k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
+    if organ is not None: yb = yb[:, ORGANS[organ]][:, None]
+    else: yb, _ = torch.max(yb, dim=1, keepdim=True)
+    return yb
+
+
+def log(*m):
+    pass
+    #print(m)
+
+
 def infer_image(image_reader, inferer, rle=True, organ=None):
     H, W = image_reader.shape
 
+    img_scale = image_reader.image_meter_scale # .4
+    network_scale = .4 * 3# * 1 / (1024/3000)
+    s = img_scale / network_scale
+    pad_size = image_reader.scaled_pad_size
     # Infer batch by batch
-    mask = np.zeros((1, H, W)).astype(bool if rle else np.float32)
+    mask = np.zeros((1, H, W), dtype=float)#.astype(bool if rle else np.float32)
+    if len(image_reader) > 20: image_reader = tqdm(image_reader)
     for batch_blocks, batch_coords in image_reader:
+        # BCHW
         # Infer batch
-        batch_masks = inferer(batch_blocks, organ=organ)
+        log('LOAD', batch_blocks.shape, batch_coords[0])
+        batch_blocks = torch.from_numpy(batch_blocks)
+        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(s, s))
+        log('INFER', batch_blocks.shape, batch_blocks.max())
+        batch_masks = inferer(batch_blocks) # bchw, logit
+        log('PREDICT', batch_masks.shape, batch_masks.max())
+        batch_masks = select_organ_from_predict(batch_masks, organ)
+        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1/s, 1/s))
+        batch_masks.sigmoid_()
+        log('ORGAN', batch_masks.shape,)
+        #batch_masks = batch_masks.permute(0,2,3,1) # bhwc
+        batch_masks = batch_masks.cpu()
+        log('FUNAL', batch_masks.shape)
+
 
         # Copy block mask to the original
         for block_mask, block_cd in zip(batch_masks, batch_coords):
-            block_mask = AGF.scale(block_mask, image_reader.inv_network_scale)
-            block_mask = block_mask.transpose((2, 0, 1))
-            paste_crop(mask, block_mask, block_cd, image_reader.scaled_pad_size)
+            # no way
+            #block_mask = AGF.scale(block_mask, image_reader.inv_network_scale)
+            # block_mask = block_mask.transpose((2, 0, 1))
+            log(block_mask.shape, block_mask.max(), block_cd)
+            paste_crop(mask, block_mask, block_cd, pad_size)
+
+    log('MASK', mask.shape, mask.mean(), mask.max())
 
     # Build the result
     return {
-        "rle": rle_encode(mask),
-        "mask": mask.astype(np.uint8).transpose((1, 2, 0)),
+        "rle": '',#rle_encode(mask),
+        "mask": mask#.astype(np.uint8).transpose((1, 2, 0)),
     }
 
 
@@ -66,6 +105,7 @@ def image_file_generator(images_dir, images_csv=None):
 def main(
     model_file,
     images_dir,
+    image_meter_scale,
     output_dir=None,
     output_csv=None,
     config_file=None,
@@ -75,7 +115,7 @@ def main(
     batch_size=4,
     threshold=0.5,
     tta=False,
-    device="cpu",
+    device=None,
     tta_merge_mode="mean",
     images_csv=None,
 ):
@@ -107,8 +147,8 @@ def main(
             Batch size
         tta: bool
             Apply 8 TTA or not
-        device: str, default "cpu"
-            Device for inference, should be "cpu", "cuda" or "cuda:<i>"
+        device: int, default None
+            Device for inference, should be 0, 1, ..  or None for cpu
         tta_merge_mode: str
             One of [mean, max]
         images_csv: str, default None
@@ -117,6 +157,12 @@ def main(
             used for inference
     """
     # Check cmd args
+    if device is not None:
+        # wont init all gups
+        os.environ['CUDA_VISIBLE_DEVICES'] = str(device)
+        device = 'cuda'
+    else:
+        device = 'cpu'
     assert isinstance(tta, bool)
     experiment_dir = Path(model_file).parent.parent.parent
     if config_file is None:
@@ -129,7 +175,7 @@ def main(
     TiffReader = partial(
         BatchedTiffReader,
         block_size=block_size,
-        network_scale=network_scale,
+        image_meter_scale=image_meter_scale,
         pad_ratio=pad_ratio,
         batch_size=batch_size,
     )
@@ -146,7 +192,7 @@ def main(
     )
 
     result = []
-    for image_file, image_id, organ in image_file_generator(images_dir, images_csv):
+    for image_file, image_id, organ in tqdm(image_file_generator(images_dir, images_csv)):
         with TiffReader(image_file) as image_reader:
             image_result = infer_image(image_reader, inferer, rle=True, organ=organ)
 
@@ -158,7 +204,9 @@ def main(
 
         if output_dir is not None:
             mask_output_file = osp.join(output_dir, f"{image_id}.tiff")
-            save_tiff(mask_output_file, image_result["mask"] * 255)
+            mask = image_result["mask"] * 255
+            # mask = mask.transpose(2,0,1) # CHW
+            save_tiff(mask_output_file, mask)
 
     if output_csv is not None:
         result = pd.DataFrame(result)

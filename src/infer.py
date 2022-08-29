@@ -3,13 +3,16 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-import numpy as np
 import torch
 import ttach
 from omegaconf import OmegaConf
 
-from data import ORGANS
-from tools_tv import batch_quantile
+
+def batch_quantile(b, q=.01):
+    br = b.view(b.shape[0],-1)
+    rq = torch.quantile(br, dim=1, q=1-q).view(-1,1,1,1)
+    lq = torch.quantile(br, dim=1, q=  q).view(-1,1,1,1)
+    return torch.max(torch.min(b, rq), lq)
 
 
 def norm_2d(xb, mode='batch', mean=None, std=None):
@@ -101,9 +104,8 @@ class Inferer:
         -------
         X: torch.Tensor of shape (batch, channels, height, width); batch of preprocessed images.
         """
-        X = torch.from_numpy(batch).float().to(self.device)
-        X = batch_quantile(X, q=.005)
-        X = X.permute((0, 3, 1, 2))
+        X = batch.float().to(self.device)
+        X = batch_quantile(X, q=.005) # bchw
 
         if self.cfg.AUGS.NORM.MODE == 'meanstd':
             X, _, _ = norm_2d(X, mean=self.cfg.AUGS.NORM.MEAN, std=self.cfg.AUGS.NORM.STD)
@@ -136,23 +138,19 @@ class Inferer:
 
         yb = batch_pred.float()
 
-        if self.sigmoid:
-            yb.sigmoid_()
-
-        yb = yb.cpu().numpy()
-        yb = yb.transpose((0, 2, 3, 1))
+        # if self.sigmoid: yb.sigmoid_()
+        # yb = yb.cpu()
+        # yb = yb.permute((0, 2, 3, 1))
 
         # Extract organ mask
-        if organ is not None:
-            yb = yb[..., ORGANS[organ]][..., None]
+        # if organ is not None: yb = yb[..., ORGANS[organ]][..., None]
 
         # Extract mask for all organs
-        else:
-            yb = torch.max(yb, dim=-1, keepdim=True)
+        # else: yb = torch.max(yb, dim=-1, keepdim=True)
 
         # Binarize the mask
-        if self.threshold is not None:
-            yb = (yb > self.threshold).astype(np.uint8)
+        # if self.threshold is not None:
+        #     yb = (yb > self.threshold)#.astype(np.uint8)
 
         return yb
 
@@ -216,6 +214,7 @@ def init_modules(p, module_name='network'):
 
     if module_name in sys.modules:
         del sys.modules[module_name]
+        # TODO del submodules
 
     module = init_data_module_from_checkpoint(p, module_name, f'{module_name}.py')
     sys.path.pop(0)

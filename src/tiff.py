@@ -45,7 +45,7 @@ class TiffReader:
         else:
             output = self.ds.read(**ds_kwargs)
 
-        output = output.transpose((1, 2, 0))
+        #output = output.transpose((1, 2, 0))
         return output
 
     def read_block(self, y, x, h, w, boundless=True):
@@ -80,14 +80,15 @@ class BatchedTiffReader(TiffReader):
         self,
         path_to_tiff_file: str,
         block_size: int,
-        network_scale: float,
+        image_meter_scale: float,
         pad_ratio: float,
         batch_size: int,
     ):
         super().__init__(path_to_tiff_file)
 
         self.block_size = block_size
-        self.network_scale = network_scale
+        self.image_meter_scale = image_meter_scale
+        self.network_scale = 1
         self.pad_ratio = pad_ratio
         self.batch_size = batch_size
 
@@ -125,6 +126,7 @@ class BatchedTiffReader(TiffReader):
         return self.next_block < len(self.blocks_coords)
 
     def read_batch(self):
+        # BCHW
         if not self.has_next_block():
             return None
 
@@ -136,7 +138,6 @@ class BatchedTiffReader(TiffReader):
             block_cd = self.blocks_coords[self.next_block]
             padded_block_cd = pad_block(*block_cd, self.scaled_pad_size)
             block = self.read_block(*padded_block_cd)
-            block = AGF.scale(block, self.network_scale)
             batch_blocks.append(block)
             batch_coords.append(block_cd)
 
@@ -154,14 +155,13 @@ def load_tiff(tiff_file):
 
 
 def save_tiff(dst_tiff, image):
-    height, width, channels = image.shape
-
+    # CHW
+    c, h, w = image.shape
     profile = rio.profiles.default_gtiff_profile
     profile.update({
-        'height': height,
-        'width': width,
-        'count': channels,
+        'height': h,
+        'width': w,
+        'count': c,
     })
-
     with rio.open(dst_tiff, 'w', **profile) as f:
-        f.write(image.transpose(2, 0, 1))
+        f.write(image)
