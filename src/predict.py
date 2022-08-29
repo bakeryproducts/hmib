@@ -19,8 +19,8 @@ from tiff import BatchedTiffReader, save_tiff
 def select_organ_from_predict(yb, organ=None):
     # yb BCHW
     # copy ORGANS from data, better not to source data.py
-    ORGANS = {k:i for i,k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
-    if organ is not None: yb = yb[:, ORGANS[organ]][:, None]
+    ORGANS = {k: i for i, k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
+    if organ is not None: yb = yb[:, ORGANS[organ]].unsqueeze(1)
     else: yb, _ = torch.max(yb, dim=1, keepdim=True)
     return yb
 
@@ -30,48 +30,46 @@ def log(*m):
     #print(m)
 
 
-def infer_image(image_reader, inferer, rle=True, organ=None):
+def infer_image(image_reader, inferer, rle_threshold=0.5, organ=None):
     H, W = image_reader.shape
 
-    img_scale = image_reader.image_meter_scale # .4
-    network_scale = .4 * 3# * 1 / (1024/3000)
-    s = img_scale / network_scale
-    pad_size = image_reader.scaled_pad_size
     # Infer batch by batch
-    mask = np.zeros((1, H, W), dtype=float)#.astype(bool if rle else np.float32)
-    if len(image_reader) > 20: image_reader = tqdm(image_reader)
-    for batch_blocks, batch_coords in image_reader:
+    mask = np.zeros((1, H, W), dtype=float)
+    for batch_blocks, batch_coords in tqdm(image_reader(network_scale=inferer.network_scale)):
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
-        batch_blocks = torch.from_numpy(batch_blocks)
-        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(s, s))
+        batch_blocks = torch.nn.functional.interpolate(
+            batch_blocks, scale_factor=(image_reader.scale, image_reader.scale))
+
         log('INFER', batch_blocks.shape, batch_blocks.max())
-        batch_masks = inferer(batch_blocks) # bchw, logit
+        batch_masks = inferer(batch_blocks)  # bchw, logit
+
         log('PREDICT', batch_masks.shape, batch_masks.max())
         batch_masks = select_organ_from_predict(batch_masks, organ)
-        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1/s, 1/s))
+        batch_masks = torch.nn.functional.interpolate(
+            batch_masks, scale_factor=(1./image_reader.scale, 1./image_reader.scale))
         batch_masks.sigmoid_()
+
         log('ORGAN', batch_masks.shape,)
         #batch_masks = batch_masks.permute(0,2,3,1) # bhwc
         batch_masks = batch_masks.cpu()
-        log('FUNAL', batch_masks.shape)
 
+        log('FINAL', batch_masks.shape)
 
         # Copy block mask to the original
         for block_mask, block_cd in zip(batch_masks, batch_coords):
-            # no way
-            #block_mask = AGF.scale(block_mask, image_reader.inv_network_scale)
-            # block_mask = block_mask.transpose((2, 0, 1))
             log(block_mask.shape, block_mask.max(), block_cd)
-            paste_crop(mask, block_mask, block_cd, pad_size)
+            paste_crop(mask, block_mask, block_cd, image_reader.scaled_pad_size)
 
     log('MASK', mask.shape, mask.mean(), mask.max())
 
+    rle = rle_encode((mask[0] > rle_threshold).astype(np.uint8))
+
     # Build the result
     return {
-        "rle": '',#rle_encode(mask),
-        "mask": mask#.astype(np.uint8).transpose((1, 2, 0)),
+        "rle": rle,
+        "mask": mask,
     }
 
 
@@ -185,6 +183,7 @@ def main(
         model_file,
         config_file,
         experiment_dir,
+        network_scale=network_scale,
         device=device,
         threshold=threshold,
         tta=tta,
@@ -194,7 +193,7 @@ def main(
     result = []
     for image_file, image_id, organ in tqdm(image_file_generator(images_dir, images_csv)):
         with TiffReader(image_file) as image_reader:
-            image_result = infer_image(image_reader, inferer, rle=True, organ=organ)
+            image_result = infer_image(image_reader, inferer, organ=organ, rle_threshold=threshold)
 
         if output_csv is not None:
             result.append({

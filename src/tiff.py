@@ -1,6 +1,6 @@
-import albumentations.augmentations.geometric.functional as AGF
 import numpy as np
 import rasterio as rio
+import torch
 
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
@@ -76,6 +76,8 @@ class TiffReader:
 
 
 class BatchedTiffReader(TiffReader):
+    BASE_SCALE = 0.4
+
     def __init__(
         self,
         path_to_tiff_file: str,
@@ -88,23 +90,32 @@ class BatchedTiffReader(TiffReader):
 
         self.block_size = block_size
         self.image_meter_scale = image_meter_scale
-        self.network_scale = 1
+        self.network_scale = 1.0
         self.pad_ratio = pad_ratio
         self.batch_size = batch_size
-
-        height, width = self.shape
-        scaled_block_size = self.scaled_block_size
-        self.blocks_coords = list(generate_block_coords(
-            height, width, block_size=(scaled_block_size, scaled_block_size)
-        ))
         self.next_block = 0
+
+        self._generate_block_coords()
 
     def __len__(self):
         return int(np.ceil(self.total_blocks / self.batch_size))
 
+    def __iter__(self):
+        return self(network_scale=None)
+
+    def __call__(self, network_scale=None):
+        self.next_block = 0
+        self.network_scale = network_scale or 1.0
+        self._generate_block_coords()
+        return iter(self.read_batch, None)
+
+    @property
+    def scale(self):
+        return (self.BASE_SCALE / self.image_meter_scale) * self.network_scale
+
     @property
     def scaled_block_size(self):
-        return int(round(self.block_size / self.network_scale))
+        return int(round(self.block_size / self.scale))
 
     @property
     def pad_size(self):
@@ -119,8 +130,8 @@ class BatchedTiffReader(TiffReader):
         return len(self.blocks_coords)
 
     @property
-    def inv_network_scale(self):
-        return 1.0 / self.network_scale
+    def inv_scale(self):
+        return 1.0 / self.scale
 
     def has_next_block(self):
         return self.next_block < len(self.blocks_coords)
@@ -143,10 +154,17 @@ class BatchedTiffReader(TiffReader):
 
             self.next_block += 1
 
-        return np.stack(batch_blocks), np.stack(batch_coords)
+        return (
+            torch.from_numpy(np.stack(batch_blocks)),
+            torch.from_numpy(np.stack(batch_coords)),
+        )
 
-    def __iter__(self):
-        return iter(self.read_batch, None)
+    def _generate_block_coords(self):
+        height, width = self.shape
+        scaled_block_size = self.scaled_block_size
+        self.blocks_coords = list(generate_block_coords(
+            height, width, block_size=(scaled_block_size, scaled_block_size)
+        ))
 
 
 def load_tiff(tiff_file):

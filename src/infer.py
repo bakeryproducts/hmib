@@ -55,6 +55,7 @@ class Inferer:
         self,
         model,
         cfg,
+        network_scale=1.0,
         threshold=0.5,
         sigmoid=True,
         tta=False,
@@ -80,6 +81,7 @@ class Inferer:
         self.model = RawBatchModel(model)
         self.cfg = cfg
 
+        self.network_scale = network_scale
         self.threshold = threshold
         self.sigmoid = sigmoid
         self.tta = tta
