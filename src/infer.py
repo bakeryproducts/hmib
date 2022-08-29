@@ -41,6 +41,7 @@ def model_run(xb, model, preprocess, act=True):
         xb = preprocess(xb)
         r = model(xb)
         if act:
+            # r['yb'] = r['yb'].softmax(1)
             r['yb'] = r['yb'].softmax(1)
             r['posb'] = r['posb'].sigmoid()
             r['keyf'] = r['keyf'].sigmoid()
@@ -127,7 +128,12 @@ class Inferer:
         X = torch.from_numpy(batch).float().to(self.device)
         X = batch_quantile(X, q=.005)
         X = X.permute((0, 3, 1, 2))
-        X, mean, std = norm_2d(X, mean=self.cfg.AUGS.MEAN, std=self.cfg.AUGS.STD)
+
+        if self.cfg.AUGS.NORM.MODE == 'meanstd':
+            X, _, _ = norm_2d(X, mean=self.cfg.AUGS.NORM.MEAN, std=self.cfg.AUGS.NORM.STD)
+        elif self.cfg.AUGS.NORM.MODE == 'minmax':
+            X = (X - X.min()) / (X.max() - X.min())
+
         X.clamp_(-self.cfg.FEATURES.CLAMP, self.cfg.FEATURES.CLAMP)
         return X
 
