@@ -115,6 +115,10 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 
 ### prostate ✔️
+- Count
+1) 130, 70, not found => in 90-110
+2) 106, 94, scoring => 94-98
+3) 97, 94, notebook => 98
 - R in 186-189
 1) 180, 120, notebook => in 180-255
 2) 240, 195, pass => in 180-195
