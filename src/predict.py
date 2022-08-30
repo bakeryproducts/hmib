@@ -186,7 +186,6 @@ def main(
         model_file,
         config_file,
         experiment_dir,
-        network_scale=network_scale,
         device=device,
         threshold=threshold,
         tta=tta,
