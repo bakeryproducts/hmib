@@ -77,7 +77,8 @@ def main(
         dices.to_csv(dices_csv, index=False)
 
     mean_dice = dices.dice.mean()
-    print(f"Mean dice score: {mean_dice:.4f}")
+    std_dice = dices.dice.std()
+    print(f"Mean dice score: {mean_dice:.4f} +- {std_dice:.4f}")
 
 
 if __name__ == "__main__":
