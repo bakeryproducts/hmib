@@ -1,9 +1,9 @@
 import os
 import os.path as osp
+from argparse import ArgumentParser
 from functools import partial
 from pathlib import Path
 
-import fire
 import torch
 import numpy as np
 import pandas as pd
@@ -212,5 +212,31 @@ def main(
         result.to_csv(output_csv, index=False)
 
 
+def config_args():
+    parser = ArgumentParser()
+
+    # Required args
+    parser.add_argument("--model_file", type=str, required=True)
+    parser.add_argument("--images_dir", type=str, required=True)
+    parser.add_argument("--image_meter_scale", type=float, required=True)
+    parser.add_argument("--network_scale", type=float, required=True)
+
+    # Optional args
+    parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument("--output_csv", type=str, default=None)
+    parser.add_argument("--config_file", type=str, default=None)
+    parser.add_argument("--block_size", type=int, default=512)
+    parser.add_argument("--pad_ratio", type=float, default=0.25)
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--tta", action="store_true")
+    parser.add_argument("--device", type=int, default=None)
+    parser.add_argument("--tta_merge_mode", type=str, default="mean")
+    parser.add_argument("--images_csv", type=str, default=None)
+
+    args = parser.parse_args()
+    return vars(args)
+
+
 if __name__ == "__main__":
-    fire.Fire(main)
+    main(**config_args())
