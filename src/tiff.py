@@ -1,6 +1,7 @@
 import numpy as np
 import rasterio as rio
 import torch
+from torch.utils.data import Dataset as TorchDataset
 
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
@@ -19,14 +20,16 @@ class TiffReader:
 
     def __init__(self, path_to_tiff_file: str, num_threads=8):
         self.tiff_file = path_to_tiff_file
-        self.ds = rio.open(path_to_tiff_file, num_threads=num_threads)
-        self.subds_list = [rio.open(subds_path) for subds_path in self.ds.subdatasets]
+        self.num_threads = num_threads
+        self.is_opened = False
+        self.open()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        if self.is_opened:
+            self.close()
 
     def read(self, window=None, boundless=True):
         """
@@ -45,7 +48,6 @@ class TiffReader:
         else:
             output = self.ds.read(**ds_kwargs)
 
-        #output = output.transpose((1, 2, 0))
         return output
 
     def read_block(self, y, x, h, w, boundless=True):
@@ -65,9 +67,14 @@ class TiffReader:
         else:
             return self.ds.shape
 
-    def __del__(self):
-        del self.ds
-        del self.subds_list
+    # def __del__(self):
+    #     del self.ds
+    #     del self.subds_list
+
+    def open(self):
+        self.ds = rio.open(self.tiff_file, num_threads=self.num_threads)
+        self.subds_list = [rio.open(subds_path, num_threads=self.num_threads) for subds_path in self.ds.subdatasets]
+        self.is_opened = True
 
     def close(self):
         self.ds.close()
@@ -75,7 +82,7 @@ class TiffReader:
             subds.close()
 
 
-class BatchedTiffReader(TiffReader):
+class BatchedTiffReader(TiffReader, TorchDataset):
     BASE_SCALE = 0.4
 
     def __init__(
@@ -91,7 +98,6 @@ class BatchedTiffReader(TiffReader):
         self.pad_ratio = pad_ratio
         self.batch_size = batch_size
         self.next_block = 0
-
         self._generate_block_coords()
 
     def __len__(self):
@@ -99,6 +105,12 @@ class BatchedTiffReader(TiffReader):
 
     def __iter__(self):
         return iter(self.read_batch, None)
+
+    def __getitem__(self, index):
+        block_cd = self.blocks_coords[index]
+        padded_block_cd = pad_block(*block_cd, self.pad_size)
+        block = self.read_block(*padded_block_cd)
+        return block, block_cd
 
     @property
     def pad_size(self):
@@ -121,13 +133,11 @@ class BatchedTiffReader(TiffReader):
             if not self.has_next_block():
                 break
 
-            block_cd = self.blocks_coords[self.next_block]
-            padded_block_cd = pad_block(*block_cd, self.pad_size)
-            block = self.read_block(*padded_block_cd)
+            block, block_cd = self[self.next_block]
+            self.next_block += 1
+
             batch_blocks.append(block)
             batch_coords.append(block_cd)
-
-            self.next_block += 1
 
         return (
             torch.from_numpy(np.stack(batch_blocks)),

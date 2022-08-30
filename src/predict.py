@@ -7,6 +7,7 @@ import fire
 import torch
 import numpy as np
 import pandas as pd
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from block_utils import paste_crop
@@ -28,20 +29,23 @@ def select_organ_from_predict(yb, organ=None):
 
 def log(*m):
     pass
-    #print(m)
+    # print(m)
 
 
 def calculate_scale(network_scale, image_meter_scale):
-    BASE_METER_SCALE = 0.4
-    return (BASE_METER_SCALE / image_meter_scale) * network_scale
+    #BASE_METER_SCALE = 0.4
+    return image_meter_scale / network_scale
 
 
 def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
+    dataloader = image_reader
+    # dataloader = DataLoader(image_reader, num_workers=2, batch_size=image_reader.batch_size)
+
     H, W = image_reader.shape
 
     # Infer batch by batch
     mask = np.zeros((1, H, W), dtype=float)
-    for batch_blocks, batch_coords in tqdm(image_reader):
+    for batch_blocks, batch_coords in tqdm(dataloader):
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
@@ -78,6 +82,11 @@ def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
     }
 
 
+def tiff_file_generator(images_dir):
+    for image in Path(images_dir).rglob('*.tiff'):
+        yield str(image), -1, None
+
+
 def image_file_generator(images_dir, images_csv=None):
     EXT = ".tiff"
 
@@ -109,11 +118,11 @@ def main(
     model_file,
     images_dir,
     image_meter_scale,
+    network_scale,
     output_dir=None,
     output_csv=None,
     config_file=None,
     block_size=512,
-    network_scale=1024/3000,
     pad_ratio=0.25,
     batch_size=4,
     threshold=0.5,
@@ -186,7 +195,6 @@ def main(
         model_file,
         config_file,
         experiment_dir,
-        network_scale=network_scale,
         device=device,
         threshold=threshold,
         tta=tta,
@@ -194,10 +202,15 @@ def main(
     )
 
     result = []
-    for image_file, image_id, organ in tqdm(image_file_generator(images_dir, images_csv)):
+    gen = tiff_file_generator(images_dir)
+    #gen = image_file_generator(images_dir, images_csv)
+
+    for image_file, image_id, organ in tqdm(gen):
         # image_meter_scale should be image specific
-        scale = calculate_scale(network_scale, image_meter_scale)
+        scale = image_meter_scale / network_scale
+        log("SCALE", scale)
         scaled_block_size = int(round(block_size / scale))
+
 
         with TiffReader(image_file, scaled_block_size) as image_reader:
             image_result = infer_image(image_reader, inferer, scale, organ=organ, rle_threshold=threshold)
