@@ -141,6 +141,13 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 110-60, note, in 110-448
 2) 140-120, pass, in 110-120
 3) 118-112, score, 113
+- Size mean
+1) 4000, 500, csv, in 2834 - 1666
+2) 2600, 1900, score, in 1900-2133
+3) custom, in 2010-2050
+-Size std
+1) 300, 50, pass, in 0-50
+2) 40, 5, pass, in 0-5
 
 - R in 166-168
 1) 200, 50, res, in 150-200
@@ -170,7 +177,7 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 160, 100, not found => in 120-140
 2) 136, 120, notebook => in 136-140
 
-### lung 
+### lung ✔️
 - Count 115
 1) 110, 70, note, in 110-448
 2) 150, 115, pass, in 110 - 115
