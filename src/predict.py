@@ -7,13 +7,16 @@ from pathlib import Path
 import torch
 import numpy as np
 import pandas as pd
-from torch.utils.data import DataLoader
+import rasterio as rio
 from tqdm import tqdm
 
 from block_utils import paste_crop
 from infer import Inferer
 from mask_utils import rle_encode
 from tiff import BatchedTiffReader, save_tiff
+
+import warnings
+warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 
 
 def select_organ_from_predict(yb, organ=None):
@@ -32,28 +35,25 @@ def log(*m):
     # print(m)
 
 
-def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
-    dataloader = image_reader
-    # dataloader = DataLoader(image_reader, num_workers=2, batch_size=image_reader.batch_size)
-
-    H, W = image_reader.shape
+def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None):
+    H, W = image_size
 
     # Infer batch by batch
     mask = np.zeros((1, H, W), dtype=float)
-    for batch_blocks, batch_coords in tqdm(dataloader):
+    for batch_blocks, batch_coords in dataloader:
+        batch_blocks = torch.from_numpy(np.stack(batch_blocks))
+        batch_blocks = batch_blocks.cuda()
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
-        batch_blocks = torch.nn.functional.interpolate(
-            batch_blocks, scale_factor=(scale, scale))
+        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(scale, scale))
 
-        log('INFER', batch_blocks.shape, batch_blocks.max())
-        batch_masks = inferer(batch_blocks)  # bchw, logit
+        # log('INFER', batch_blocks.shape, batch_blocks.max())
+        batch_masks = inferer(batch_blocks.float())  # bchw, logit
 
-        log('PREDICT', batch_masks.shape, batch_masks.max())
+        # log('PREDICT', batch_masks.shape, batch_masks.max())
         batch_masks = select_organ_from_predict(batch_masks, organ)
-        batch_masks = torch.nn.functional.interpolate(
-            batch_masks, scale_factor=(1./scale, 1./scale))
+        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1./scale, 1./scale))
         batch_masks.sigmoid_()
 
         log('ORGAN', batch_masks.shape,)
@@ -63,18 +63,11 @@ def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
 
         # Copy block mask to the original
         for block_mask, block_cd in zip(batch_masks, batch_coords):
-            log(block_mask.shape, block_mask.max(), block_cd)
-            paste_crop(mask, block_mask, block_cd, image_reader.pad_size)
+            #log(block_mask.shape, block_mask.max(), block_cd)
+            paste_crop(mask, block_mask, block_cd, pad_size)
 
-    log('MASK', mask.shape, mask.mean(), mask.max())
-
-    rle = rle_encode((mask[0] > rle_threshold).astype(np.uint8))
-
-    # Build the result
-    return {
-        "rle": rle,
-        "mask": mask,
-    }
+    #log('MASK', mask.shape, mask.mean(), mask.max())
+    return mask
 
 
 def image_file_generator(images_dir, images_csv=None):
@@ -102,6 +95,7 @@ def main(
     images_dir,
     image_meter_scale,
     network_scale,
+    organ=None,
     output_dir=None,
     output_csv=None,
     config_file=None,
@@ -154,7 +148,7 @@ def main(
     # Check cmd args
     if device is not None:
         # wont init all gups
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(device)
+        #os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
         device = 'cuda'
     else:
         device = 'cpu'
@@ -167,13 +161,13 @@ def main(
     os.makedirs(output_dir, exist_ok=True)
 
     # Create TiffReader initializer
-    TiffReader = partial(
-        BatchedTiffReader,
-        pad_ratio=pad_ratio,
-        batch_size=batch_size,
-    )
+    # TiffReader = partial(
+    #     BatchedTiffReader,
+    #     pad_ratio=pad_ratio,
+    #     batch_size=batch_size,
+    # )
 
-    # Create inferer
+    #Create inferer
     inferer = Inferer.create(
         model_file,
         config_file,
@@ -187,27 +181,36 @@ def main(
     result = []
     gen = image_file_generator(images_dir, images_csv)
 
-    for image_file, organ in tqdm(gen):
-        # image_meter_scale should be image specific
+    from mp import parallel_block_read
+    from block_utils import batcher
+
+    for image_file, _ in tqdm(gen):
+        print(image_file)
+        # TODO: image_meter_scale should be image specific
         scale = image_meter_scale / network_scale
         log("SCALE", scale)
+
         scaled_block_size = int(round(block_size / scale))
+        pad_size = int(scaled_block_size * pad_ratio)
+        img_size = rio.open(image_file).shape # well, small price for func reader
 
-        with TiffReader(image_file, scaled_block_size) as image_reader:
-            image_result = infer_image(image_reader, inferer, scale, organ=organ, rle_threshold=threshold)
+        # with TiffReader(image_file, scaled_block_size) as image_reader:
+        _image_reader = parallel_block_read(image_file, scaled_block_size, pad_ratio, num_processes=8)
+        image_reader = batcher(_image_reader, batch_size)
+        mask = infer_image(image_reader, inferer, scale, pad_size, img_size, organ=organ)
 
-        if output_csv is not None:
+
+        if output_csv:
             result.append({
                 "image_filename": osp.basename(image_file),
-                "rle": image_result["rle"],
+                "rle": rle_encode((mask[0] > threshold).astype(np.uint8))
             })
 
-        if output_dir is not None:
+        if output_dir:
             mask_output_file = osp.join(output_dir, osp.basename(image_file))
-            mask = image_result["mask"] * 255
-            save_tiff(mask_output_file, mask)
+            save_tiff(mask_output_file, mask*255)
 
-    if output_csv is not None:
+    if output_csv:
         result = pd.DataFrame(result)
         result.to_csv(output_csv, index=False)
 
@@ -220,6 +223,7 @@ def config_args():
     parser.add_argument("--images_dir", type=str, required=True)
     parser.add_argument("--image_meter_scale", type=float, required=True)
     parser.add_argument("--network_scale", type=float, required=True)
+    #parser.add_argument("--organ", type=str, required=True)
 
     # Optional args
     parser.add_argument("--output_dir", type=str, default=None)
@@ -227,7 +231,7 @@ def config_args():
     parser.add_argument("--config_file", type=str, default=None)
     parser.add_argument("--block_size", type=int, default=512)
     parser.add_argument("--pad_ratio", type=float, default=0.25)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--tta", action="store_true")
     parser.add_argument("--device", type=int, default=None)

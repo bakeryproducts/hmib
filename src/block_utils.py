@@ -31,3 +31,30 @@ def paste_crop(src, part, block_cd, pad):
     h, w = min(h, H - y), min(w, W - x)
     part = crop(part, pad, pad, h, w)
     paste(src, part, *block_cd)
+
+
+def mp_func_wrapper(func, args): return func(*args)
+def chunkify(l, n): return [l[i:i + n] for i in range(0, len(l), n)]
+
+
+def batcher(it, batch_size):
+    batch = []
+    for i in it:
+        if len(batch) < batch_size:
+            batch.append(i)
+        else:
+            collated = [[] for _ in range(len(batch[0]))]
+            for item in batch:
+                for j, k in enumerate(item):
+                    collated[j].append(k)
+
+            yield collated
+            batch = [i]
+
+    if len(batch):
+        collated = [[] for _ in range(len(batch[0]))]
+        for item in batch:
+            for j, k in enumerate(item):
+                collated[j].append(k)
+
+        yield collated

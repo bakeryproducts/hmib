@@ -16,7 +16,8 @@ DATA:
   ann_loader: 'partial(data.PngImages, suffix=".png")'
   DALI: False
   TRAIN:
-    DATASETS: ['train_${SPLIT}', ]
+    #DATASETS: ['train_${SPLIT}', ]
+    DATASETS: ['train_${SPLIT}', "gcol", "gspl", "gpro"]
     DATASET_ARGS:
       overlap: 0 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
       rate: 20 
