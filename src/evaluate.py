@@ -16,9 +16,11 @@ def dice(true_mask, pred_mask, eps=1e-6):
 def get_mask_file_pairs(true_masks_dir, pred_masks_dir):
     true_fnames = os.listdir(true_masks_dir)
     true_fnames = dict(map(lambda fname: (osp.splitext(fname)[0], fname), true_fnames))
+    print(f"Found {len(true_fnames)} true mask files")
 
     pred_fnames = os.listdir(pred_masks_dir)
     pred_fnames = dict(map(lambda fname: (osp.splitext(fname)[0], fname), pred_fnames))
+    print(f"Found {len(pred_fnames)} pred mask files")
 
     pair_names = set(true_fnames.keys()) & set(pred_fnames.keys())
 
@@ -28,6 +30,8 @@ def get_mask_file_pairs(true_masks_dir, pred_masks_dir):
             "true": osp.join(true_masks_dir, true_fnames[name]),
             "pred": osp.join(pred_masks_dir, pred_fnames[name]),
         }
+
+    print(f"Loaded total {len(result)} mask pairs for dice calculation")
 
     return result
 
