@@ -102,9 +102,10 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 ## Hubmap
 ### Kidney ✔️
-- Count
+- Count 79
 1) 130, 70, scoring => in 70-90
 2) 86, 74, not found => in 78-82
+3) 81, 78, scoring => 79
 - R in 154-158
 3) 195, 140, scoring, in 140-158
 4) 154, 144, note, in 154-158
@@ -155,6 +156,10 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 
 
 ### largeintestine ✔️
+- Count 43
+1) 110, 50, pass => in 0-50
+2) 46, 34, res => in 42-46
+3) 45, 42, scoring => 43
 - R in 128-132
 1) 180, 120, scoring => in 120-140
 2) 136, 124, not found => in 128-132
