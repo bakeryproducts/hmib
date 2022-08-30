@@ -17,9 +17,9 @@ class TiffReader:
     If subdatasets are available, then use them, otherwise just handle as usual.
     """
 
-    def __init__(self, path_to_tiff_file: str):
+    def __init__(self, path_to_tiff_file: str, num_threads=8):
         self.tiff_file = path_to_tiff_file
-        self.ds = rio.open(path_to_tiff_file)
+        self.ds = rio.open(path_to_tiff_file, num_threads=num_threads)
         self.subds_list = [rio.open(subds_path) for subds_path in self.ds.subdatasets]
 
     def __enter__(self):
