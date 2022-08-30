@@ -152,9 +152,16 @@ class BatchedTiffReader(TiffReader, TorchDataset):
         ))
 
 
-def load_tiff(tiff_file):
+def load_tiff(tiff_file, mode="chw"):
     reader = TiffReader(tiff_file)
-    return reader.read()
+    image = reader.read()
+
+    if mode == "chw":
+        return image
+    elif mode == "hwc":
+        return image.transpose((1, 2, 0))
+    else:
+        raise ValueError(f"Unexpected mode {mode}")
 
 
 def save_tiff(dst_tiff, image):

@@ -41,7 +41,7 @@ def df_hubmap2(src):
 
     for i, row in df.iterrows():
         name = row.id
-        image = load_tiff(str(ori_images_dir / f"{name}.tiff"))
+        image = load_tiff(str(ori_images_dir / f"{name}.tiff"), mode="hwc")
         mask = rle_decode(row.rle, image.shape[:2])
         yield name, image, mask
 
