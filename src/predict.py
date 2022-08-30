@@ -7,6 +7,7 @@ import fire
 import torch
 import numpy as np
 import pandas as pd
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from block_utils import paste_crop
@@ -37,11 +38,14 @@ def calculate_scale(network_scale, image_meter_scale):
 
 
 def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
+    dataloader = image_reader
+    # dataloader = DataLoader(image_reader, num_workers=2, batch_size=image_reader.batch_size)
+
     H, W = image_reader.shape
 
     # Infer batch by batch
     mask = np.zeros((1, H, W), dtype=float)
-    for batch_blocks, batch_coords in tqdm(image_reader):
+    for batch_blocks, batch_coords in tqdm(dataloader):
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
