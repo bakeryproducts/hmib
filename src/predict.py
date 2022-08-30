@@ -32,11 +32,6 @@ def log(*m):
     # print(m)
 
 
-def calculate_scale(network_scale, image_meter_scale):
-    #BASE_METER_SCALE = 0.4
-    return image_meter_scale / network_scale
-
-
 def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
     dataloader = image_reader
     # dataloader = DataLoader(image_reader, num_workers=2, batch_size=image_reader.batch_size)
@@ -82,36 +77,24 @@ def infer_image(image_reader, inferer, scale, rle_threshold=0.5, organ=None):
     }
 
 
-def tiff_file_generator(images_dir):
-    for image in Path(images_dir).rglob('*.tiff'):
-        yield str(image), -1, None
-
-
 def image_file_generator(images_dir, images_csv=None):
-    EXT = ".tiff"
+    EXT = "tiff"
 
     # Load from images_dir
     if images_csv is None:
-        for fname in os.listdir(images_dir):
-            name, ext = osp.splitext(fname)
-            if ext != EXT:
-                continue
-
-            image_id = int(name)
-            image_file = osp.join(images_dir, fname)
-            organ = None
-            yield image_file, image_id, organ
+        for image_file in Path(images_dir).rglob(f"*.{EXT}"):
+            yield image_file, None
 
     # Load from dataframe
     else:
         df = pd.read_csv(images_csv)
         for row in df.itertuples():
-            image_file = osp.join(images_dir, f"{row.id}{EXT}")
+            image_file = osp.join(images_dir, f"{row.id}.{EXT}")
             if not osp.exists(image_file):
                 print(f"Image {image_file} doesn't exist, skipping")
                 continue
 
-            yield image_file, row.id, row.organ
+            yield image_file, row.organ
 
 
 def main(
@@ -202,22 +185,20 @@ def main(
     )
 
     result = []
-    gen = tiff_file_generator(images_dir)
-    #gen = image_file_generator(images_dir, images_csv)
+    gen = image_file_generator(images_dir, images_csv)
 
-    for image_file, image_id, organ in tqdm(gen):
+    for image_file, organ in tqdm(gen):
         # image_meter_scale should be image specific
         scale = image_meter_scale / network_scale
         log("SCALE", scale)
         scaled_block_size = int(round(block_size / scale))
-
 
         with TiffReader(image_file, scaled_block_size) as image_reader:
             image_result = infer_image(image_reader, inferer, scale, organ=organ, rle_threshold=threshold)
 
         if output_csv is not None:
             result.append({
-                "id": image_id,
+                "image_filename": osp.basename(image_file),
                 "rle": image_result["rle"],
             })
 
