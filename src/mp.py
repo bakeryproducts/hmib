@@ -1,9 +1,10 @@
-from block_utils import generate_block_coords, pad_block, mp_func_wrapper, chunkify
+from block_utils import generate_block_coords, pad_block, mp_func_wrapper, chunkify, paste_crop
 import multiprocessing as mp
 from functools import partial
 from tqdm import tqdm
 import rasterio as rio
 import fire
+import numpy as np
 
 
 def read_tiff(name, idx, blocks_coords, pad_size, boundless=True):
@@ -21,15 +22,18 @@ def qread(q, name, idxs, reader, *args, **kwargs):
 
 
 def parallel_read(img_name, num_processes, window=None):
-    #  == rio.open(img_name).read()
+    fd = rio.open(img_name)
+    H,W = fd.shape
 
     it = parallel_block_read(img_name, 512, 0, num_processes)
-    # TODO: restore image by cd
-    image = np.zeros(H, W)
+    image = np.zeros((3, H, W), dtype=fd.dtypes[0])
     for block, block_cd in it:
-        raise NotImplementedError
-
-    #image[widnow]
+        paste_crop(image, block, block_cd, 0)
+    if window is not None:
+        x,y,w,h = window
+        image = image[:, y:y+h, x:x+w]
+    fd.close()
+    return image
 
 
 def parallel_block_read(img_name, block_size, pad_ratio, num_processes):
