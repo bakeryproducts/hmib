@@ -9,7 +9,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from sampler import GdalSampler, GridSampler
-from rle2tiff import polys2mask, save_mask, create_masks
+from rle2tiff import polys2mask, save_mask, create_masks, raster_polys
 from split_gen import do_split
 
 
@@ -127,7 +127,7 @@ def start(src, dst, src_scale, cropsize, total=1e6, recursive=False, ann_source=
     ext = '*.tiff'
 
     HPA_SCALE = .4
-    _base_scale = (3 * 1000 / 1024)
+    _base_scale = 3#(3 * 1000 / 1024)
     scale = _base_scale * HPA_SCALE / src_scale
 
     src = Path(src)
@@ -138,7 +138,8 @@ def start(src, dst, src_scale, cropsize, total=1e6, recursive=False, ann_source=
     anns = []
     imgs = []
     for img in _imgs:
-        ann_files = img.parent.glob(f"{img.stem}*.json")
+        ann_files = img.parent.glob(f"{img.stem}|MANUAL.json")
+        # ann_files = img.parent.glob(f"{img.stem}*.json")
         ann_files = sorted(list(ann_files))[::-1]
         if len(ann_files) == 0:
             continue
@@ -161,7 +162,8 @@ def start(src, dst, src_scale, cropsize, total=1e6, recursive=False, ann_source=
                     poly = rec['geometry']['coordinates'][0]
                     polys.append(poly)
                 h, w = rasterio.open(img).shape
-                mask = polys2mask(polys, h, w)
+                print(f'CONVERTING POLYGONS {img}, {len(polys)}')
+                mask = raster_polys(polys, h, w)
                 save_mask(mask, masks_path / img.name)
 
         elif ann_source == 'rle':
