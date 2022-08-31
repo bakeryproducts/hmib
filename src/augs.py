@@ -85,7 +85,7 @@ class AugDataset:
         self.dataset = dataset
         self.transforms = albu.Compose([]) if transforms is None else transforms
         self.train = train
-        self.aug = self._ssl_aug if cfg.MODEL.ARCH == 'ssl' else self._sup_aug
+        self.aug = self._sup_aug
 
     def __getitem__(self, idx):
         item = self.dataset[idx]
@@ -111,11 +111,6 @@ class AugDataset:
         kwargs = dict(image=image, mask=mask, seed=seed)
         res = self.transforms(**kwargs)
         return res['image'], res['mask']
-
-    def _ssl_aug(self, image, mask, seed):
-        kwargs = dict(image=image, seed=seed)
-        res = self.transforms(**kwargs)
-        return res['image'], mask
 
     def __len__(self): return len(self.dataset)
 

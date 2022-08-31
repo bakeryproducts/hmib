@@ -123,6 +123,12 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 130, 70, not found => in 90-110
 2) 106, 94, scoring => 94-98
 3) 97, 94, notebook => 98
+- Size mean ~ 160
+1) 832, 328, pass => in 160-328
+2) 294, 192, pass => in 160-192
+3) 185, 164, pass => in 160-164
+- Size std ~ 0
+1) 3, 1, pass => in 0-1
 - R in 186-189
 1) 180, 120, notebook => in 180-255
 2) 240, 195, pass => in 180-195
@@ -141,6 +147,13 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 110-60, note, in 110-448
 2) 140-120, pass, in 110-120
 3) 118-112, score, 113
+- Size mean
+1) 4000, 500, csv, in 2834 - 1666
+2) 2600, 1900, score, in 1900-2133
+3) custom, in 2010-2050
+-Size std
+1) 300, 50, pass, in 0-50
+2) 40, 5, pass, in 0-5
 
 - R in 166-168
 1) 200, 50, res, in 150-200
@@ -160,17 +173,19 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 110, 50, pass => in 0-50
 2) 46, 34, res => in 42-46
 3) 45, 42, scoring => 43
+- Size mean
+1) 4499, 4400, 4000, 3500, pass => in 160-3500
 - R in 128-132
-1) 180, 120, scoring => in 120-140
-2) 136, 124, not found => in 128-132
+5) 180, 120, scoring => in 120-140
+6) 136, 124, not found => in 128-132
 - G in 114-118
-1) 130, 70, res => in 110-130
-2) 126, 114, scoring => in 114-118
+7) 130, 70, res => in 110-130
+8) 126, 114, scoring => in 114-118
 - B in 136-140
-1) 160, 100, not found => in 120-140
-2) 136, 120, notebook => in 136-140
+9) 160, 100, not found => in 120-140
+10) 136, 120, notebook => in 136-140
 
-### lung 
+### lung ✔️
 - Count 115
 1) 110, 70, note, in 110-448
 2) 150, 115, pass, in 110 - 115

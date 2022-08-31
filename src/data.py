@@ -124,28 +124,6 @@ class TiffImage:
         return fd.shape
 
 
-class CropDataset:
-    def __init__(self, img_ds, ann_ds, cropsize):
-        self.ids = img_ds
-        self.ads = ann_ds
-        self.cropsize = cropsize
-
-    def __getitem__(self, idx):
-        i = self.ids[idx]
-        a = self.ads[idx]
-
-        H,W = i.shape
-        # assert shapes
-        h,w = self.cropsize
-        x,y = random.randint(0,W-w), random.randint(0,H-h)
-
-        ic = i.crop(y,x,h,w)
-        ac = a.crop(y,x,h,w)
-        return ic, ac
-
-    def __len__(self): return len(self.ds)
-
-
 class JsonAnnotations:
     def __init__(self, ann_root):
         self.ann_root = Path(ann_root)
@@ -333,41 +311,3 @@ class ExtraValDataset:
 def item_reader(item):
     i, a = item
     return i, a
-
-
-class MaskGenerator:
-    def __init__(self,
-                 input_size,
-                 mask_patch_size=32,
-                 model_patch_size=4,
-                 mask_ratio=.3):
-        self.input_size = input_size
-        self.mask_patch_size = mask_patch_size
-        self.model_patch_size = model_patch_size
-        self.mask_ratio = mask_ratio
-
-        assert self.input_size % self.mask_patch_size == 0
-        assert self.mask_patch_size % self.model_patch_size == 0
-        self.init_params()
-
-    def init_params(self):
-        self.rand_size = self.input_size // self.mask_patch_size
-        self.scale = self.mask_patch_size // self.model_patch_size
-        self.token_count = self.rand_size**2
-        self.mask_count = int(np.ceil(self.token_count * self.mask_ratio))
-
-
-    def __call__(self, progress=None):
-        if progress is not None:
-            self.mask_ratio = min(progress, .7)
-            self.init_params()
-
-        mask_idx = np.random.permutation(self.token_count)[:self.mask_count]
-        mask = np.zeros(self.token_count, dtype=int)
-        mask[mask_idx] = 1
-
-        mask = mask.reshape((self.rand_size, self.rand_size))
-        # mask[5:7,5:7] = 1
-        mask = mask.repeat(self.scale, axis=0).repeat(self.scale, axis=1)
-
-        return mask

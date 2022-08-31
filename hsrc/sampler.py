@@ -17,7 +17,8 @@ class GdalSampler:
     """Iterates over img with annotation, returns tuples of img, mask
     """
 
-    def __init__(self, img_path: str,
+    def __init__(self,
+                 img_path: str,
                  mask_path: str,
                  img_polygons_path: str,
                  img_wh: Tuple[int, int],
@@ -231,12 +232,13 @@ class PolySampler:
     def __len__(self): return self._num_samples
     def __del__(self): del self._img
 
-class GridSampler:
 
+class GridSampler:
     def __init__(self,
                  img_path: str,
                  mask_path: str,
                  img_wh: Tuple[int, int],
+                 **kwargs,
                  ) -> Tuple[np.ndarray, np.ndarray]:
 
         self._mask = TFReader(mask_path)

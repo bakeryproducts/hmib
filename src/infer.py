@@ -86,15 +86,12 @@ class Inferer:
         self.tta_merge_mode = tta_merge_mode
         self.device = model.device
 
-        print(self.tta)
         if self.tta:
             self.model = ttach.SegmentationTTAWrapper(
                 self.model,
                 ttach.aliases.d4_transform(),
                 merge_mode=self.tta_merge_mode
             )
-            print('TTA', self.tta)
-
 
     def preprocess(self, batch):
         """Preprocessing
@@ -108,7 +105,7 @@ class Inferer:
         X: torch.Tensor of shape (batch, channels, height, width); batch of preprocessed images.
         """
         X = batch.float().to(self.device)
-        X = batch_quantile(X, q=.005) # bchw
+        #X = batch_quantile(X, q=.005) # bchw
 
         if self.cfg.AUGS.NORM.MODE == 'meanstd':
             X, _, _ = norm_2d(X, mean=self.cfg.AUGS.NORM.MEAN, std=self.cfg.AUGS.NORM.STD)
@@ -140,21 +137,6 @@ class Inferer:
                 batch_pred = self.model(self.preprocess(batch))
 
         yb = batch_pred.float()
-
-        # if self.sigmoid: yb.sigmoid_()
-        # yb = yb.cpu()
-        # yb = yb.permute((0, 2, 3, 1))
-
-        # Extract organ mask
-        # if organ is not None: yb = yb[..., ORGANS[organ]][..., None]
-
-        # Extract mask for all organs
-        # else: yb = torch.max(yb, dim=-1, keepdim=True)
-
-        # Binarize the mask
-        # if self.threshold is not None:
-        #     yb = (yb > self.threshold)#.astype(np.uint8)
-
         return yb
 
     @classmethod

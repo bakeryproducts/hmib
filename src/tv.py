@@ -27,8 +27,8 @@ def prepare_batch(batch, cb, train):
     xb, yb = xb.cuda(), yb.cuda()
     # yb = yb / 255.
 
-    xb = batch_quantile(xb, q=.005)
-    run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
+    #xb = batch_quantile(xb, q=.005)
+    #run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
 
     if train:
         # cc = xb.byte().chunk(16)
@@ -77,7 +77,6 @@ class TrainCB(_TrainCallback):
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.ampaug = AmpAug(scale=20, p=.2)
         self.augmenter = T.TrivialAugmentWide()
-        # self.mg = MaskGenerator(input_size=192, mask_ratio=.3, model_patch_size=4)
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}
@@ -136,7 +135,6 @@ class ValCB(sh.callbacks.Callback):
         self.L.model_ema = self.model_ema
         self.loss_kwargs = {}
         self.clamp = self.cfg.FEATURES.CLAMP
-        # self.mg = MaskGenerator(input_size=192, mask_ratio=.5, model_patch_size=4)
 
     def sched(self):
         e = self.L.n_epoch
@@ -174,40 +172,38 @@ class ValCB(sh.callbacks.Callback):
                 pred = model(batch)
                 self.L.pred = pred
 
-                if self.cfg.MODEL.ARCH != 'ssl':
-                    pred_hm = pred['yb'].float()
-                    gt = batch['yb'].float()
-                    if pred_hm.shape[1] > 1: # multilabel mode
-                        r = []
-                        for i, hm in enumerate(pred_hm):
-                            organ_idx = batch['cls'][i]
-                            hm = hm[organ_idx:organ_idx+1]
-                            r.append(hm)
-                        pred_hm = torch.stack(r) # B,1,H,W
+                pred_hm = pred['yb'].float()
+                gt = batch['yb'].float()
+                if pred_hm.shape[1] > 1: # multilabel mode
+                    r = []
+                    for i, hm in enumerate(pred_hm):
+                        organ_idx = batch['cls'][i]
+                        hm = hm[organ_idx:organ_idx+1]
+                        r.append(hm)
+                    pred_hm = torch.stack(r) # B,1,H,W
 
-                    all_organs_dice = metrics.calc_score(pred_hm, gt)
+                all_organs_dice = metrics.calc_score(pred_hm, gt)
 
-                    is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])
-                    pred_hm[is_lung] = gt[is_lung]
-                    dice_fix_lung = metrics.calc_score(pred_hm, gt)
+                is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])
+                pred_hm[is_lung] = gt[is_lung]
+                dice_fix_lung = metrics.calc_score(pred_hm, gt)
 
-                    op = 'gather'
-                    self.L.tracker_cb.set('dices', all_organs_dice, operation=op)
-                    self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
+                op = 'gather'
+                self.L.tracker_cb.set('dices', all_organs_dice, operation=op)
+                self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
 
-                    pred_cls = pred['cls'].softmax(1)
-                    pred_cls = torch.max(pred_cls, 1)[1]
-                    gt_cls = batch['cls']
-                    acc = (pred_cls == gt_cls).float().mean()
-                    self.L.tracker_cb.set('cls_acc', acc)
-                else:
-                    dice_fix_lung = torch.zeros(1).cuda()
+                pred_cls = pred['cls'].softmax(1)
+                pred_cls = torch.max(pred_cls, 1)[1]
+                gt_cls = batch['cls']
+                acc = (pred_cls == gt_cls).float().mean()
+                self.L.tracker_cb.set('cls_acc', acc)
 
                 self.L.tracker_cb.set('ema_score', dice_fix_lung)
                 self.L.tracker_cb.set('score', dice_fix_lung)
 
                 loss_d = defaultdict(default_zero_tensor)
                 loss_d.update(self.L.loss_func(pred, batch, **self.loss_kwargs))
+
                 for k, loss in loss_d.items():
                     if loss is None: continue
                     loss = loss.mean()
