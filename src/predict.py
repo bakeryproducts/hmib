@@ -4,26 +4,28 @@ from argparse import ArgumentParser
 from functools import partial
 from pathlib import Path
 
+import fire
 import torch
 import numpy as np
 import pandas as pd
 import rasterio as rio
 from tqdm import tqdm
 
-from block_utils import paste_crop
+from block_utils import paste_crop, batcher
 from infer import Inferer
 from mask_utils import rle_encode
 from tiff import BatchedTiffReader, save_tiff
+from mp import parallel_block_read
 
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 
 
-def select_organ_from_predict(yb, organ=None):
+def select_organ_from_predict(yb, organ):
     # yb BCHW
     # copy ORGANS from data, better not to source data.py
     ORGANS = {k: i for i, k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
-    if organ is not None:
+    if organ and organ != 'none':
         yb = yb[:, ORGANS[organ]].unsqueeze(1)
     else:
         yb, _ = torch.max(yb, dim=1, keepdim=True)
@@ -95,7 +97,7 @@ def main(
     images_dir,
     image_meter_scale,
     network_scale,
-    organ=None,
+    organ,
     output_dir=None,
     output_csv=None,
     config_file=None,
@@ -181,8 +183,6 @@ def main(
     result = []
     gen = image_file_generator(images_dir, images_csv)
 
-    from mp import parallel_block_read
-    from block_utils import batcher
 
     for image_file, _ in tqdm(gen):
         print(image_file)
@@ -215,32 +215,5 @@ def main(
         result.to_csv(output_csv, index=False)
 
 
-def config_args():
-    parser = ArgumentParser()
-
-    # Required args
-    parser.add_argument("--model_file", type=str, required=True)
-    parser.add_argument("--images_dir", type=str, required=True)
-    parser.add_argument("--image_meter_scale", type=float, required=True)
-    parser.add_argument("--network_scale", type=float, required=True)
-    #parser.add_argument("--organ", type=str, required=True)
-
-    # Optional args
-    parser.add_argument("--output_dir", type=str, default=None)
-    parser.add_argument("--output_csv", type=str, default=None)
-    parser.add_argument("--config_file", type=str, default=None)
-    parser.add_argument("--block_size", type=int, default=512)
-    parser.add_argument("--pad_ratio", type=float, default=0.25)
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--threshold", type=float, default=0.5)
-    parser.add_argument("--tta", action="store_true")
-    parser.add_argument("--device", type=int, default=None)
-    parser.add_argument("--tta_merge_mode", type=str, default="mean")
-    parser.add_argument("--images_csv", type=str, default=None)
-
-    args = parser.parse_args()
-    return vars(args)
-
-
 if __name__ == "__main__":
-    main(**config_args())
+    fire.Fire(main)

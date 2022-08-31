@@ -20,10 +20,23 @@ def qread(q, name, idxs, reader, *args, **kwargs):
         q.put(r)
 
 
+def parallel_read(img_name, num_processes, window=None):
+    #  == rio.open(img_name).read()
+
+    it = parallel_block_read(img_name, 512, 0, num_processes)
+    # TODO: restore image by cd
+    image = np.zeros(H, W)
+    for block, block_cd in it:
+        raise NotImplementedError
+
+    #image[widnow]
+
+
 def parallel_block_read(img_name, block_size, pad_ratio, num_processes):
-    pad_size = int(pad_ratio * block_size)
     process_data_len = 4
     qsize = process_data_len * num_processes
+    pad_size = int(pad_ratio * block_size)
+
     m = mp.Manager()
     q = m.Queue(maxsize=qsize)
     H,W = rio.open(img_name).shape
