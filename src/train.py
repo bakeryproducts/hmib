@@ -64,7 +64,6 @@ def init_master_cbs(cfg, track_cb, output_folder):
                                    'seg_dice_train_loss',
                                    'seg_ce_train_loss',
                                    'cls_train_loss',
-                                   'ssl_train_loss',
                                ],
                                'general': ['lr', 'train_score']
                            },
@@ -73,7 +72,6 @@ def init_master_cbs(cfg, track_cb, output_folder):
                                    'seg_dice_ema_loss',
                                    'seg_ce_ema_loss',
                                    'cls_ema_loss',
-                                   'ssl_ema_loss',
                                ],
                                'general': ['val_score',
                                            'score',
@@ -152,14 +150,6 @@ def start_split(cfg, output_folder, datasets):
     train_cb = tv.TrainCB(amp_scaler=amp_scaler, logger=logger)
     val_cb = tv.ValCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
 
-    HUB = True
-    if HUB:
-        hcb = hub_cb.HubCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
-        gcb = gtex_cb.GtexCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
-    else:
-        hcb = None
-        gcb = None
-
     loss = {}
     for ls in cfg.LOSS:
         loss_fn = hydra.utils.instantiate(ls.LOSS)
@@ -176,7 +166,9 @@ def start_split(cfg, output_folder, datasets):
 
     cbs = [batch_setup_cb, lr_cb, ema_cb, train_cb, val_cb]
 
-    if hcb is not None:
+    if True:
+        hcb = hub_cb.HubCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
+        gcb = gtex_cb.GtexCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
         cbs.append(hcb)
         cbs.append(gcb)
 

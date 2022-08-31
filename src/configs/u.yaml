@@ -3,15 +3,11 @@ OUTPUTS: output
 
 SPLIT: 0
 DATA:
-  # train_imgs: 'preprocessed/rle512_overlap.5/images/'
-  # train_anns: 'preprocessed/rle512_overlap.5/masks/'
   train_imgs: 'preprocessed/rle_1024_v2/images/'
   train_anns: 'preprocessed/rle_1024_v2/masks/'
 
   valid_imgs: 'preprocessed/rle_1024_v2/images/'
   valid_anns: 'preprocessed/rle_1024_v2/masks/'
-  # img_loader: 'partial(data.Names, suffix=".png")' # for dali mode
-  # ann_loader: 'partial(data.Names, suffix=".png")'
   img_loader: 'partial(data.PngImages, suffix=".png")'
   ann_loader: 'partial(data.PngImages, suffix=".png")'
   DALI: False
@@ -61,27 +57,21 @@ AUGS:
   # CROP: [256,256]
   CROP: [384,384]
   # CROP: [512,512]
-  # VALCROP: [384,384]
-  # VALCROP: [512,512]
   VALCROP: [768,768]
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 45, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
-      # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
-      # - {m : ParamCrop, args : '${AUGS.CROP}'}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : albu.ChannelShuffle, args: [.5,]}
+      # - {m : albu.ChannelShuffle, args: [.5,]}
       # - {m : albu.VerticalFlip, }
-      # - {m : albu.Rotate, kwargs: {'limit': 45, 'p': .5}}
-      # - {m : albu.RandomGamma, kwargs : {'p': .2}} 
+      - {m : albu.RandomGamma, kwargs : {'p': .2}} 
       - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
       - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
       # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
-
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
@@ -104,8 +94,8 @@ MODEL:
         # _target_: encoders.encoder.create_mixt
         _target_: encoders.encoder.create_encoder
         _partial_: true
-    # model_name: 'mit_b0'
     model_name: 'resnet34'
+    # model_name: 'mit_b0'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
@@ -156,7 +146,6 @@ TRAIN:
   EARLY_EXIT: 10
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
-    # TODO: step 
     ENABLE: True
     start: 0.97
     end: .99
@@ -171,15 +160,14 @@ VALID_GTEX:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .7
+      weight: .6
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
-        # mode: 'binary'
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .3
+      weight: .4
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss

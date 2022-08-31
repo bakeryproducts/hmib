@@ -9,10 +9,14 @@ import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
 
+def read_tiff(fn):
+    return rasterio.open(fn).read()
+
+
 def tiff_merge_mask(tiff, mask, dst, path_mask2=None):
     print('\tusing use shitload of mem')
-    img = rasterio.open(tiff).read()
-    mask = rasterio.open(mask).read()
+    img = read_tiff(tiff)
+    mask = read_tiff(mask)
     print(f"{img.shape=}")
     print(f"{mask.shape=}")
     #assert mask.max() <= 1 + 1e-6
@@ -28,7 +32,7 @@ def tiff_merge_mask(tiff, mask, dst, path_mask2=None):
     img[0] = red
 
     if path_mask2 is not None:
-        mask2 = rasterio.open(path_mask2).read()
+        mask2 = read_tiff(path_mask2)
         blue = mask2 * 200 if mask2.max() <= 1 + 1e-6 else mask2
         #assert mask2.max() <= 1 + 1e-6
         img[2, ...] = blue
@@ -48,12 +52,12 @@ def tiff_merge_mask(tiff, mask, dst, path_mask2=None):
     del dst
 
 
-def start(imgs=None, mask=None, dst=None, mode='S', ext='png'):
+def start(imgs=None, mask=None, gt=None, dst=None, mode='S', ext='png'):
     assert dst is not None
     assert imgs is not None
     assert mask is not None
     if mode == 'S':
-        tiff_merge_mask(imgs, mask, dst)
+        tiff_merge_mask(imgs, mask, dst, path_mask2=gt)
     elif mode == 'F':
         dst = Path(dst) / 'merged'
         dst.mkdir()
