@@ -9,13 +9,19 @@ from tqdm import tqdm
 BASE_URL = "https://brd.nci.nih.gov/brd/imagedownload/"
 
 
-def download(image_name, save_dir):
+def download(image_name, save_dir, exist_ok=True):
+    image_file = osp.join(save_dir, f"{image_name}.svs")
+    if osp.exists(image_file):
+        if exist_ok:
+            return
+        raise FileExistsError(image_file)
+
     url = BASE_URL + image_name
     response = rq.get(url)
     if response.status_code != 200:
         raise RuntimeError(f"Unexpected response {response.status_code} for {image_name}")
 
-    with open(osp.join(save_dir, f"{image_name}.svs"), "wb") as outf:
+    with open(image_file, "wb") as outf:
         outf.write(response.content)
 
 
