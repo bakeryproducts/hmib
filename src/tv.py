@@ -10,7 +10,7 @@ from tools_tv import run_once, norm_2d, batch_quantile
 
 from augment.mixup import MSR, MixUpAug
 from augment.fmix import FMixAug, AmpAug
-from data import MaskGenerator, ORGANS
+from data import ORGANS
 
 
 import shallow as sh

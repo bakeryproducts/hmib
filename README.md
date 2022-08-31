@@ -106,6 +106,13 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 130, 70, scoring => in 70-90
 2) 86, 74, not found => in 78-82
 3) 81, 78, scoring => 79
+
+- Size mean
+1) 4499 4000 3000 2000, pass, in 0-2000
+2) 1900, 1000, note, in 1900-2000
+- Size std
+1) 200, 50, 5, 1, pass, in 0-1
+
 - R in 154-158
 3) 195, 140, scoring, in 140-158
 4) 154, 144, note, in 154-158
@@ -151,10 +158,9 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 4000, 500, csv, in 2834 - 1666
 2) 2600, 1900, score, in 1900-2133
 3) custom, in 2010-2050
--Size std
+- Size std
 1) 300, 50, pass, in 0-50
 2) 40, 5, pass, in 0-5
-
 - R in 166-168
 1) 200, 50, res, in 150-200
 2) 190, 160, score, in 160-170
@@ -190,6 +196,11 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 110, 70, note, in 110-448
 2) 150, 115, pass, in 110 - 115
 3) 114, 111, note, 115
+- Size mean
+1) 4499 4000 3000 2000, pass, in 0-2000
+2) 2001, 1950, 1500, 1400, pass, in 0-1400
+
+
 - R in 197-200
 1) 150, 80, note, in 150-255
 2) 200, 160, res, in 187-200

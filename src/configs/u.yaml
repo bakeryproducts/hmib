@@ -3,11 +3,11 @@ OUTPUTS: output
 
 SPLIT: 0
 DATA:
-  train_imgs: 'preprocessed/rle_1024_v2/images/'
-  train_anns: 'preprocessed/rle_1024_v2/masks/'
+  train_imgs: 'preprocessed/rle_3_v2/images/'
+  train_anns: 'preprocessed/rle_3_v2/masks/'
 
-  valid_imgs: 'preprocessed/rle_1024_v2/images/'
-  valid_anns: 'preprocessed/rle_1024_v2/masks/'
+  valid_imgs: 'preprocessed/rle_3_v2/images/'
+  valid_anns: 'preprocessed/rle_3_v2/masks/'
   img_loader: 'partial(data.PngImages, suffix=".png")'
   ann_loader: 'partial(data.PngImages, suffix=".png")'
   DALI: False

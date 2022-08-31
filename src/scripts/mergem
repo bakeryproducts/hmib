@@ -4,13 +4,17 @@ import fire
 from pathlib import Path
 import numpy as np
 import rasterio
+from mp import parallel_read
 
 import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
+NUM_PROCESSES = 8
+
 
 def read_tiff(fn):
-    return rasterio.open(fn).read()
+    # return rasterio.open(fn).read()
+    return parallel_read(fn, NUM_PROCESSES)
 
 
 def tiff_merge_mask(tiff, mask, dst, path_mask2=None):

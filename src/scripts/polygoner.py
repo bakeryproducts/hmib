@@ -11,8 +11,16 @@ from tqdm import tqdm
 from rasterio import features
 from shapely import geometry
 
+from mp import parallel_read
+NUM_PROCESSES = 8
+
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
+
+
+def read_tiff(name):
+    #return rio.open(str(name)).read()[0]
+    return parallel_read(name, NUM_PROCESSES)[0]
 
 
 def mask_to_poly(mask, tolerance, minarea, min_sieve_pix=25):
@@ -51,8 +59,6 @@ def create_ann(name, dst, polys):
         json.dump(fixed_polys, f, indent=4)
 
 
-def read_tiff(name):
-    return rio.open(str(name)).read()[0]
 
 
 def process_mask(name, dst, tolerance, threshold, minarea):
