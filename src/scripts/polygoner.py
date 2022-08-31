@@ -39,8 +39,9 @@ def create_ann(name, dst, polys):
         poly = dict(geometry=dict(coordinates=[poly]))
         fixed_polys.append(poly)
 
-    timestamp = '{:%Y_%b_%d_%H_%M_%S}'.format(datetime.datetime.now())
-    fn = dst / (name + "|" + timestamp + '.json')
+    #postfix = '{:%Y_%b_%d_%H_%M_%S}'.format(datetime.datetime.now())
+    postfix = 'AUTO'
+    fn = dst / (name + "|" + postfix + '.json')
     print(f'Saving annotations at {fn}')
 
     with open(str(fn), 'w') as f:

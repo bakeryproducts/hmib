@@ -27,8 +27,8 @@ def prepare_batch(batch, cb, train):
     xb, yb = xb.cuda(), yb.cuda()
     # yb = yb / 255.
 
-    xb = batch_quantile(xb, q=.005)
-    run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
+    #xb = batch_quantile(xb, q=.005)
+    #run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
 
     if train:
         # cc = xb.byte().chunk(16)

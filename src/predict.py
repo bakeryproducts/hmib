@@ -33,29 +33,30 @@ def select_organ_from_predict(yb, organ):
 
 
 def log(*m):
+    # TODO normal logging?
     pass
     # print(m)
 
 
-def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None):
+def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear'):
     H, W = image_size
 
     # Infer batch by batch
     mask = np.zeros((1, H, W), dtype=float)
     for batch_blocks, batch_coords in dataloader:
         batch_blocks = torch.from_numpy(np.stack(batch_blocks))
-        batch_blocks = batch_blocks.cuda()
+        batch_blocks = batch_blocks.cuda().float()
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
-        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(scale, scale))
+        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(scale, scale), mode=interpolation_mode)
 
-        # log('INFER', batch_blocks.shape, batch_blocks.max())
+        log('INFER', batch_blocks.shape)
         batch_masks = inferer(batch_blocks.float())  # bchw, logit
 
-        # log('PREDICT', batch_masks.shape, batch_masks.max())
+        log('PREDICT', batch_masks.shape)
         batch_masks = select_organ_from_predict(batch_masks, organ)
-        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1./scale, 1./scale))
+        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1./scale, 1./scale), mode=interpolation_mode)
         batch_masks.sigmoid_()
 
         log('ORGAN', batch_masks.shape,)
@@ -68,27 +69,24 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None):
             #log(block_mask.shape, block_mask.max(), block_cd)
             paste_crop(mask, block_mask, block_cd, pad_size)
 
-    #log('MASK', mask.shape, mask.mean(), mask.max())
+    log('MASK', mask.shape)
     return mask
 
 
 def image_file_generator(images_dir, images_csv=None):
     EXT = "tiff"
-
     # Load from images_dir
     if images_csv is None:
-        for image_file in Path(images_dir).rglob(f"*.{EXT}"):
+        for image_file in images_dir.rglob(f"*.{EXT}"):
             yield image_file, None
-
     # Load from dataframe
     else:
         df = pd.read_csv(images_csv)
         for row in df.itertuples():
-            image_file = osp.join(images_dir, f"{row.id}.{EXT}")
-            if not osp.exists(image_file):
+            image_file = images_dir / f"{row.id}.{EXT}"
+            if not image_file.exists():
                 print(f"Image {image_file} doesn't exist, skipping")
                 continue
-
             yield image_file, row.organ
 
 
@@ -154,13 +152,13 @@ def main(
         device = 'cuda'
     else:
         device = 'cpu'
-    assert isinstance(tta, bool)
+
     experiment_dir = Path(model_file).parent.parent.parent
-    if config_file is None:
-        config_file = osp.join(experiment_dir, "src", "configs", "u.yaml")
-    if output_dir is None:
-        output_dir = osp.join(experiment_dir, "predicts")
-    os.makedirs(output_dir, exist_ok=True)
+    images_dir = Path(images_dir)
+
+    if config_file is None: config_file = experiment_dir / "src" / "configs" / "u.yaml"
+    if output_dir is None: output_dir = Path(experiment_dir) / "predicts"
+    output_dir.mkdir(exist_ok=True)
 
     # Create TiffReader initializer
     # TiffReader = partial(
@@ -185,30 +183,29 @@ def main(
 
 
     for image_file, _ in tqdm(gen):
-        print(image_file)
+        print('\n \t', image_file)
         # TODO: image_meter_scale should be image specific
         scale = image_meter_scale / network_scale
-        log("SCALE", scale)
-
         scaled_block_size = int(round(block_size / scale))
         pad_size = int(scaled_block_size * pad_ratio)
         img_size = rio.open(image_file).shape # well, small price for func reader
+        dst = output_dir / image_file.parent.stem
+        dst.mkdir(exist_ok=True)
+        log("SCALE", scale)
 
         # with TiffReader(image_file, scaled_block_size) as image_reader:
         _image_reader = parallel_block_read(image_file, scaled_block_size, pad_ratio, num_processes=8)
         image_reader = batcher(_image_reader, batch_size)
         mask = infer_image(image_reader, inferer, scale, pad_size, img_size, organ=organ)
 
-
         if output_csv:
             result.append({
-                "image_filename": osp.basename(image_file),
+                "image_filename": image_file.name,
                 "rle": rle_encode((mask[0] > threshold).astype(np.uint8))
             })
 
         if output_dir:
-            mask_output_file = osp.join(output_dir, osp.basename(image_file))
-            save_tiff(mask_output_file, mask*255)
+            save_tiff(dst / image_file.name, mask * 255)
 
     if output_csv:
         result = pd.DataFrame(result)

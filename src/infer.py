@@ -105,7 +105,7 @@ class Inferer:
         X: torch.Tensor of shape (batch, channels, height, width); batch of preprocessed images.
         """
         X = batch.float().to(self.device)
-        X = batch_quantile(X, q=.005) # bchw
+        #X = batch_quantile(X, q=.005) # bchw
 
         if self.cfg.AUGS.NORM.MODE == 'meanstd':
             X, _, _ = norm_2d(X, mean=self.cfg.AUGS.NORM.MEAN, std=self.cfg.AUGS.NORM.STD)
