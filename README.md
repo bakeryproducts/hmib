@@ -123,6 +123,12 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 130, 70, not found => in 90-110
 2) 106, 94, scoring => 94-98
 3) 97, 94, notebook => 98
+- Size mean ~ 160
+1) 832, 328, pass => in 160-328
+2) 294, 192, pass => in 160-192
+3) 185, 164, pass => in 160-164
+- Size std ~ 0
+1) 3, 1, pass => in 0-1
 - R in 186-189
 1) 180, 120, notebook => in 180-255
 2) 240, 195, pass => in 180-195
