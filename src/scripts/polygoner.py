@@ -11,8 +11,11 @@ from tqdm import tqdm
 from rasterio import features
 from shapely import geometry
 
+import warnings
+warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 
-def mask_to_poly(mask, tolerance, min_sieve_pix=25):
+
+def mask_to_poly(mask, tolerance, minarea, min_sieve_pix=25):
     mask = features.sieve(mask, min_sieve_pix)
     pp = []
     for r, v in features.shapes(mask, mask > 0):
@@ -25,7 +28,7 @@ def mask_to_poly(mask, tolerance, min_sieve_pix=25):
             poly = np.array(cds)[0]
             shp = geometry.Polygon(poly)
             poly_s = shp.simplify(tolerance=tolerance)
-            if shp.area > 1:
+            if shp.area > minarea:
                 poly = np.array(poly_s.exterior.xy).T
                 pp.append(poly)
     return pp
@@ -52,23 +55,24 @@ def read_tiff(name):
     return rio.open(str(name)).read()[0]
 
 
-def process_mask(name, dst, tolerance, threshold):
+def process_mask(name, dst, tolerance, threshold, minarea):
     mask = read_tiff(name)
+    # print(mask.shape, mask.max())
     mask = mask > threshold
     mask = mask.astype(np.uint8)
     if mask.max() <= 1: mask = mask * 255
-    polys = mask_to_poly(mask, tolerance)
+    polys = mask_to_poly(mask, tolerance, minarea)
     create_ann(name.stem, dst, polys)
 
 
-def start(name, dst=None, mode='S', ext='tiff', tolerance=3, threshold=127):
+def start(name, dst=None, mode='S', ext='tiff', tolerance=3, minarea=1, threshold=127):
     name = Path(name)
     if dst is not None: dst = Path(dst)
     if mode == 'S':
         print('\t Single file mode')
         if dst is None: dst = name.parent.parent / 'polys'
         dst.mkdir(exist_ok=True)
-        process_mask(name, dst, tolerance, threshold)
+        process_mask(name, dst, tolerance, threshold, minarea)
 
     elif mode == 'F':
         print('\t Folder mode')
@@ -79,7 +83,9 @@ def start(name, dst=None, mode='S', ext='tiff', tolerance=3, threshold=127):
 
         for fn in tqdm(masks):
             print(f'\t\t Doing {fn}')
-            process_mask(fn, dst, tolerance, threshold)
+            d = dst / fn.parent.name
+            d.mkdir(exist_ok=True)
+            process_mask(fn, d, tolerance, threshold, minarea)
 
 
 if __name__ == '__main__':

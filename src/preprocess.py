@@ -46,16 +46,16 @@ def df_hubmap2(src):
         yield name, image, mask
 
 
-def do_cuts(src='input/hmib', dst='input/preprocessed', size=1024, crop_size=512, crop_step=256):
-    check_sizes(crop_size, size, crop_step)
-    subcrops = size != crop_size
+def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, crop_step=256):
+    #check_sizes(crop_size, size, crop_step)
+    subcrops = False#size != crop_size
     src = Path(src)
     dst = Path(dst)
 
-    output_dirname = f"rle_{size}_v2"
+    output_dirname = f"rle_{scale}_v2"
     if subcrops:
         overlap = crop_size - crop_step
-        output_dirname += f"_c{crop_size}_o{overlap}"
+        output_dirname += f"_c{scale}_o{overlap}"
 
     # Output directories
     output_data_dir = dst / output_dirname
@@ -71,18 +71,19 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', size=1024, crop_size=512
     # Preprocess images
     for name, image, mask in tqdm(gen):
         # Resize
-        image = cv2.resize(image, (size, size), interpolation=cv2.INTER_CUBIC)
-        mask = cv2.resize(mask, (size, size), interpolation=cv2.INTER_CUBIC)
+        image = cv2.resize(image, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
+        mask = cv2.resize(mask, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         # Save
-        if subcrops:
-            for i, (y1, x1, y2, x2) in enumerate(crop_generator(size, crop_size, crop_step)):
-                cv2.imwrite(str(output_images_dir / f"{name}_{i}.png"), image[y1: y2, x1: x2])
-                cv2.imwrite(str(output_masks_dir / f"{name}_{i}.png"), mask[y1: y2, x1: x2])
+        # if subcrops:
+        #     for i, (y1, x1, y2, x2) in enumerate(crop_generator(size, crop_size, crop_step)):
+        #         cv2.imwrite(str(output_images_dir / f"{name}_{i}.png"), image[y1: y2, x1: x2])
+        #         cv2.imwrite(str(output_masks_dir / f"{name}_{i}.png"), mask[y1: y2, x1: x2])
 
-        else:
-            cv2.imwrite(str(output_images_dir / f"{name}.png"), image)
-            cv2.imwrite(str(output_masks_dir / f"{name}.png"), mask)
+        # else:
+        cv2.imwrite(str(output_images_dir / f"{name}.png"), image)
+        cv2.imwrite(str(output_masks_dir / f"{name}.png"), mask)
 
 
 if __name__ == "__main__":

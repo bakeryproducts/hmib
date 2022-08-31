@@ -70,7 +70,9 @@ def start(imgs=None, mask=None, gt=None, dst=None, mode='S', ext='png'):
         assert len(imgs) == len(masks)
 
         for i,m in zip(imgs, masks):
-            tiff_merge_mask(i, m, dst)
+            d = dst / i.parent.name
+            d.mkdir(exist_ok=True)
+            tiff_merge_mask(i, m, d)
 
 
 if __name__ == '__main__':
