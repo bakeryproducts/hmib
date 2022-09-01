@@ -161,6 +161,10 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 - Size std
 1) 300, 50, pass, in 0-50
 2) 40, 5, pass, in 0-5
+
+- Whiteness
+1) .2, .10, .05, .01, score, in .05, .01
+
 - R in 166-168
 1) 200, 50, res, in 150-200
 2) 190, 160, score, in 160-170
@@ -202,7 +206,11 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 - Size mean
 1) 4499 4000 3000 2000, pass, in 0-2000
 2) 2001, 1950, 1500, 1400, pass, in 0-1400
+3) 1300, 500, note, in 1300-1400
 
+- Whiteness
+1) .7, .. .2 , pass, in 0-.2
+2) .15, .10, .05, .02, score, in .02 - .05
 
 - R in 197-200
 1) 150, 80, note, in 150-255

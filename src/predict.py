@@ -73,17 +73,16 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
     return mask
 
 
-def image_file_generator(images_dir, images_csv=None):
-    EXT = "tiff"
+def image_file_generator(images_dir, images_csv=None, ext='tiff'):
     # Load from images_dir
     if images_csv is None:
-        for image_file in images_dir.rglob(f"*.{EXT}"):
+        for image_file in images_dir.rglob(f"*.{ext}"):
             yield image_file, None
     # Load from dataframe
     else:
         df = pd.read_csv(images_csv)
         for row in df.itertuples():
-            image_file = images_dir / f"{row.id}.{EXT}"
+            image_file = images_dir / f"{row.id}.{ext}"
             if not image_file.exists():
                 print(f"Image {image_file} doesn't exist, skipping")
                 continue
@@ -107,6 +106,7 @@ def main(
     device=None,
     tta_merge_mode="mean",
     images_csv=None,
+    ext='tiff',
 ):
     """
     This function will infer all images from images_csv if given
@@ -179,7 +179,7 @@ def main(
     )
 
     result = []
-    gen = image_file_generator(images_dir, images_csv)
+    gen = image_file_generator(images_dir, images_csv, ext)
 
 
     for image_file, _ in tqdm(gen):
