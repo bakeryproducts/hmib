@@ -38,7 +38,8 @@ class GdalSampler:
         polygons = flatten_2dlist([json_record_to_poly(record) for record in self._records_json])
 
         if shuffle:
-            random.shuffle(polygons, seed=42)
+            random.seed(42)
+            random.shuffle(polygons)
 
         self._polygons_centroid = [np.round(polygon.centroid) for polygon in polygons]
 
