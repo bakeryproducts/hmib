@@ -25,8 +25,11 @@ def convex2mask(poly, mask_shape):
     return mask
 
 
-def rasterpoly(poly):
+def rasterpoly(poly, H, W):
     poly = np.array(poly)
+    poly[:,0] = np.clip(poly[:,0], 0, W)
+    poly[:,1] = np.clip(poly[:,1], 0, H)
+
     x,y = poly[:,0].min(), poly[:,1].min()
     w,h = poly[:,0].max() - x, poly[:,1].max() - y
     y,x,h,w = [int(i) for i in [y,x,h,w]]
@@ -36,15 +39,18 @@ def rasterpoly(poly):
 
     polygon = Polygon(poly)
     mask = rasterize([polygon], out_shape=(h,w))
-    # print(mask.shape, mask.max())
+    #print(x,y,h,w,mask.shape, mask.max())
     return y,x,h,w,mask
 
 
-def raster_polys(polys, h, w):
-    mask = np.zeros((h, w), dtype=np.float16)
+def raster_polys(polys, H, W):
+    mask = np.zeros((H, W), dtype=np.float16)
     for poly in polys:
-        y,x,h,w, poly_mask = rasterpoly(poly)
-        mask[y:y+h, x:x+w] += poly_mask
+        y,x,h,w, poly_mask = rasterpoly(poly, H, W)
+        try:
+            mask[y:y+h, x:x+w] += poly_mask
+        except ValueError:
+            print(f'cant vpihnut: {poly_mask.shape}, {x,y,w,h}')
     mask = np.clip(mask, 0, 1).astype(np.uint8)
     return mask
 

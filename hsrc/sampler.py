@@ -36,8 +36,10 @@ class GdalSampler:
         self._rand_shift_range = rand_shift_range
         # Get 1d list of polygons
         polygons = flatten_2dlist([json_record_to_poly(record) for record in self._records_json])
+
         if shuffle:
-            random.shuffle(polygons)
+            random.shuffle(polygons, seed=42)
+
         self._polygons_centroid = [np.round(polygon.centroid) for polygon in polygons]
 
     def __iter__(self):
