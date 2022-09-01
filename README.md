@@ -180,7 +180,10 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 2) 46, 34, res => in 42-46
 3) 45, 42, scoring => 43
 - Size mean
-1) 4499, 4400, 4000, 3500, pass => in 160-3500
+1) 4499, 4000, 2500, 100, res => in 4000-4499
+2) 4400, 4100, res => in 4300-4400
+3) 4380, 4320, res => in 4360-4380
+4) 4376, 4364, scoring => in 4364-4368
 - R in 128-132
 5) 180, 120, scoring => in 120-140
 6) 136, 124, not found => in 128-132
