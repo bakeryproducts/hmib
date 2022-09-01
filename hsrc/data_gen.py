@@ -100,7 +100,7 @@ def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recu
     print('Total images: ', len(imgs))
 
     ############################# CREATING MASKS FROM ANNOTATIONS
-    ann_source  = 'json'
+    ann_source = 'json'
     masks_path = dst / 'bigmasks'  # will be created
 
     if not masks_path.exists():
