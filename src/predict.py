@@ -46,17 +46,25 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
     for batch_blocks, batch_coords in dataloader:
         batch_blocks = torch.from_numpy(np.stack(batch_blocks))
         batch_blocks = batch_blocks.cuda().float()
+
+        # Fix scale to output_size be divisible by 32
+        ori_size = batch_blocks[0].shape[-1]
+        output_size = int(np.ceil(ori_size * scale / 32)) * 32
+        fixed_scale = output_size / ori_size
+
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
-        batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(scale, scale), mode=interpolation_mode)
+        batch_blocks = torch.nn.functional.interpolate(
+            batch_blocks, scale_factor=(fixed_scale, fixed_scale), mode=interpolation_mode)
 
         log('INFER', batch_blocks.shape)
         batch_masks = inferer(batch_blocks.float())  # bchw, logit
 
         log('PREDICT', batch_masks.shape)
         batch_masks = select_organ_from_predict(batch_masks, organ)
-        batch_masks = torch.nn.functional.interpolate(batch_masks, scale_factor=(1./scale, 1./scale), mode=interpolation_mode)
+        batch_masks = torch.nn.functional.interpolate(
+            batch_masks, scale_factor=(1./fixed_scale, 1./fixed_scale), mode=interpolation_mode)
         batch_masks.sigmoid_()
 
         log('ORGAN', batch_masks.shape,)
