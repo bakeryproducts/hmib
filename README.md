@@ -212,6 +212,13 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) .7, .. .2 , pass, in 0-.2
 2) .15, .10, .05, .02, score, in .02 - .05
 
+- Gradientness
+1) .2, .01, note, in .2 - 1
+2) .7 .3, , in .65 - .70
+- Holesiziness
+1) 500, 300, 100, 0, sub, in 100-300
+2) 250, 220, 180, 150, pass, 100-150
+
 - R in 197-200
 1) 150, 80, note, in 150-255
 2) 200, 160, res, in 187-200
