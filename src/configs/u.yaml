@@ -24,9 +24,9 @@ DATA:
       'hpa_valid_lung',
     ]
   VALID_HUB:
-    DATASETS: []
+    DATASETS: ['hubmap_kidney', 'hubmap_largeintestine']
   VALID_GTEX:
-    DATASETS: []
+    DATASETS: ['gtex_largeintestine', 'gtex_spleen', 'gtex_prostate']
 
 AUGS:
   NORM:
@@ -98,8 +98,8 @@ MODEL:
     # model_name: 'dm_nfnet_f2'
     # model_name: 'convnext_tiny'
     in_chans: 3
-    drop_rate: .5
-    drop_path_rate: .5
+    # drop_rate: .5
+    # drop_path_rate: .5
 
   DECODER:
     runner: 
@@ -138,13 +138,13 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 200
-  BATCH_SIZE: 48
+  BATCH_SIZE: 64
   EARLY_EXIT: 20
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     ENABLE: True
-    start: 0.99
-    end: .995
+    start: 0.97
+    end: .99
     type: 'linear'
 
 VALID:

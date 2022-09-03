@@ -32,8 +32,8 @@ def start(cfg, output_folder):
         output.mkdir()
 
     datasets_generator = build_data.DatasetsGen(cfg)
-    # datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB', 'VALID_GTEX'])
-    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID'])
+    datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB', 'VALID_GTEX'])
+    # datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID'])
     if not cfg.DATA.DALI:
         datasets = augs.create_augmented(cfg, datasets)
 
@@ -167,7 +167,7 @@ def start_split(cfg, output_folder, datasets):
 
     cbs = [batch_setup_cb, lr_cb, ema_cb, train_cb, val_cb]
 
-    if False:
+    if True:
         hcb = hub_cb.HubCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
         gcb = gtex_cb.GtexCB(model_ema=model_ema, logger=logger, batch_transform=batch_transform_fn)
         cbs.append(hcb)
