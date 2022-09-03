@@ -219,10 +219,18 @@ def collect_map_score(cb, ema=True, train=False):
     dices = dices.view(-1, dices.shape[-1])
     classes = classes.view(-1, classes.shape[-1])
     ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
+    LB_WEIGHT = {
+        "kidney": 0.176, 
+        "prostate": 0.219, 
+        "spleen": 0.252, 
+        "largeintestine": 0.096, 
+        "lung": 0.257,
+    }
 
     if cb.cfg.PARALLEL.IS_MASTER:
         prefix = f'organs_{cb.L.mode}'
         macro = []
+        lb_avg = 0
         for i in range(5):
             idxs = classes.long() == i
             class_name = ORGANS_DECODE[i]
@@ -232,4 +240,7 @@ def collect_map_score(cb, ema=True, train=False):
             cb.log_warning(f'\t {cb.L.mode} Dice {class_name:<20} mean {organ_dice_mean:<.3f}, std {organ_dice_std:<.3f} len {len(organ_dices)}')
             cb.L.writer.add_scalar(f'{prefix}/{class_name}', organ_dice_mean, cb.L.n_epoch)
             macro.append(organ_dice_mean)
+            lb_avg += LB_WEIGHT[class_name] * organ_dice_mean
         cb.L.writer.add_scalar(f'{prefix}/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
+        cb.L.writer.add_scalar(f'{prefix}/lb_avg', torch.as_tensor(lb_avg), cb.L.n_epoch)
+
