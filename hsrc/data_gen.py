@@ -141,12 +141,15 @@ def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recu
             new_name = img_name.stem + '.png'
 
             img = cv2.imread(str(img_name), cv2.IMREAD_UNCHANGED)
+            img = cv2.resize(img, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
             fix_img_name = img_dir / new_name
             cv2.imwrite(str(fix_img_name), img)
+
 
             mask_name = masks_path / img_name.name
             mask = cv2.imread(str(mask_name), cv2.IMREAD_UNCHANGED)
             mask = mask / 255
+            mask = cv2.resize(mask, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
             #print(mask_name, mask.max())
             fix_mask_name = mask_dir / new_name
             cv2.imwrite(str(fix_mask_name), mask)
