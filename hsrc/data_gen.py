@@ -70,18 +70,18 @@ def cutter(img_fns, ann_fns, masks_fns, dst_path, cropsize, scale, sampler, mask
 
 
 
-def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recursive=False):
+def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recursive=False, ext='tiff', HACKHPA=False):
     #dst_scale = .4 * 3
     # mode == [inst, grid]
 
     MODE = mode
     mask_fill_percent = 0.01
-    ext = '*.tiff'
+    ext = f'*.{ext}'
 
     scale = dst_scale / src_scale
 
     src = Path(src)
-    dst = Path(dst) / 'preprocessed'
+    dst = Path(dst)
     dst.mkdir(exist_ok=True, parents=True)
 
     _imgs = list(src.rglob(ext) if recursive else src.glob(ext))
@@ -125,14 +125,30 @@ def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recu
         print('\n\nMASKS ALREADY CREATED? SKIPING BIG TIFF MASK CREATION')
     ############################# CREATING MASKS FROM ANNOTATIONS
 
+    if HACKHPA:
+        import shutil
+        name = f'{scale:.3f}'
+        cut_path = dst / name
+
+        img_dir = cut_path / 'images'
+        os.makedirs(str(img_dir), exist_ok=True)
+        mask_dir = cut_path / 'masks'
+        os.makedirs(str(mask_dir), exist_ok=True)
+        for i in imgs:
+            fm = masks_path / i.name
+            print(fm, mask_dir)
+            shutil.move(str(fm), str(mask_dir))
+            shutil.copy(str(i), str(img_dir))
+        return
+
+
 
     ################# CUTTING TO PIECES
     name = f'{scale:.3f}_{cropsize}'
-    cut_path = dst / 'CUTS' / name
+    cut_path = dst / name
     masks = [masks_path / i.name for i in imgs]
     #if not cut_path.exists():
     cut(imgs, anns, masks, cut_path, cropsize, scale, total=total, mode=MODE, mask_fill_percent=mask_fill_percent)
-    # do_split(glomi_path, dst / f'SPLITS/{name}', mode=MODE)
 
 
 if __name__ == '__main__':
