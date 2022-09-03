@@ -14,6 +14,7 @@ class ColorAugs(albu.core.composition.OneOf):
     def __init__(self, *args, **kwargs):
         augs = [
             albu.HueSaturationValue(128, 128, 0, p=1.0),
+            albu.RGBShift(40, 40, 40, p=1.0),
             albu.RandomBrightnessContrast(0.5, 0.5, p=1.0),
         ]
         super().__init__(augs, *args, **kwargs)
