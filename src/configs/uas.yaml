@@ -1,0 +1,232 @@
+INPUTS: input
+OUTPUTS: output
+
+SPLIT: 0
+DATA:
+  train_imgs: 'preprocessed/rle_3_v2/images/'
+  train_anns: 'preprocessed/rle_3_v2/masks/'
+
+  valid_imgs: 'preprocessed/rle_3_v2/images/'
+  valid_anns: 'preprocessed/rle_3_v2/masks/'
+  img_loader: 'partial(data.PngImages, suffix=".png")'
+  ann_loader: 'partial(data.PngImages, suffix=".png")'
+  DALI: False
+  TRAIN:
+    #DATASETS: ['train_${SPLIT}', ]
+    DATASETS: ['train_${SPLIT}', "gcol", "gspl", "gpro"]
+    DATASET_ARGS:
+      overlap: 0 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
+      rate: 40 
+
+  VALID:
+    DATASETS: ['valid_${SPLIT}', ]
+    DATASET_ARGS:
+      overlap: 0
+      rate: 1
+  VALID_HUB:
+    DATASETS: ['hkid', "hcol"]
+    DATASET_ARGS:
+      overlap: 0
+      rate: 1
+  VALID_GTEX:
+    DATASETS: ["gcol", "gspl", "gpro"]
+    DATASET_ARGS:
+      overlap: 0
+      rate: 1
+
+AUGS:
+  NORM:
+    MODE: 'minmax'
+    STD: [69] 
+    MEAN: [176.]
+  TRAIN_RESIZE: [0]
+  VALID_RESIZE: [0]
+  MSR:
+    scale_up: 1.0
+    scale_down: 1.0
+  MIXUP:
+    PROB: .0
+  CUTMIX:
+    PROB: .0
+  FMIX:
+    ALPHA: 1
+    REPEAT: 1
+    PROB: .0
+
+  AUG_MULTIPLICITY: 1
+  # CROP: [256,256]
+  # CROP: [384,384]
+  CROP: [512,512]
+  VALCROP: [768,768]
+  TRAIN:
+    AUGS:
+      - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 45, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.7}}
+      # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
+      # - {m : albu.GridDistortion, kwargs : {'p': .3}}
+      - {m : albu.RandomRotate90, kwargs : {'p': 1.0}}
+      - {m : albu.HorizontalFlip, }
+      # - {m : albu.ChannelShuffle, args: [.5,]}
+      # - {m : albu.VerticalFlip, }
+#      - {m : albu.RandomGamma, kwargs : {'p': .2}} 
+#      - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
+#      - {m : albu.HueSaturationValue, args : [128, 128, 0], kwargs : {'p': .4}}
+#      - {m : albu.RandomBrightnessContrast, args : [0.5, 0.5], kwargs : {'p': .4}}
+      - {m : ColorAugs, kwargs : {'p': 0.8}}
+#      - {m : albu.MultiplicativeNoise, kwargs : {'per_channel': True, 'elementwise': True, 'p': 0.1}}
+#      - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .1}} 
+      - {m : NoiseAugs, kwargs : {'p': 0.3}}
+      # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
+      - {m : sh.augmentation.ToTensor,}
+  VALID:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+  VALID_HUB:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+  VALID_GTEX:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP}'}
+      - {m : sh.augmentation.ToTensor,}
+
+MODEL:
+  ARCH: 'unet' # 'ssl'
+  INIT_MODEL: ''
+  ENCODER:
+    runner: 
+        # _target_: encoders.encoder.create_mixt
+        _target_: encoders.encoder.create_encoder
+        _partial_: true
+    # model_name: 'resnet34'
+    # model_name: 'mit_b0'
+    # model_name: 'tf_efficientnet_b2_ns'
+    # model_name: 'tf_efficientnetv2_m_in21k'
+    # model_name: 'resnetv2_50x1_bitm_in21k'
+    # model_name: 'convnext_small_in22ft1k'
+    model_name: 'convnext_base_in22ft1k'
+    # model_name: 'dm_nfnet_f2'
+    # model_name: 'convnext_tiny'
+    in_chans: 3
+
+  DECODER:
+    runner: 
+        # _target_: decoders.decoder.create_segdec
+        _target_: decoders.decoder.create_decoder
+        _partial_: true
+        # embedding_dim: 128
+    base:
+      use_bottleneck: False
+      last_scale: 1
+    blocks:
+      - ch: 512
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 256
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 128
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 64
+        #use_skip: False
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 32
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+    # all_stages:
+
+  SEGHEAD:
+    out_channels: 5
+    kernel_size: 1
+
+TRAIN:
+  BATCH_NUM_INSTANCES: 1
+  AMP: True
+  GPUS: [0,1,2,3]
+  NUM_WORKERS: 5
+  SAVE_STEP: 20
+  SCALAR_STEP: 1
+  TB_STEP: 1
+  START_VAL: 0
+  EPOCH_COUNT: 100
+  BATCH_SIZE: 32
+  EARLY_EXIT: 50
+  SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
+  EMA: 
+    ENABLE: True
+    start: 0.97
+    end: .99
+    type: 'linear'
+
+VALID:
+  BATCH_SIZE: 8
+VALID_HUB:
+  BATCH_SIZE: 8
+VALID_GTEX:
+  BATCH_SIZE: 8
+
+LOSS:
+    - name: 'seg_dice'
+      weight: .5
+      LOSS:
+        _target_: segmentation_models_pytorch.losses.DiceLoss
+        mode: 'multilabel'
+        smooth: .0
+
+    - name: 'seg_ce'
+      weight: .5
+      LOSS:
+        # _target_: torch.nn.CrossEntropyLoss
+        _target_: torch.nn.BCEWithLogitsLoss
+        # _target_: segmentation_models_pytorch.losses.SoftCrossEntropyLoss
+        # smooth_factor: .0
+    - name: 'cls'
+      weight: .01
+      LOSS:
+        _target_: torch.nn.CrossEntropyLoss
+  
+
+FEATURES:
+  GRAD_CLIP: 10
+  CLAMP: 10
+  CLIP_MODE: 'value'
+  BATCH_ACCUMULATION_STEP: 1
+  USE_DS: False
+  SAM:
+    REDUCE: 1.
+    RHO: 0.
+
+
+OPTIMIZER:
+  LRS: [0.000001, 0.0001, 0.00001, 1]
+  # LRS: [0.000001, 0.0008, 0.0001, 1]
+  # LRS: [0.000001, 0.00006, 0.00001, 1]
+  
+  FINE_LR:
+    - name: 'seg_head'
+      group_options:
+        lr_scale: 1
+        weight_decay: .001
+
+  OPT:
+    _target_: torch.optim.AdamW
+    # _target_: timm.optim.MADGRAD
+    _partial_: true
+    weight_decay: 0.001
+
+PARALLEL:
+  DDP: True
+
+
+_postfix : ${MODEL.ARCH}_${MODEL.ENCODER.model_name}
+hydra:
+  run:
+    dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${_postfix}
+  sweep:
+    dir : ./output/${now:%m-%d}/${now:%H-%M-%S}_SWEEP
+    subdir: J${hydra.job.num}_${_postfix}
+
+defaults: 
+    - PARALLEL: _parallel
+    - VALID: _valid
+    - FEATURES.SAM: _sam
+    - AUGS.MIXUP: _mixup
+    - _self_

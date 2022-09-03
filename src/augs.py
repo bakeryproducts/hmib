@@ -10,6 +10,25 @@ import albumentations as albu
 import shallow as sh
 
 
+class ColorAugs(albu.core.composition.OneOf):
+    def __init__(self, *args, **kwargs):
+        augs = [
+            albu.HueSaturationValue(128, 128, 0, p=1.0),
+            albu.RandomBrightnessContrast(0.5, 0.5, p=1.0),
+        ]
+        super().__init__(augs, *args, **kwargs)
+
+
+class NoiseAugs(albu.core.composition.OneOf):
+    def __init__(self, *args, **kwargs):
+        augs = [
+            albu.MultiplicativeNoise((0.9, 1.1), per_channel=True, elementwise=True, p=1.0),
+            albu.PixelDropout(dropout_prob=0.05, p=1.0),
+            albu.ImageCompression(30, p=1.0),
+            albu.Blur(p=1.0),
+        ]
+        super().__init__(augs, *args, **kwargs)
+
 
 class _ExampleAug(albu.core.transforms_interface.DualTransform):
     def __init__(self, p=1.):
