@@ -20,7 +20,7 @@ datasets:
     root: 'CUTS/gtex/kidney/2.400_1024'
 
   - name: "hpa_extra_kidney"
-    root: 'CUTS/hpa/kidney/1.000/'
+    root: 'CUTS/hpa/kidney/3.000/'
 
   ############################### COLON ##############################
   - name: "hpa_train_largeintestine"
@@ -37,7 +37,7 @@ datasets:
     root: 'CUTS/gtex/colon/preprocessed/CUTS/2.400_1024'
 
   - name: "hpa_extra_largeintestine"
-    root: 'CUTS/hpa/colon/1.000/'
+    root: 'CUTS/hpa/colon/3.000/'
 
   ############################### LUNG ##############################
   - name: "hpa_train_lung"
@@ -70,4 +70,4 @@ datasets:
     root: 'CUTS/gtex/spleen/2.400_1024'
 
   - name: "hpa_extra_spleen"
-    root: 'CUTS/hpa/spleen/1.000/'
+    root: 'CUTS/hpa/spleen/3.000/'
