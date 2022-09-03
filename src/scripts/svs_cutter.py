@@ -8,6 +8,9 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
+import warnings
+warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
+
 
 def read_svs(p, x,y,h,w):
     slide = slideio.open_slide(str(p), 'SVS')
@@ -27,10 +30,19 @@ def save_tiff(dst_tiff, image, h, w):
         f.write(image.transpose(2,0,1))
 
 
+def start(path):
+    path = Path(path)
+    if path.is_dir():
+        anns = path.rglob('*|BODY.json')
+        for ann in anns:
+            do_cut(str(ann))
+    else:
+        do_cut(str(path))
+
+
 def do_cut(src_ann):
     # be sure, that annotation is body type, ~ 1- 10 huge polys
-    assert 'BODY' in src_ann
-    # src_ann = Path('../input/extra/gtex/images/colon/GTEX-1K2DA-2026|BODY.json')
+    assert 'BODY' in src_ann, src_ann
     src_ann = Path(src_ann)
     assert src_ann.exists(), src_ann
     name = src_ann.stem.split('|')[0]
@@ -43,6 +55,8 @@ def do_cut(src_ann):
         data = json.load(f)
     polys = [p['geometry']['coordinates'][0] for p in data]
 
+    print(f'{src_ann}, total polys: {len(polys)}')
+
     for i, p in tqdm(enumerate(polys)):
         p = np.array(p)
         x, y, x2, y2 = p[:,0].min(), p[:,1].min(), p[:,0].max(), p[:,1].max()
@@ -51,9 +65,9 @@ def do_cut(src_ann):
         image = read_svs(src,x,y,w,h)
 
         dst_tiff = dst / (f'{i}_{x}_{y}_{w}_{h}.tiff')
-        print(f'Saving {dst_tiff}')
+        #print(f'Saving {dst_tiff}')
         save_tiff(dst_tiff, image, h, w)
 
 
 if __name__ == '__main__':
-    fire.Fire(do_cut)
+    fire.Fire(start)

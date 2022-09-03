@@ -16,6 +16,7 @@ warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarni
 
 
 ORGANS = {k:i for i,k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
+REV_ORGANS = {v:k for k,v in ORGANS.items()}
 
 
 def read_ann(p):
@@ -278,13 +279,32 @@ class MainDataset:
         r = self.ds.__getitem__(*args, **kwargs)
         return r
 
+class MainDatasetv2:
+    def __init__(self,
+                 cfg,
+                 root,
+                 ann_path,
+                 ImgLoader,
+                 AnnLoader,
+                 organ,
+                 **kwargs):
+
+        ds = ExtraValDataset(cfg, root, ann_path, ImgLoader, AnnLoader, organ, **kwargs)
+        rate = kwargs.get('rate', 1)
+        self.ds = Mult(ds, rate)
+
+    def __len__(self): return len(self.ds)
+
+    def __getitem__(self, *args, **kwargs):
+        r = self.ds.__getitem__(*args, **kwargs)
+        return r
+
 
 class ExtraValDataset:
     def __init__(self,
                  cfg,
                  root,
                  ann_path,
-                 base_path,
                  ImgLoader,
                  AnnLoader,
                  organ,

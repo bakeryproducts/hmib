@@ -33,17 +33,20 @@ def folder_gen(src):
         yield ifn.stem, image, masks
 
 
-def df_hubmap2(src):
+def df_hubmap2(src, csv, with_organs=False):
     ori_images_dir = src / "train_images"
-    ori_train_csv = src / "trv2.csv"
-    df = pd.read_csv(ori_train_csv)
+    df = pd.read_csv(csv)
     print(f'\n\ttotal length: {len(df)}')
 
     for i, row in df.iterrows():
         name = row.id
-        image = load_tiff(str(ori_images_dir / f"{name}.tiff"), mode="hwc")
+        if with_organs:
+            image_path = ori_images_dir / row.organ / f"{name}.tiff"
+        else:
+            image_path = ori_images_dir / f"{name}.tiff"
+        image = load_tiff(str(image_path), mode="hwc")
         mask = rle_decode(row.rle, image.shape[:2])
-        yield name, image, mask
+        yield name, image, mask, row
 
 
 def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, crop_step=256):
@@ -65,11 +68,12 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, 
     output_masks_dir.mkdir(exist_ok=False, parents=True)
 
 
-    gen = df_hubmap2(src)
+    ori_train_csv = src / "trv2.csv"
+    gen = df_hubmap2(src, ori_train_csv, ori_train_csv)
     # gen = folder_gen(src)
 
     # Preprocess images
-    for name, image, mask in tqdm(gen):
+    for name, image, mask, _ in tqdm(gen):
         # Resize
         image = cv2.resize(image, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
         mask = cv2.resize(mask, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
@@ -86,5 +90,43 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, 
         cv2.imwrite(str(output_masks_dir / f"{name}.png"), mask)
 
 
+def do_folder_scales(src, dst='input/preprocessed', co=None, ki=None, sp=None, lu=None, pr=None):
+    src = Path(src)
+    dst = Path(dst)
+    assert src.exists(), 'PREPROCESS DATA FIRST, scripts/prepare_hmib'
+
+    output_dirname = f"f_{src.stem}_rle_v2"
+    output_data_dir = dst / output_dirname
+
+    csv = src / 'data.csv'
+    gen = df_hubmap2(src, csv, with_organs=True)
+
+    SCALES = {
+        'prostate':pr,
+        'spleen':sp,
+        'lung':lu,
+        'largeintestine':co,
+        'kidney':ki
+    }
+    # Preprocess images
+    for name, image, mask, row in tqdm(gen):
+        # Resize
+        organ_scale = SCALES[row.organ]
+        if organ_scale == 'none':
+            continue
+
+        image = cv2.resize(image, (0,0), fx=1/organ_scale, fy=1/organ_scale, interpolation=cv2.INTER_LINEAR)
+        mask = cv2.resize(mask, (0,0), fx=1/organ_scale, fy=1/organ_scale, interpolation=cv2.INTER_LINEAR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        fdst = output_data_dir / (row.organ + f'_{organ_scale}') / 'images'
+        fdst.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(fdst / f"{name}.png"), image)
+
+        fdst = output_data_dir / (row.organ + f'_{organ_scale}') / 'masks'
+        fdst.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(fdst / f"{name}.png"), mask)
+
+
 if __name__ == "__main__":
-    fire.Fire(do_cuts)
+    fire.Fire(do_folder_scales)

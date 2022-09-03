@@ -80,6 +80,11 @@ def main(cfg):
     start(cfg, output_folder)
 
 
+@hydra.main(config_path="configs", config_name="u", version_base=None)
+def test(cfg):
+    print(cfg.DATA.datasets)
+
+
 if __name__ == "__main__":
     """
     config select : --config-name=**name** / -cn=**name**
@@ -91,4 +96,5 @@ if __name__ == "__main__":
         python3 -m torch.distributed.launch --use_env --nproc_per_node=4 src/main.py
     """
     cfg_init()
+    #test()
     main()

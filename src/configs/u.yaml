@@ -3,36 +3,30 @@ OUTPUTS: output
 
 SPLIT: 0
 DATA:
-  train_imgs: 'preprocessed/rle_3_v2/images/'
-  train_anns: 'preprocessed/rle_3_v2/masks/'
-
-  valid_imgs: 'preprocessed/rle_3_v2/images/'
-  valid_anns: 'preprocessed/rle_3_v2/masks/'
+  DALI: false
   img_loader: 'partial(data.PngImages, suffix=".png")'
   ann_loader: 'partial(data.PngImages, suffix=".png")'
-  DALI: False
   TRAIN:
-    #DATASETS: ['train_${SPLIT}', ]
-    DATASETS: ['train_${SPLIT}', "gcol", "gspl", "gpro"]
-    DATASET_ARGS:
-      overlap: 0 # int for number of crops per image, i.e. 9 for 1024 -> 512 overlap 256, 111_0.png, 111_1.png, ...
-      rate: 20 
+    DATASETS: [
+      'hpa_train_kidney',
+      'hpa_train_prostate',
+      'hpa_train_largeintestine',
+      'hpa_train_spleen',
+      'hpa_train_lung',
+      ]
 
   VALID:
-    DATASETS: ['valid_${SPLIT}', ]
-    DATASET_ARGS:
-      overlap: 0
-      rate: 1
+    DATASETS: [
+      'hpa_valid_kidney',
+      'hpa_valid_prostate',
+      'hpa_valid_largeintestine',
+      'hpa_valid_spleen',
+      'hpa_valid_lung',
+    ]
   VALID_HUB:
-    DATASETS: ['hkid', "hcol"]
-    DATASET_ARGS:
-      overlap: 0
-      rate: 1
+    DATASETS: []
   VALID_GTEX:
-    DATASETS: ["gcol", "gspl", "gpro"]
-    DATASET_ARGS:
-      overlap: 0
-      rate: 1
+    DATASETS: []
 
 AUGS:
   NORM:
@@ -104,6 +98,8 @@ MODEL:
     # model_name: 'dm_nfnet_f2'
     # model_name: 'convnext_tiny'
     in_chans: 3
+    drop_rate: .5
+    drop_path_rate: .5
 
   DECODER:
     runner: 
@@ -142,13 +138,13 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 200
-  BATCH_SIZE: 64
-  EARLY_EXIT: 10
+  BATCH_SIZE: 48
+  EARLY_EXIT: 20
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     ENABLE: True
-    start: 0.97
-    end: .99
+    start: 0.99
+    end: .995
     type: 'linear'
 
 VALID:
@@ -225,3 +221,4 @@ defaults:
     - FEATURES.SAM: _sam
     - AUGS.MIXUP: _mixup
     - _self_
+    - DATA: datasets

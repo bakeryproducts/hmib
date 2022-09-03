@@ -15,130 +15,31 @@ def get_by_name(path, glob, filter):
 class DatasetsGen:
     def __init__(self, cfg):
         self.cfg = cfg
-
         DATA_DIR = Path(cfg.INPUTS).absolute()
         if not DATA_DIR.exists(): raise Exception(DATA_DIR)
 
-        train_ds_args = dict(self.cfg.DATA.TRAIN.DATASET_ARGS)
-        val_ds_args = dict(self.cfg.DATA.VALID.DATASET_ARGS)
-
-        train_imgs = DATA_DIR / cfg.DATA.train_imgs
-        train_anns = DATA_DIR / cfg.DATA.train_anns
-
-        valid_imgs = DATA_DIR / cfg.DATA.valid_imgs
-        valid_anns = DATA_DIR / cfg.DATA.valid_anns
-
-        base_path = DATA_DIR / 'hmib/train.csv'
         img_loader = eval(cfg.DATA.img_loader)
         ann_loader = eval(cfg.DATA.ann_loader)
+        general_args = dict(cfg=cfg, ImgLoader=img_loader, AnnLoader=ann_loader,)
 
-        ext_train = partial(data.MainDataset,
-                            cfg=cfg,
-                            root=train_imgs,
-                            ann_path=train_anns,
-                            base_path=base_path,
-                            ImgLoader=img_loader,
-                            AnnLoader=ann_loader,
-                            train=True,
-                            **train_ds_args)
+        self.dataset_args = dict()
+        for dataset_cfg in cfg.DATA.datasets:
+            dataset_cfg = dict(dataset_cfg)
+            name = dataset_cfg.pop('name')
+            organ = name.split('_')[-1]
+            root = DATA_DIR / dataset_cfg.pop('root')
+            base_dataset = data.MainDatasetv2 # can pop from cfg
 
-        ext_val = partial(data.MainDataset,
-                          cfg=cfg,
-                          root=valid_imgs,
-                          ann_path=valid_anns,
-                          base_path=base_path,
-                          ImgLoader=img_loader,
-                          AnnLoader=ann_loader,
-                          train=False,
-                          **val_ds_args)
+            args = dict(
+                root=root/'images',
+                ann_path=root/'masks',
+                organ=organ,
+                **general_args,
+                **dataset_cfg,
+            )
+            ds = partial(base_dataset, **args)
+            self.dataset_args[name] = dict(ds=ds)
 
-        ext_val_hkid = partial(data.ExtraValDataset,
-                               cfg=cfg,
-                               root=DATA_DIR     / 'CUTS/hubmap_kidney/preprocessed/CUTS/2.400_1024/images',
-                               ann_path=DATA_DIR / 'CUTS/hubmap_kidney/preprocessed/CUTS/2.400_1024/masks',
-                               base_path=base_path,
-                               ImgLoader=img_loader,
-                               AnnLoader=ann_loader,
-                               organ='kidney',
-                               **val_ds_args)
-
-        ext_val_hcol = partial(data.ExtraValDataset,
-                               cfg=cfg,
-                               root=DATA_DIR     / 'CUTS/hubmap_colon/preprocessed/CUTS/2.400_1024/images',
-                               ann_path=DATA_DIR / 'CUTS/hubmap_colon/preprocessed/CUTS/2.400_1024/masks',
-                               base_path=base_path,
-                               ImgLoader=img_loader,
-                               AnnLoader=ann_loader,
-                               organ='largeintestine',
-                               **val_ds_args)
-
-        ext_val_gcol = partial(data.ExtraValDataset,
-                               cfg=cfg,
-                               root=DATA_DIR     / 'CUTS/colon/preprocessed/CUTS/2.400_1024/images',
-                               ann_path=DATA_DIR / 'CUTS/colon/preprocessed/CUTS/2.400_1024/masks',
-                               base_path=base_path,
-                               ImgLoader=img_loader,
-                               AnnLoader=ann_loader,
-                               organ='largeintestine',
-                               **val_ds_args)
-        ext_val_gspl = partial(data.ExtraValDataset,
-                               cfg=cfg,
-                               root=DATA_DIR     / 'CUTS/spleen/preprocessed/CUTS/2.400_1024/images',
-                               ann_path=DATA_DIR / 'CUTS/spleen/preprocessed/CUTS/2.400_1024/masks',
-                               base_path=base_path,
-                               ImgLoader=img_loader,
-                               AnnLoader=ann_loader,
-                               organ='spleen',
-                               **val_ds_args)
-        ext_val_gpro = partial(data.ExtraValDataset,
-                               cfg=cfg,
-                               root=DATA_DIR     / 'CUTS/prostate/preprocessed/CUTS/2.400_1024/images',
-                               ann_path=DATA_DIR / 'CUTS/prostate/preprocessed/CUTS/2.400_1024/masks',
-                               base_path=base_path,
-                               ImgLoader=img_loader,
-                               AnnLoader=ann_loader,
-                               organ='prostate',
-                               **val_ds_args)
-
-        split_path = Path(DATA_DIR / 'splits')
-        # (t0, v0), (t1,v1),(t2,v2),(t3,v3) = [[f'train_{i}.csv', f'valid_{i}.csv'] for i in [0,1,2,3]]
-        f0, f1, f2, f3 = [split_path / f'{i}.csv' for i in [0,1,2,3]]
-
-        #s0
-        train_0 = [split_path / p for p in [f1, f2, f3]]
-        valid_0 = [split_path / p for p in [f0]]
-
-        train_1 = [split_path / p for p in [f0, f2, f3]]
-        valid_1 = [split_path / p for p in [f1]]
-
-        train_2 = [split_path / p for p in [f1, f0, f3]]
-        valid_2 = [split_path / p for p in [f2]]
-
-        train_3 = [split_path / p for p in [f1, f2, f0]]
-        valid_3 = [split_path / p for p in [f3]]
-
-
-        self.dataset_args = dict(
-            train_0=dict(ds=ext_train, kwargs={'index_paths':train_0}),
-            valid_0=dict(ds=ext_val,   kwargs={'index_paths':valid_0,}),
-
-            train_1=dict(ds=ext_train, kwargs={'index_paths':train_1}),
-            valid_1=dict(ds=ext_val,   kwargs={'index_paths':valid_1,}),
-
-            train_2=dict(ds=ext_train, kwargs={'index_paths':train_2}),
-            valid_2=dict(ds=ext_val,   kwargs={'index_paths':valid_2,}),
-
-            train_3=dict(ds=ext_train, kwargs={'index_paths':train_3}),
-            valid_3=dict(ds=ext_val,   kwargs={'index_paths':valid_3,}),
-
-            hkid=dict(ds=ext_val_hkid),
-            hcol=dict(ds=ext_val_hcol),
-
-            gcol=dict(ds=ext_val_gcol),
-            gspl=dict(ds=ext_val_gspl),
-            gpro=dict(ds=ext_val_gpro),
-
-        )
 
     def generate_by_key(self, key):
         # well, initialization of Datast object takes time, so...

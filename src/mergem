@@ -71,6 +71,8 @@ def start(imgs=None, mask=None, gt=None, dst=None, mode='S', ext='png'):
         masks = list(mask.rglob(f'*.{ext}'))
         print(len(imgs))
         print(len(masks))
+        mask_stems = set([m.stem for m in masks])
+        imgs = [i for i in imgs if i.stem in mask_stems]
         assert len(imgs) == len(masks)
 
         for i,m in zip(imgs, masks):
