@@ -260,18 +260,14 @@ class TBPredictionsCB(sh.callbacks.Callback):
         # print(sh.utils.common.st(xb))
         # print(sh.utils.common.st(yb))
         # print(sh.utils.common.st(pr))
-        if self.cfg.MODEL.ARCH == 'ssl':
-            mask = batch['mask'][:self.num_images].cpu().float()
-            mask = mask.unsqueeze(1).repeat(1,3,1,1)
-            mask = self.upscale(mask, (xb.shape[2], xb.shape[3]))
-            yb = xb.clone()
-            yb[mask>0] = 0
 
         if self.cfg.MODEL.ARCH != 'ssl':
             pr = pr.sigmoid()
             if pr.shape[1] != 1: # TODO: multilabel
                 pr = pr.sum(1, keepdims=True)
                 pr = pr.clamp(0,1)
+
+            yb = yb.sum(1, keepdims=True)
 
             yb = yb.repeat(1,3,1,1)
             yb[:,2] = 0
@@ -285,7 +281,6 @@ class TBPredictionsCB(sh.callbacks.Callback):
         xb = self.upscale(xb, self.hw)
         yb = self.upscale(yb, self.hw)
         pr = self.upscale(pr, self.hw)
-
 
         # pr = pr.sigmoid()
         b,c,h,w = xb.shape

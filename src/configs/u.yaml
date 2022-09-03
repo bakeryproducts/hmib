@@ -48,7 +48,7 @@ AUGS:
   FMIX:
     ALPHA: 1
     REPEAT: 1
-    PROB: .0
+    PROB: .5
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
@@ -58,7 +58,7 @@ AUGS:
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-        #- {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
+      # - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }

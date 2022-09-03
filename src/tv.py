@@ -175,13 +175,21 @@ class ValCB(sh.callbacks.Callback):
                 pred_hm = pred['yb'].float()
                 gt = batch['yb'].float()
                 if pred_hm.shape[1] > 1: # multilabel mode
-                    r = []
+                    pred_single = []
+                    gt_single= []
                     for i, hm in enumerate(pred_hm):
                         organ_idx = batch['cls'][i]
                         hm = hm[organ_idx:organ_idx+1]
-                        r.append(hm)
-                    pred_hm = torch.stack(r) # B,1,H,W
+                        pred_single.append(hm)
 
+                        gto = gt[i, organ_idx:organ_idx+1]
+                        gt_single.append(gto)
+
+                    pred_hm = torch.stack(pred_single) # B,1,H,W
+                    gt = torch.stack(gt_single) # B,1,H,W
+
+                #gt = gt.sum(1, keepdims=True)
+                # print(gt.shape, pred_hm.shape)
                 all_organs_dice = metrics.calc_score(pred_hm, gt)
 
                 is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])

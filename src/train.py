@@ -106,6 +106,14 @@ def batch_transform(b):
     if isinstance(xb, list):
         xb = torch.vstack(xb)
         yb = torch.vstack(yb)
+
+    MULTILABEL = True
+    if MULTILABEL:
+        num_classes = 5
+        multilabel = torch.zeros_like(yb).repeat(1, num_classes, 1, 1)
+        for j,i in enumerate(b['cls']):
+            multilabel[j,i] = yb[j]
+        yb = multilabel
     return {'xb':xb, 'yb':yb, 'cls':b['cls']}
 
 
