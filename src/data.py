@@ -308,13 +308,14 @@ class ExtraValDataset:
                  ImgLoader,
                  AnnLoader,
                  organ,
+                 ext='png',
                  **kwargs):
 
         imgs = ImgLoader(root)
         anns = AnnLoader(ann_path)
         self.data = DataPair(imgs, anns)
         # rate = kwargs.pop('rate')
-        imgs = list(root.glob('*.png'))
+        imgs = list(root.glob(f'*.{ext}'))
         assert len(imgs) > 0, root
 
         label_kwargs = dict(lid=-1, data_source='hubmap', w=-1, h=-1, rle='')

@@ -126,7 +126,7 @@ def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recu
     ############################# CREATING MASKS FROM ANNOTATIONS
 
     if HACKHPA:
-        import shutil
+        #import shutil
         name = f'{scale:.3f}'
         cut_path = dst / name
 
@@ -134,11 +134,23 @@ def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recu
         os.makedirs(str(img_dir), exist_ok=True)
         mask_dir = cut_path / 'masks'
         os.makedirs(str(mask_dir), exist_ok=True)
-        for i in imgs:
-            fm = masks_path / i.name
-            print(fm, mask_dir)
-            shutil.move(str(fm), str(mask_dir))
-            shutil.copy(str(i), str(img_dir))
+        for img_name in imgs:
+            #print(fm, mask_dir)
+            #shutil.move(str(fm), str(mask_dir))
+            # we need to get pngs(
+            new_name = img_name.stem + '.png'
+
+            img = cv2.imread(str(img_name), cv2.IMREAD_UNCHANGED)
+            fix_img_name = img_dir / new_name
+            cv2.imwrite(str(fix_img_name), img)
+
+            mask_name = masks_path / img_name.name
+            mask = cv2.imread(str(mask_name), cv2.IMREAD_UNCHANGED)
+            mask = mask / 255
+            #print(mask_name, mask.max())
+            fix_mask_name = mask_dir / new_name
+            cv2.imwrite(str(fix_mask_name), mask)
+            #shutil.copy(str(i), str(img_dir))
         return
 
 

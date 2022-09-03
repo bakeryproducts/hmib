@@ -16,6 +16,9 @@ datasets:
   - name: "hubmap_kidney"
     root: 'CUTS/hubmap/kidney/preprocessed/CUTS/2.400_1024'
 
+  - name: 'gtex_kidney'
+    root: 'CUTS/gtex/kidney/2.400_1024'
+
   - name: "hpa_extra_kidney"
     root: 'CUTS/hpa/kidney/1.000/'
 
@@ -64,7 +67,7 @@ datasets:
     root: 'preprocessed/f_VALID_SPLIT_${SPLIT}_rle_v2/spleen_3/'
 
   - name: 'gtex_spleen'
-    root: 'CUTS/gtex/spleen/preprocessed/CUTS/2.400_1024'
+    root: 'CUTS/gtex/spleen/2.400_1024'
 
   - name: "hpa_extra_spleen"
     root: 'CUTS/hpa/spleen/1.000/'

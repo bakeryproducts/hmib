@@ -13,6 +13,9 @@ DATA:
       'hpa_train_largeintestine',
       'hpa_train_spleen',
       'hpa_train_lung',
+      'hpa_extra_largeintestine',
+      'hpa_extra_kidney',
+      'hpa_extra_spleen',
       ]
 
   VALID:
@@ -26,7 +29,7 @@ DATA:
   VALID_HUB:
     DATASETS: ['hubmap_kidney', 'hubmap_largeintestine']
   VALID_GTEX:
-    DATASETS: ['gtex_largeintestine', 'gtex_spleen', 'gtex_prostate']
+    DATASETS: ['gtex_largeintestine', 'gtex_spleen', 'gtex_prostate', 'gtex_kidney']
 
 AUGS:
   NORM:
@@ -55,7 +58,7 @@ AUGS:
   TRAIN:
     AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
+        #- {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
       # - {m : albu.GridDistortion, kwargs : {'p': .3}}
       - {m : albu.RandomRotate90, }
