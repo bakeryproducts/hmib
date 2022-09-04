@@ -4,6 +4,7 @@ input
 _src
 output
 losses
+temp
 submission*
 screenlog*
 multirun

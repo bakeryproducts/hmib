@@ -34,6 +34,9 @@ def start(cfg, output_folder):
     datasets_generator = build_data.DatasetsGen(cfg)
     datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB', 'VALID_GTEX'])
     # datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID'])
+
+    # print(len(datasets['TRAIN']))
+
     if not cfg.DATA.DALI:
         datasets = augs.create_augmented(cfg, datasets)
 

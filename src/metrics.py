@@ -40,9 +40,9 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
     reg_l = None
     cls_l = None
 
-    pr = pred['cls']
-    gt = target['cls']
-    cls_l = loss['cls'](pr, gt)
+    # pr = pred['cls']
+    # gt = target['cls']
+    # cls_l = loss['cls'](pr, gt)
 
     pr = pred['yb']
     gt = target['yb']

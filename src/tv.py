@@ -45,7 +45,13 @@ def prepare_batch(batch, cb, train):
     if cb.cfg.AUGS.NORM.MODE == 'meanstd':
         xb, mean, std = norm_2d(xb, mean=cb.cfg.AUGS.NORM.MEAN, std=cb.cfg.AUGS.NORM.STD)
     elif cb.cfg.AUGS.NORM.MODE == 'minmax':
-        xb = (xb - xb.min()) / (xb.max() - xb.min())
+        xmin = (xb.view(xb.shape[0], -1)).min(dim=1)[0]
+        xmin = xmin.view(-1, 1, 1, 1)
+        xmax = (xb.view(xb.shape[0], -1)).max(dim=1)[0]
+        xmax = xmax.view(-1, 1, 1, 1)
+        xb = (xb - xmin) / (xmax - xmin)
+    elif cb.cfg.AUGS.NORM.MODE == 'const':
+        xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
 
     if cb.clamp is not None: xb.clamp_(-cb.clamp,cb.clamp)

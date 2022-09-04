@@ -6,8 +6,10 @@ import torch
 import staintools
 import numpy as np
 import albumentations as albu
+from albumentations.augmentations.functional import shift_rgb
 
 import shallow as sh
+from data import ORGANS
 
 
 class ColorAugs(albu.core.composition.OneOf):
@@ -29,6 +31,38 @@ class NoiseAugs(albu.core.composition.OneOf):
             albu.Blur(p=1.0),
         ]
         super().__init__(augs, *args, **kwargs)
+
+
+
+class ColorMeanShift(albu.core.transforms_interface.ImageOnlyTransform):
+    def __init__(self, p=1.):
+        super().__init__(p=p)
+        shifts = {'largeintestine': [129, 116,138],
+                  'lung': [198, 187, 207],
+                  'spleen': [167, 92, 128],
+                  'prostate': [187,140,194],
+                  'kidney': [156,100,171],
+                  }
+        self.shifts = {ORGANS[k]:v for k,v in shifts.items()}
+
+    @property
+    def targets(self):
+        return {"image": self.apply}
+
+    @property
+    def targets_as_params(self):
+        return ["organ"]
+
+    def get_params_dependent_on_targets(self, params):
+        return params
+
+    def apply(self, image, **params):
+        organ = params['organ']
+        tr,tg,tb = self.shifts[organ]
+        r,g,b = image.mean((0,1))
+        shift = tr-r, tg-g, tb-b
+        image = shift_rgb(image, *shift)
+        return image
 
 
 class _ExampleAug(albu.core.transforms_interface.DualTransform):
@@ -110,25 +144,25 @@ class AugDataset:
     def __getitem__(self, idx):
         item = self.dataset[idx]
         image, mask = item['x'], item['y']
+        cls = item['cls']
 
         aug_images = []
         aug_masks = []
         mult = self.cfg.AUGS.AUG_MULTIPLICITY if self.train else 1
 
         for i in range(mult):
-            aimage, amask = self.aug(image, mask, seed=0)
+            aimage, amask = self.aug(image, mask, organ=cls)
             aug_images.append(aimage)
             aug_masks.append(amask)
             # print(aimage.shape, aimage.max(), aimage.dtype)
 
         aitem = dict(x=aug_images, y=aug_masks)
-        cls = item['cls']
         item['cls'] = np.hstack(mult*[cls])
         item.update(aitem)
         return item
 
-    def _sup_aug(self, image, mask, seed):
-        kwargs = dict(image=image, mask=mask, seed=seed)
+    def _sup_aug(self, image, mask, organ):
+        kwargs = dict(image=image, mask=mask, organ=organ)
         res = self.transforms(**kwargs)
         return res['image'], res['mask']
 

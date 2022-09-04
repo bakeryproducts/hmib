@@ -81,7 +81,7 @@ def build_dataloaders(cfg, datasets, **all_kwargs):
             kwargs['sampler'] = DistributedSampler(dataset,
                                                    num_replicas=cfg.PARALLEL.WORLD_SIZE,
                                                    rank=cfg.PARALLEL.LOCAL_RANK,
-                                                   shuffle=False,
+                                                   shuffle=True,
                                                    seed=cfg.TRAIN.SEED)
         elif kind == 'VALID_HUB':
             kwargs['batch_size'] = cfg[kind]['BATCH_SIZE']

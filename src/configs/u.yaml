@@ -28,12 +28,14 @@ DATA:
     ]
   VALID_HUB:
     DATASETS: ['hubmap_kidney', 'hubmap_largeintestine']
+    # DATASETS: []
   VALID_GTEX:
     DATASETS: ['gtex_largeintestine', 'gtex_spleen', 'gtex_prostate', 'gtex_kidney']
+    # DATASETS: []
 
 AUGS:
   NORM:
-    MODE: 'minmax'
+    MODE: 'const'
     STD: [69] 
     MEAN: [176.]
   TRAIN_RESIZE: [0]
@@ -52,23 +54,21 @@ AUGS:
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
-  CROP: [384,384]
-  # CROP: [512,512]
+  # CROP: [384,384]
+  CROP: [512,512]
+  # CROP: [768, 768]
   VALCROP: [768,768]
   TRAIN:
     AUGS:
+      # - {m : albu.RandomCrop, args : [512,512]}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-      # - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
-      # - {m : albu.RandomResizedCrop, args : [384,384], kwargs : {'scale' : [.5, 1] }}
-      # - {m : albu.GridDistortion, kwargs : {'p': .3}}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
+      # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      # - {m : albu.ChannelShuffle, args: [.5,]}
-      # - {m : albu.VerticalFlip, }
-      - {m : albu.RandomGamma, kwargs : {'p': .2}} 
-      - {m : albu.ColorJitter, args: [.5, .5, .5, .3], kwargs : {'p': .3}}  # bright, contr, sat , hue
-      - {m : albu.PixelDropout, kwargs : {'dropout_prob': .05 ,'p': .2}} 
-      # - {m : albu.CoarseDropout, args: [4, 48, 48], kwargs : {'p': .3}} 
+      - {m : ColorMeanShift, kwargs : {'p': 0.5}}
+      - {m : ColorAugs, kwargs : {'p': 0.5}}
+      - {m : NoiseAugs, kwargs : {'p': 0.3}}
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
@@ -91,18 +91,18 @@ MODEL:
         # _target_: encoders.encoder.create_mixt
         _target_: encoders.encoder.create_encoder
         _partial_: true
-    model_name: 'resnet34'
+    # model_name: 'resnet34'
     # model_name: 'mit_b0'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
     # model_name: 'convnext_small_in22ft1k'
     # model_name: 'convnext_base_in22ft1k'
-    # model_name: 'dm_nfnet_f2'
+    model_name: 'dm_nfnet_f1'
     # model_name: 'convnext_tiny'
     in_chans: 3
-    # drop_rate: .5
-    # drop_path_rate: .5
+    drop_rate: .1
+    drop_path_rate: .1
 
   DECODER:
     runner: 
@@ -141,7 +141,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 200
-  BATCH_SIZE: 64
+  BATCH_SIZE: 16
   EARLY_EXIT: 20
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
@@ -172,10 +172,10 @@ LOSS:
         _target_: torch.nn.BCEWithLogitsLoss
         # _target_: segmentation_models_pytorch.losses.SoftCrossEntropyLoss
         # smooth_factor: .0
-    - name: 'cls'
-      weight: .01
-      LOSS:
-        _target_: torch.nn.CrossEntropyLoss
+    # - name: 'cls'
+    #   weight: .01
+    #   LOSS:
+    #     _target_: torch.nn.CrossEntropyLoss
   
 
 FEATURES:
@@ -190,9 +190,9 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.000001, 0.0002, 0.0001, 1]
+  # LRS: [0.000001, 0.0002, 0.0001, 1]
   # LRS: [0.000001, 0.0008, 0.0001, 1]
-  # LRS: [0.000001, 0.00006, 0.00001, 1]
+  LRS: [0.000001, 0.00008, 0.00001, 1]
   
   FINE_LR:
     - name: 'seg_head'
