@@ -230,3 +230,30 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 - B in 205-211
 1) 200, 100, , note, in 200-255
 2) 225, 205,  score, in 205-211
+
+
+# dupes
+## prostate
+6730 - 32741
+30294 - 1229
+26982 - 30414
+10666 - 16659
+
+## kidney
+24097 - 9470
+
+## colon
+351 - 26780
+## lung
+10488 - 20563 - 14388
+1878 - 11629
+
+
+
+
+
+
+
+
+
+
