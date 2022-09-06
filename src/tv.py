@@ -20,24 +20,14 @@ import shallow as sh
 def prepare_batch(batch, cb, train):
     xb = batch['xb'].float()
     yb = batch['yb'].float()
+    cls = batch['cls'].float()
 
     run_once(0, cb.log_debug, 'After load, XB', sh.utils.common.st(xb))
     run_once(1, cb.log_debug, 'After load, YB', sh.utils.common.st(yb))
 
     xb, yb = xb.cuda(), yb.cuda()
-    # yb = yb / 255.
-
     #xb = batch_quantile(xb, q=.005)
     #run_once(2, cb.log_debug, 'quantiled, XB', sh.utils.common.st(xb))
-
-    if train:
-        # cc = xb.byte().chunk(16)
-        # xb = torch.vstack([cb.augmenter(c) for c in cc])
-        # xb = xb.float()
-        xb, yb = cb.mixup(xb, yb)
-        xb, yb = cb.fmix(xb, yb)
-        xb, yb = cb.msr(xb, yb, cb)
-    #     xb = cb.ampaug(xb)
 
     run_once(3, cb.log_debug, 'After train aug, XB', sh.utils.common.st(xb))
     run_once(35, cb.log_debug, 'After train aug, YB', sh.utils.common.st(yb))
@@ -53,6 +43,20 @@ def prepare_batch(batch, cb, train):
     elif cb.cfg.AUGS.NORM.MODE == 'const':
         xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
+
+    b,_,h,w = xb.shape
+    cls_layer = torch.ones(b,1,h,w).float()
+    cls_layer = cls_layer * cls.view(-1, 1,1,1)
+    cls_layer = (cls_layer.to(xb) + 1) / 5
+    xb = torch.hstack([xb, cls_layer])
+    run_once(9, cb.log_debug, 'cls layer xb', sh.utils.common.st(xb))
+
+    if train:
+        xb, yb = cb.mixup(xb, yb)
+        xb, yb = cb.fmix(xb, yb)
+        xb, yb = cb.msr(xb, yb, cb)
+
+
 
     if cb.clamp is not None: xb.clamp_(-cb.clamp,cb.clamp)
 

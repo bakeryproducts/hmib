@@ -34,11 +34,15 @@ def load_pretrained_swin(m):
     st = torch.load('input/weights/upernet_swin_tiny_patch4_window7_512x512.pth')
     stf = {}
     for k, v in st['state_dict'].items():
+        if k == 'backbone.patch_embed.proj.weight':
+            #print(k, v.shape)
+            v = v.repeat(1,2,1,1)[:,:4]
         if 'backbone' in k:
             #break
             k = k[9:]
             stf[k] = v
-    m.load_state_dict(stf)
+
+    m.load_state_dict(stf, strict=False)
     return m
 
 
@@ -55,6 +59,7 @@ def create_mixt(enc_cfg):
 
 def create_swin(enc_cfg):
     enc_cfg.pop('model_name')
+    # print(enc_cfg)
     enc = SwinE(**enc_cfg)
     load_pretrained_swin(enc)
 

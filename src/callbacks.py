@@ -273,7 +273,7 @@ class TBPredictionsCB(sh.callbacks.Callback):
             yb[:,2] = 0
             yb[:,1] = pr[:,0]
             pr = pr.repeat(1,3,1,1)
-            # xb = denorm(xb, mode=self.cfg.AUGS.NORM.MODE, mean=176, std=69)
+            xb = xb[:,:-1]
             xb = denorm(xb, mode=self.cfg.AUGS.NORM.MODE)
             xb = xb / xb.max()
             yb = yb / yb.max()

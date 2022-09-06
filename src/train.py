@@ -106,6 +106,7 @@ def init_model_path(p):
 
 def batch_transform(b):
     xb, yb = b['x'], b['y']
+    cls = b['cls']
     if isinstance(xb, list):
         xb = torch.vstack(xb)
         yb = torch.vstack(yb)
@@ -114,10 +115,11 @@ def batch_transform(b):
     if MULTILABEL:
         num_classes = 5
         multilabel = torch.zeros_like(yb).repeat(1, num_classes, 1, 1)
-        for j,i in enumerate(b['cls']):
+        for j,i in enumerate(cls):
             multilabel[j,i] = yb[j]
         yb = multilabel
-    return {'xb':xb, 'yb':yb, 'cls':b['cls']}
+
+    return {'xb':xb, 'yb':yb, 'cls': cls}
 
 
 def batch_transform_dali(b):

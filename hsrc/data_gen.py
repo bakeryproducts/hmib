@@ -70,7 +70,7 @@ def cutter(img_fns, ann_fns, masks_fns, dst_path, cropsize, scale, sampler, mask
 
 
 
-def start(src, dst, src_scale, dst_scale, cropsize, total=1e6, mode='grid', recursive=False, ext='tiff', HACKHPA=False):
+def start(src, dst, src_scale, dst_scale, cropsize=None, total=1e6, mode='grid', recursive=False, ext='tiff', HACKHPA=False):
     #dst_scale = .4 * 3
     # mode == [inst, grid]
 

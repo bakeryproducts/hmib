@@ -79,6 +79,8 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, 
         mask = cv2.resize(mask, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
+        assert True, 'do 3/4 central crop on hpa data'
+
         # Save
         # if subcrops:
         #     for i, (y1, x1, y2, x2) in enumerate(crop_generator(size, crop_size, crop_step)):
