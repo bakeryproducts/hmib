@@ -34,18 +34,18 @@ datasets:
     root: 'CUTS/hubmap/colon/preprocessed/CUTS/2.400_1024'
 
   - name: 'gtex_largeintestine'
-    root: 'CUTS/gtex/colon/preprocessed/CUTS/2.400_1024'
+    root: 'CUTS/gtex/colon/2.400_1024'
 
   - name: "hpa_extra_largeintestine"
     root: 'CUTS/hpa/colon/3.000/'
 
   ############################### LUNG ##############################
-  - name: "hpa_train_lung"
-    root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/lung_3/'
+  - name: "hpa_train_fixed_lung"
+    root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/lung_3/'
     rate: 20
 
-  - name: "hpa_valid_lung"
-    root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/lung_3/'
+  - name: "hpa_valid_fixed_lung"
+    root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/lung_3/'
 
   - name: "hpa_extra_lung"
     root: 'CUTS/hpa/lung/3.000/'
@@ -62,12 +62,12 @@ datasets:
     root: 'CUTS/gtex/prostate/2.400_1024'
 
   ############################### SPLEEN ##############################
-  - name: "hpa_train_spleen"
-    root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/spleen_3/'
+  - name: "hpa_train_fixed_spleen"
+    root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/spleen_3/'
     rate: 20
 
-  - name: "hpa_valid_spleen"
-    root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/spleen_3/'
+  - name: "hpa_valid_fixed_spleen"
+    root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/spleen_3/'
 
   - name: 'gtex_spleen'
     root: 'CUTS/gtex/spleen/2.400_1024'

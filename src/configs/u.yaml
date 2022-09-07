@@ -11,13 +11,14 @@ DATA:
       'hpa_train_kidney',
       'hpa_train_prostate',
       'hpa_train_largeintestine',
-      'hpa_train_spleen',
-      'hpa_train_lung',
+      'hpa_train_fixed_spleen',
+      'hpa_train_fixed_lung',
+
       'hpa_extra_largeintestine',
       'hpa_extra_kidney',
       'hpa_extra_spleen',
       #'gtex_spleen'
-      # 'hpa_extra_lung',
+      'hpa_extra_lung',
       ]
 
   VALID:
@@ -25,8 +26,8 @@ DATA:
       'hpa_valid_kidney',
       'hpa_valid_prostate',
       'hpa_valid_largeintestine',
-      'hpa_valid_spleen',
-      'hpa_valid_lung',
+      'hpa_valid_fixed_spleen',
+      'hpa_valid_fixed_lung',
     ]
   VALID_HUB:
     DATASETS: ['hubmap_kidney', 'hubmap_largeintestine']
