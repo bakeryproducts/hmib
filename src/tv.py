@@ -10,6 +10,7 @@ from tools_tv import run_once, norm_2d, batch_quantile
 
 from augment.mixup import MSR, MixUpAug
 from augment.fmix import FMixAug, AmpAug
+from augment.batch_augs import Splitter
 from data import ORGANS
 
 
@@ -44,6 +45,10 @@ def prepare_batch(batch, cb, train):
         xb = xb / 255.
     run_once(4, cb.log_debug, 'After 2d norm and aug, XB', sh.utils.common.st(xb))
 
+    if train:
+        xb = cb.colj(xb)
+        xb = cb.gaub(xb)
+
     b,_,h,w = xb.shape
     cls_layer = torch.ones(b,1,h,w).float()
     cls_layer = cls_layer * cls.view(-1, 1,1,1)
@@ -56,17 +61,13 @@ def prepare_batch(batch, cb, train):
         xb, yb = cb.fmix(xb, yb)
         xb, yb = cb.msr(xb, yb, cb)
 
-
-
     if cb.clamp is not None: xb.clamp_(-cb.clamp,cb.clamp)
 
-    mask = None
 
     batch['xb'] = xb
     batch['yb'] = yb
-    batch['mask'] = mask
     cls = batch['cls'].cuda().flatten()
-    return dict(xb=xb, yb=yb, cls=cls, mask=mask)
+    return dict(xb=xb, yb=yb, cls=cls, mask=None)
 
 
 
@@ -86,7 +87,8 @@ class TrainCB(_TrainCallback):
         self.fmix = FMixAug(self.cfg)
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.ampaug = AmpAug(scale=20, p=.2)
-        self.augmenter = T.TrivialAugmentWide()
+        self.gaub = Splitter(aug=T.GaussianBlur(kernel_size=3), p=.3).cuda()
+        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.5, hue=.3), p=.5).cuda()
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}

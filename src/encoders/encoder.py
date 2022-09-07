@@ -70,6 +70,46 @@ def create_swin(enc_cfg):
     return enc, enc_cfg
 
 
+class CoatFlat(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, x):
+        r = self.model(x)
+        r = [r[k] for k in ['x1_nocls', 'x2_nocls', 'x3_nocls', 'x4_nocls']]
+        return r
+
+
+def create_coat(enc_cfg):
+    """
+        coat_lite_mini
+        coat_lite_small
+        coat_lite_tiny
+        coat_mini
+        coat_tiny
+        coatnet_0_rw_224
+        coatnet_1_rw_224
+        coatnet_bn_0_rw_224
+        coatnet_nano_rw_224
+        coatnet_rmlp_1_rw_224
+        coatnet_rmlp_nano_rw_224
+    """
+
+    name = enc_cfg.pop('model_name')
+    enc = timm.create_model(name,
+                            pretrained=True,
+                            return_interm_layers=False,
+                            out_features=['x1_nocls', 'x2_nocls', 'x3_nocls', 'x4_nocls'],
+                            **enc_cfg,
+                            )
+    enc.return_interm_layers = True # init in timm is broken
+    blocks = [{'ch': i} for i in enc.embed_dims]
+    enc_cfg['blocks'] = blocks
+    enc = CoatFlat(enc)
+    return enc, enc_cfg
+
+
 def extend_timm(d):
     predef_timm = dict(pretrained=True, features_only=True)
     for k, v in predef_timm.items():

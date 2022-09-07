@@ -93,7 +93,7 @@ class Inferer:
                 merge_mode=self.tta_merge_mode
             )
 
-    def preprocess(self, batch):
+    def preprocess(self, batch, postp=lambda x:x):
         """Preprocessing
 
         Params
@@ -111,8 +111,13 @@ class Inferer:
             X, _, _ = norm_2d(X, mean=self.cfg.AUGS.NORM.MEAN, std=self.cfg.AUGS.NORM.STD)
         elif self.cfg.AUGS.NORM.MODE == 'minmax':
             X = (X - X.min()) / (X.max() - X.min())
+        elif self.cfg.AUGS.NORM.MODE == 'const':
+            X = X / 255.
+        else:
+            raise NotImplementedError
 
         X.clamp_(-self.cfg.FEATURES.CLAMP, self.cfg.FEATURES.CLAMP)
+        X = postp(X)
         return X
 
     def __call__(self, batch, organ=None):
@@ -134,7 +139,7 @@ class Inferer:
         """
         with torch.no_grad():
             with torch.cuda.amp.autocast(enabled=True):
-                batch_pred = self.model(self.preprocess(batch))
+                batch_pred = self.model(batch)
 
         yb = batch_pred.float()
         return yb

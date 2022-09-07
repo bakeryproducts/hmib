@@ -1,0 +1,76 @@
+#  SPLIT param is in base config
+#  !
+#  dataset name : blabal_any_name_OFFICIALORGANNAME
+#  i.e. 'hubmap_trainimages1-3_kidney'
+#  i.e. 'gtex_kidneyscale1.2_largeintestine'
+#  !
+datasets:
+  ############################### KIDNEY ##############################
+  - name: "hpa_train_kidney"
+    root: 'preprocessed/SCALE_1.2_768/f_TRAIN_SPLIT_${SPLIT}_rle_v2/kidney_3/'
+    rate: 20
+
+  - name: "hpa_valid_kidney"
+    root: 'preprocessed/SCALE_1.2_768/f_VALID_SPLIT_${SPLIT}_rle_v2/kidney_3/'
+
+  - name: "hubmap_kidney"
+    root: 'CUTS_mini/hubmap/kidney/2.400_768'
+
+  - name: 'gtex_kidney'
+    root: 'CUTS_mini/gtex/kidney/2.400_768'
+
+  - name: "hpa_extra_kidney"
+    root: 'CUTS_mini/hpa/kidney/3.000/'
+
+  ############################### COLON ##############################
+  - name: "hpa_train_largeintestine"
+    root: 'preprocessed/SCALE_1.2_768/f_TRAIN_SPLIT_${SPLIT}_rle_v2/largeintestine_3/'
+    rate: 20
+
+  - name: "hpa_valid_largeintestine"
+    root: 'preprocessed/SCALE_1.2_768/f_VALID_SPLIT_${SPLIT}_rle_v2/largeintestine_3/'
+
+  - name: "hubmap_largeintestine"
+    root: 'CUTS_mini/hubmap/colon/2.400_768'
+
+  - name: 'gtex_largeintestine'
+    root: 'CUTS_mini/gtex/colon/2.400_768'
+
+  - name: "hpa_extra_largeintestine"
+    root: 'CUTS_mini/hpa/colon/3.000/'
+
+  ############################### LUNG ##############################
+  - name: "hpa_train_lung"
+    root: 'preprocessed/SCALE_1.2_768/f_TRAIN_SPLIT_${SPLIT}_rle_v2/lung_3/'
+    rate: 20
+
+  - name: "hpa_valid_lung"
+    root: 'preprocessed/SCALE_1.2_768/f_VALID_SPLIT_${SPLIT}_rle_v2/lung_3/'
+
+  - name: "hpa_extra_lung"
+    root: 'CUTS_mini/hpa/lung/3.000/'
+
+  ############################### PROSTATE ##############################
+  - name: "hpa_train_prostate"
+    root: 'preprocessed/SCALE_1.2_768/f_TRAIN_SPLIT_${SPLIT}_rle_v2/prostate_3/'
+    rate: 20
+
+  - name: "hpa_valid_prostate"
+    root: 'preprocessed/SCALE_1.2_768/f_VALID_SPLIT_${SPLIT}_rle_v2/prostate_3/'
+
+  - name: 'gtex_prostate'
+    root: 'CUTS_mini/gtex/prostate/2.400_768'
+
+  ############################### SPLEEN ##############################
+  - name: "hpa_train_spleen"
+    root: 'preprocessed/SCALE_1.2_768/f_TRAIN_SPLIT_${SPLIT}_rle_v2/spleen_3/'
+    rate: 20
+
+  - name: "hpa_valid_spleen"
+    root: 'preprocessed/SCALE_1.2_768/f_VALID_SPLIT_${SPLIT}_rle_v2/spleen_3/'
+
+  - name: 'gtex_spleen'
+    root: 'CUTS_mini/gtex/spleen/2.400_768'
+
+  - name: "hpa_extra_spleen"
+    root: 'CUTS_mini/hpa/spleen/3.000/'
