@@ -28,7 +28,7 @@ class NoiseAugs(albu.core.composition.OneOf):
             albu.MultiplicativeNoise((0.9, 1.1), per_channel=True, elementwise=True, p=1.0),
             albu.PixelDropout(dropout_prob=0.05, p=1.0),
             albu.ImageCompression(30, p=1.0),
-            albu.Blur(p=1.0),
+            #albu.Blur(p=1.0),
         ]
         super().__init__(augs, *args, **kwargs)
 
@@ -154,10 +154,10 @@ class AugDataset:
             aimage, amask = self.aug(image, mask, organ=cls)
             aug_images.append(aimage)
             aug_masks.append(amask)
-            # print(aimage.shape, aimage.max(), aimage.dtype)
+            #print(aimage.shape, aimage.max(), aimage.dtype, amask.max(), mask.max())
 
         aitem = dict(x=aug_images, y=aug_masks)
-        item['cls'] = np.hstack(mult*[cls])
+        item['cls'] = mult*[cls]#np.hstack(mult*[cls])
         item.update(aitem)
         return item
 

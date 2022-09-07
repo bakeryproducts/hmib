@@ -34,11 +34,7 @@ def start(cfg, output_folder):
     datasets_generator = build_data.DatasetsGen(cfg)
     datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID', 'VALID_HUB', 'VALID_GTEX'])
     # datasets = build_data.init_datasets(cfg, datasets_generator, ['TRAIN', 'VALID'])
-
-    # print(len(datasets['TRAIN']))
-
-    if not cfg.DATA.DALI:
-        datasets = augs.create_augmented(cfg, datasets)
+    datasets = augs.create_augmented(cfg, datasets)
 
     logger.log("DEBUG", 'datasets created.')
     start_split(cfg, output, datasets)
@@ -110,27 +106,17 @@ def batch_transform(b):
     if isinstance(xb, list):
         xb = torch.vstack(xb)
         yb = torch.vstack(yb)
+        cls = torch.hstack(cls)
 
-    MULTILABEL = True
-    if MULTILABEL:
-        num_classes = 5
-        multilabel = torch.zeros_like(yb).repeat(1, num_classes, 1, 1)
-        for j,i in enumerate(cls):
-            multilabel[j,i] = yb[j]
-        yb = multilabel
+    # print(xb.shape, yb.shape, cls.shape)
+
+    num_classes = 5
+    multilabel = torch.zeros_like(yb).repeat(1, num_classes, 1, 1)
+    for j,i in enumerate(cls):
+        multilabel[j,i] = yb[j]
+    yb = multilabel
 
     return {'xb':xb, 'yb':yb, 'cls': cls}
-
-
-def batch_transform_dali(b):
-    b = b[0]
-    xb, yb = b['x'], b['y']
-    yb = yb[...,0:1] # RGB -> 1ch
-    xb = xb.permute(0,3,1,2)
-    yb = yb.permute(0,3,1,2)
-    yb = yb.contiguous()
-    xb = xb.contiguous()
-    return {'xb':xb, 'yb':yb, 'cls':0}
 
 
 def start_split(cfg, output_folder, datasets):
@@ -144,7 +130,16 @@ def start_split(cfg, output_folder, datasets):
     INIT_MODEL_PATH = init_model_path(init_path)
     model_select = partial(network.model_select, cfg)
     model = model_select()().cuda().train()
+
+    if init_path:
+        s = sh.utils.nn._load_state(init_path, ['model_state', 'cls'])
+        # s = {k.lstrip('model.encoder.'):v for k,v in s.items() if k.startswith('model.encoder.')}
+        #s = {k[14:]:v for k,v in s.items() if k.startswith('model.encoder.')}
+        model.load_state_dict(s)
+        logger.log("WARNING", f'init model weight {init_path}')
+
     logger.log("DEBUG", 'build model.')
+
 
     if cfg.TRAIN.EMA.ENABLE:
         model_ema = sh.utils.ema.ModelEmaV2(model, copy=True).cuda()
@@ -158,7 +153,7 @@ def start_split(cfg, output_folder, datasets):
     optimizer = optim.build_optim(cfg, model, init_fn=partial(sh.utils.nn.load_state, path=INIT_MODEL_PATH, k=['optim_state', 'o']))
     amp_scaler = optim.build_scaler(cfg, init_fn=partial(sh.utils.nn.load_state, path=INIT_MODEL_PATH, k=['scaler_state', 's']))
 
-    batch_transform_fn = batch_transform_dali if cfg.DATA.DALI else batch_transform
+    batch_transform_fn = batch_transform
     batch_setup_cb = sh.callbacks.SetupLearnerCB(batch_transform=batch_transform_fn)
 
     train_cb = tv.TrainCB(amp_scaler=amp_scaler, logger=logger)
@@ -203,7 +198,6 @@ def start_split(cfg, output_folder, datasets):
         batch_bar = partial(progress_bar, parent=epoch_bar)
     else: epoch_bar, batch_bar = range(1, 1 + n_epochs), lambda x:x
 
-    val_rate = cfg.TRAIN.SCALAR_STEP
     logger.log("WARNING", 'Start learner')
     learner = sh.general_learner.Learner(model, optimizer, sh.utils.file_op.AttrDict(dls), criterion, 0, cbs, batch_bar, epoch_bar, cfg=cfg,)
     learner.fit(n_epochs)

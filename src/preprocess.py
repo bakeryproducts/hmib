@@ -79,7 +79,6 @@ def do_cuts(src='input/hmib', dst='input/preprocessed', scale=3, crop_size=512, 
         mask = cv2.resize(mask, (0,0), fx=1/scale, fy=1/scale, interpolation=cv2.INTER_LINEAR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        assert True, 'do 3/4 central crop on hpa data'
 
         # Save
         # if subcrops:
@@ -120,6 +119,15 @@ def do_folder_scales(src, dst='input/preprocessed', co=None, ki=None, sp=None, l
         image = cv2.resize(image, (0,0), fx=1/organ_scale, fy=1/organ_scale, interpolation=cv2.INTER_LINEAR)
         mask = cv2.resize(mask, (0,0), fx=1/organ_scale, fy=1/organ_scale, interpolation=cv2.INTER_LINEAR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        if False:
+            #assert True, 'do 3/4 central crop on hpa data'
+            h,w,_ = image.shape
+            cy = h//2
+            cx = w//2
+            s = 768 #* scale // 3
+            image = image[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
+            mask = mask[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
 
         fdst = output_data_dir / (row.organ + f'_{organ_scale}') / 'images'
         fdst.mkdir(parents=True, exist_ok=True)

@@ -17,6 +17,9 @@ from mask_utils import rle_encode
 from tiff import BatchedTiffReader, save_tiff
 from mp import parallel_block_read
 
+from data import ORGANS
+#ORGANS = {k: i for i, k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
+
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 
@@ -24,12 +27,22 @@ warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 def select_organ_from_predict(yb, organ):
     # yb BCHW
     # copy ORGANS from data, better not to source data.py
-    ORGANS = {k: i for i, k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
     if organ and organ != 'none':
         yb = yb[:, ORGANS[organ]].unsqueeze(1)
     else:
         yb, _ = torch.max(yb, dim=1, keepdim=True)
     return yb
+
+
+def extend_input_organ(xb, organ):
+    b,_,h,w = xb.shape
+    cls = torch.tensor(ORGANS[organ]).repeat(b)
+
+    cls_layer = torch.ones(b,1,h,w).float()
+    cls_layer = cls_layer * cls.view(-1, 1,1,1)
+    cls_layer = (cls_layer.to(xb) + 1) / 5
+    xb = torch.hstack([xb, cls_layer])
+    return xb
 
 
 def log(*m):
@@ -38,7 +51,7 @@ def log(*m):
     # print(m)
 
 
-def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear'):
+def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
     H, W = image_size
 
     # Infer batch by batch
@@ -51,6 +64,7 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
         ori_size = batch_blocks[0].shape[-1]
         output_size = int(np.ceil(ori_size * scale / 32)) * 32
         fixed_scale = output_size / ori_size
+        #print(fixed_scale, scale)
 
         # BCHW
         # Infer batch
@@ -58,10 +72,12 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
         batch_blocks = torch.nn.functional.interpolate(
             batch_blocks, scale_factor=(fixed_scale, fixed_scale), mode=interpolation_mode)
 
+        log('PREEXTEND', batch_blocks.shape)
+        batch_blocks = inferer.preprocess(batch_blocks.float(), postp=extra_postprocess)
         log('INFER', batch_blocks.shape)
-        batch_masks = inferer(batch_blocks.float())  # bchw, logit
+        batch_masks = inferer(batch_blocks)  # bchw, logit
 
-        log('PREDICT', batch_masks.shape)
+        log('PREDICT', batch_masks.shape, batch_masks.max())
         batch_masks = select_organ_from_predict(batch_masks, organ)
         batch_masks = torch.nn.functional.interpolate(
             batch_masks, scale_factor=(1./fixed_scale, 1./fixed_scale), mode=interpolation_mode)
@@ -204,7 +220,7 @@ def main(
         # with TiffReader(image_file, scaled_block_size) as image_reader:
         _image_reader = parallel_block_read(image_file, scaled_block_size, pad_ratio, num_processes=8)
         image_reader = batcher(_image_reader, batch_size)
-        mask = infer_image(image_reader, inferer, scale, pad_size, img_size, organ=organ)
+        mask = infer_image(image_reader, inferer, scale, pad_size, img_size, organ=organ, extra_postprocess=partial(extend_input_organ, organ=organ))
 
         if output_csv:
             result.append({

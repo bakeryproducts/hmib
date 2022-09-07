@@ -2,6 +2,23 @@ import torch
 import numpy as np
 
 
+class Splitter(torch.nn.Module):
+    def __init__(self, aug, p):
+        super().__init__()
+        self.aug = aug
+        self.p = p
+
+    def forward(self, x):
+        if torch.rand(1) < self.p:
+            n = x.shape[0]
+            if n == 1:
+                return self.aug(x)
+            tt = torch.chunk(x, n//2)
+            tas = [self.aug(t) for t in tt]
+            x = torch.vstack(tas)
+        return x
+
+
 class NoiseInjection(torch.nn.Module):
     def __init__(self, max_noise_level, p):
         super().__init__()
