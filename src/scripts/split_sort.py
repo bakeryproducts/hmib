@@ -38,12 +38,14 @@ def start(src, dst, postfix=None):
         masks = list(mask_folder.glob("*"))
         splits.append([imgs, masks])
 
+
     organ = src.name
     train = lambda x: f'f_TRAIN_SPLIT_{x}'
     valid = lambda x: f'f_VALID_SPLIT_{x}'
 
 
     for IDX in range(4): # 4 split
+        #print(splits[IDX])
         d = dst / valid(IDX) / organ # dst / f_TRAIN_SPLIT_0 / lung_3 /
         if postfix is not None: d = d.parent / (d.name + postfix)
         d.mkdir(exist_ok=True, parents=True)

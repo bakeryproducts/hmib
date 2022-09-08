@@ -22,7 +22,7 @@ def read_username_from_os():
 def create_zip(model_path, kgl=False):
     # zips and optionaly uploads src folder and one weight file
     DST = Path('kgl_out')
-    PRJ = 'HM'
+    PRJ = 'HM2'
 
     USERNAME = read_username_from_os()
     print(f'\t{USERNAME=}') # python3.8
