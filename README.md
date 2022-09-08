@@ -154,7 +154,7 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1) 110-60, note, in 110-448
 2) 140-120, pass, in 110-120
 3) 118-112, score, 113
-- Size mean
+- Size mean  == 2023, duh!
 1) 4000, 500, csv, in 2834 - 1666
 2) 2600, 1900, score, in 1900-2133
 3) custom, in 2010-2050
