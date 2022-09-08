@@ -122,6 +122,15 @@ def single_run(
         true_mask = binarize(true_mask, .5)
         pred_mask = binarize(pred_mask, thr)
 
+        if False:
+            h,w = true_mask.shape
+            # print(h,w)
+            cy = h//2
+            cx = w//2
+            s = 768 #* scale // 3
+            true_mask = true_mask[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
+            pred_mask = pred_mask[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
+
         dices.append({
             "filename": filename,
             "dice": dice(true_mask, pred_mask),
