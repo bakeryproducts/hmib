@@ -8,7 +8,7 @@ datasets:
   ############################### KIDNEY ##############################
   - name: "hpa_train_kidney"
     root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/kidney_3/'
-    rate: 20
+    rate: 15
 
   - name: "hpa_valid_kidney"
     root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/kidney_3/'
@@ -25,7 +25,7 @@ datasets:
   ############################### COLON ##############################
   - name: "hpa_train_largeintestine"
     root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/largeintestine_3/'
-    rate: 20
+    rate: 15
 
   - name: "hpa_valid_largeintestine"
     root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/largeintestine_3/'
@@ -42,7 +42,7 @@ datasets:
   ############################### LUNG ##############################
   - name: "hpa_train_fixed_lung"
     root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}/lung_3/'
-    rate: 20
+    rate: 15
 
   - name: "hpa_valid_fixed_lung"
     root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/lung_3/'
@@ -53,7 +53,7 @@ datasets:
   ############################### PROSTATE ##############################
   - name: "hpa_train_prostate"
     root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/prostate_3/'
-    rate: 20
+    rate: 15
 
   - name: "hpa_valid_prostate"
     root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/prostate_3/'
@@ -67,7 +67,7 @@ datasets:
   ############################### SPLEEN ##############################
   - name: "hpa_train_fixed_spleen"
     root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}/spleen_3/'
-    rate: 20
+    rate: 15
 
   - name: "hpa_valid_fixed_spleen"
     root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/spleen_3/'

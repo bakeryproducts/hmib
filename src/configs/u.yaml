@@ -1,7 +1,7 @@
 INPUTS: input
 OUTPUTS: output
 
-SPLIT: 0
+SPLIT: 1
 DATA:
   DALI: false
   img_loader: 'partial(data.PngImages, suffix=".png")'
@@ -58,8 +58,8 @@ AUGS:
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
   # CROP: [384,384]
-  CROP: [512,512]
-  # CROP: [768, 768]
+  # CROP: [512,512]
+  CROP: [768, 768]
   # VALCROP: [512, 512]
   # VALCROP1: [512, 512]
   # VALCROP2: [512, 512]
@@ -118,7 +118,7 @@ MODEL:
     # model_name: 'convnext_tiny'
     # img_size: 512
     in_chans: 4
-    drop_rate: .6
+    drop_rate: .5
     drop_path_rate: .6
     # attn_drop_rate: .2
 
@@ -159,7 +159,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 200
-  BATCH_SIZE: 20
+  BATCH_SIZE: 8
   EARLY_EXIT: 20
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
