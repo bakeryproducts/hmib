@@ -5,6 +5,7 @@ _src
 output
 losses
 temp
+kgl_out
 submission*
 screenlog*
 multirun
