@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 import os.path as osp
 
 import cv2
@@ -15,6 +16,7 @@ def init_logs(off=False):
     logger.remove()
     logger.add(sys.stdout, level="WARNING")
     if not off:
+        logger.remove()
         logger.add(sys.stdout, level="INFO")
 
 
@@ -28,13 +30,19 @@ def dice(true_mask, pred_mask, eps=1e-6):
     return (2 * intersection.sum() + eps) / (true_mask.sum() + pred_mask.sum() + eps)
 
 
-def get_mask_file_pairs(true_masks_dir, pred_masks_dir):
-    true_fnames = os.listdir(true_masks_dir)
-    true_fnames = dict(map(lambda fname: (osp.splitext(fname)[0], fname), true_fnames))
+def get_mask_file_pairs(true_masks_dir, pred_masks_dir, recursive=True, ext='*.[tiff png]*', in_masks_only=False):
+    true_masks_dir = Path(true_masks_dir)
+    pred_masks_dir = Path(pred_masks_dir)
+
+    true_fnames = list(true_masks_dir.rglob(ext))
+    if in_masks_only:
+        true_fnames = [f for f in true_fnames if 'masks' in str(f)]
+
+    true_fnames = {f.stem: f for f in true_fnames}
     logger.info(f"Found {len(true_fnames)} true mask files")
 
-    pred_fnames = os.listdir(pred_masks_dir)
-    pred_fnames = dict(map(lambda fname: (osp.splitext(fname)[0], fname), pred_fnames))
+    pred_fnames = list(pred_masks_dir.rglob(ext))
+    pred_fnames = {f.stem:f for f in pred_fnames}
     logger.info(f"Found {len(pred_fnames)} pred mask files")
 
     pair_names = set(true_fnames.keys()) & set(pred_fnames.keys())
@@ -42,8 +50,8 @@ def get_mask_file_pairs(true_masks_dir, pred_masks_dir):
     result = dict()
     for name in pair_names:
         result[name] = {
-            "true": osp.join(true_masks_dir, true_fnames[name]),
-            "pred": osp.join(pred_masks_dir, pred_fnames[name]),
+            "true": str(true_fnames[name]),
+            "pred": str(pred_fnames[name]),
         }
 
     logger.info(f"Loaded total {len(result)} mask pairs for dice calculation")
@@ -76,14 +84,15 @@ def main(
     thr_total=20,
     csv=None,
     loff=False,
+    in_masks_only=False,
 ):
     if thr_max is None:
-        single_run(pred_masks_dir, true_masks_dir, thr, csv, loff)
+        single_run(pred_masks_dir, true_masks_dir, thr, csv, loff, in_masks_only)
     else:
         thrs = np.linspace(thr, thr_max, thr_total)
         dices = []
         for thr in thrs:
-            dice = single_run(pred_masks_dir, true_masks_dir, thr, csv, loff)
+            dice = single_run(pred_masks_dir, true_masks_dir, thr, csv, loff, in_masks_only)
             dices.append(dice)
         idx = np.argmax(dices)
         logger.warning(f'\t\nBest dice {dices[idx]} @ thr {thrs[idx]: .3f}')
@@ -95,9 +104,10 @@ def single_run(
     thr,
     csv=None,
     loff=False,
+    in_masks_only=False,
 ):
     init_logs(loff)
-    pairs = get_mask_file_pairs(true_masks_dir, pred_masks_dir)
+    pairs = get_mask_file_pairs(true_masks_dir, pred_masks_dir, in_masks_only=in_masks_only)
 
     dices = []
     for filename, pair in pairs.items():
