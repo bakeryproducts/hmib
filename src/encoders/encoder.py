@@ -97,8 +97,9 @@ def create_coat(enc_cfg):
     """
 
     name = enc_cfg.pop('model_name')
+    if 'pretrained' not in enc_cfg:
+        enc_cfg["pretrained"] = True
     enc = timm.create_model(name,
-                            pretrained=True,
                             return_interm_layers=False,
                             out_features=['x1_nocls', 'x2_nocls', 'x3_nocls', 'x4_nocls'],
                             **enc_cfg,
