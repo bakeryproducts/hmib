@@ -22,7 +22,7 @@ def read_username_from_os():
 def create_zip(model_path, kgl=False):
     # zips and optionaly uploads src folder and one weight file
     DST = Path('kgl_out')
-    PRJ = 'HM'
+    PRJ = 'HM2'
 
     USERNAME = read_username_from_os()
     print(f'\t{USERNAME=}') # python3.8
@@ -34,8 +34,10 @@ def create_zip(model_path, kgl=False):
     name = name.replace('_', '-')
     name = root.parent.name + '-' + name
     title = PRJ + '-' + name
+    title = title[:48]
     dst = DST / name
     dst.mkdir(exist_ok=True)
+    # print(title)
 
     metadata = dict(title=title, id=f'{USERNAME}/{title}', licenses=[dict(name="CC0-1.0")])
     with open(str(dst / 'dataset-metadata.json'), 'w') as f:

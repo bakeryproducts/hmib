@@ -36,10 +36,9 @@ def parallel_read(img_name, num_processes, window=None):
     return image
 
 
-def parallel_block_read(img_name, block_size, pad_ratio, num_processes):
+def parallel_block_read(img_name, block_size, pad_size, num_processes):
     process_data_len = 4
     qsize = process_data_len * num_processes
-    pad_size = int(pad_ratio * block_size)
 
     m = mp.Manager()
     q = m.Queue(maxsize=qsize)

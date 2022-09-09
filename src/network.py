@@ -6,8 +6,8 @@ from functools import partial
 
 from basemodels import ClassificationHead
 from buildingblocks import Adapter
-from decoders.decoder import create_decoder, create_segdec
-from encoders.encoder import create_swin, create_encoder
+# from decoders.decoder import create_decoder
+# from encoders.encoder import create_encoder
 
 
 def model_select(cfg):
