@@ -2,12 +2,12 @@ import timm
 import hydra
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from functools import partial
 
 from basemodels import ClassificationHead
 from buildingblocks import Adapter
-# from decoders.decoder import create_decoder
-# from encoders.encoder import create_encoder
+from decoder.upernet import FPN_fuse, PSPModule
 
 
 def model_select(cfg):
@@ -15,7 +15,7 @@ def model_select(cfg):
     dec_kwargs = dict(cfg.MODEL.DECODER)
     seghead_kwargs = dict(cfg.MODEL.SEGHEAD)
 
-    archs = dict(unet=EncoderDecoder, )
+    archs = dict(unet=EncoderDecoder, upernet=UperNet)
 
     # POP AGAIN!
     encoder_fact = hydra.utils.instantiate(enc_kwargs.pop('runner'))
@@ -60,3 +60,31 @@ class EncoderDecoder(nn.Module):
         deep_supervision = self.ds_adapter(xx)
 
         return dict(yb=masks, cls=cls, ds=deep_supervision)
+
+
+class UperNet(nn.Module):
+    def __init__(self, cfg, encoder_fact, encoder_cfg, decoder_fact, decoder_cfg, seg_cfg):
+        super().__init__()
+        self.encoder, encoder_cfg = encoder_fact(encoder_cfg) # will update cfg with stage channels
+        enc_channels = [b['ch'] for b in encoder_cfg['blocks']]
+
+        fpn_out = enc_channels[0]
+        self.PPN = PSPModule(enc_channels[-1], )
+        self.FPN = FPN_fuse(enc_channels, fpn_out=fpn_out)
+
+        self.seg_head = nn.Conv2d(fpn_out, **seg_cfg) # TODO : full head
+        torch.nn.init.constant_(self.seg_head.bias, -4.59)
+
+
+    def forward(self, batch):
+        x = batch['xb']
+        input_size = (x.size()[2], x.size()[3])
+
+        features = self.encoder(x)
+        features[-1] = self.PPN(features[-1])
+        fpn = self.FPN(features)
+        x = self.seg_head(fpn)
+        #print(x.shape)
+
+        masks = F.interpolate(x, size=input_size, mode='bilinear')
+        return dict(yb=masks, cls=None, ds=None)

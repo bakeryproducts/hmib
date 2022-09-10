@@ -53,6 +53,7 @@ def get_mask_file_pairs(true_masks_dir, pred_masks_dir, recursive=True, ext='*.[
             "true": str(true_fnames[name]),
             "pred": str(pred_fnames[name]),
         }
+    assert result, (true_fnames, pred_fnames)
 
     logger.info(f"Loaded total {len(result)} mask pairs for dice calculation")
 

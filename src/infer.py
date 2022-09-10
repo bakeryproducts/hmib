@@ -1,10 +1,11 @@
-import importlib
+import math
 import sys
-from collections import defaultdict
+import importlib
 from pathlib import Path
+from collections import defaultdict
 
-import torch
 import ttach
+import torch
 from omegaconf import OmegaConf
 
 
@@ -55,10 +56,11 @@ class Inferer:
         self,
         model,
         cfg,
-        threshold=0.5,
         sigmoid=True,
         tta=False,
+        tta_transforms=None,
         tta_merge_mode="mean",
+        threshold=None,
     ):
         """
         Params
@@ -67,9 +69,6 @@ class Inferer:
             Model
         cfg: OmegaConf.Config
             Config
-        threshold: float, default 0.5
-            Confidence threshold
-            If None no thresholding will be done
         sigmoid: bool, default True
             Apply sigmoid or not
         tta: bool, default False
@@ -80,16 +79,14 @@ class Inferer:
         self.model = RawBatchModel(model)
         self.cfg = cfg
 
-        self.threshold = threshold
         self.sigmoid = sigmoid
-        self.tta = tta
         self.tta_merge_mode = tta_merge_mode
         self.device = model.device
 
-        if self.tta:
+        if tta_transforms is not None:
             self.model = ttach.SegmentationTTAWrapper(
                 self.model,
-                ttach.aliases.d4_transform(),
+                transforms=tta_transforms,
                 merge_mode=self.tta_merge_mode
             )
 
@@ -120,7 +117,7 @@ class Inferer:
         X = postp(X)
         return X
 
-    def __call__(self, batch, organ=None):
+    def __call__(self, batch):
         """Inference
 
         Params
@@ -218,3 +215,56 @@ def init_model(cfg, model_path, network, device="cpu"):
     model = model.to(device).eval()
     model.device = device
     return model
+
+
+
+class ScaleStep(ttach.transforms.DualTransform):
+    identity_param = 1
+
+    def __init__(
+        self,
+        scales,
+        interpolation: str = "nearest",
+        resize_step=32,
+    ):
+        if self.identity_param not in scales:
+            scales = [self.identity_param] + list(scales)
+        self.interpolation = interpolation
+        self.resize_step = resize_step
+        self.__input_shape = None
+        super().__init__("scale", scales)
+
+    def _get_size_scaled(self, size, scale, reverse=False):
+        gs = self.resize_step
+        rounder = math.floor if reverse else math.ceil
+        new_size = [rounder(x * scale / gs) * gs for x in size]  # new shape (stretched to gs-multiple)
+        return new_size
+
+    def apply_aug_image(self, image, scale=1, **kwargs):
+        #print(image.shape, scale)
+        if scale == self.identity_param:
+            return image
+
+        self.__input_shape = image.shape
+
+        _,_,h,w = image.shape
+        nh,nw = self._get_size_scaled((h,w), scale)
+        image = torch.nn.functional.interpolate(image, (nh,nw), mode=self.interpolation)
+        return image
+
+    def apply_deaug_mask(self, mask, scale=1, **kwargs):
+        if scale == self.identity_param:
+            return mask
+        _, _, nh, nw = self.__input_shape
+        # inverse_scale = 1 + (1-scale)
+        # _,_,h,w = mask.shape
+        # nh,nw = self._get_size_scaled((h,w), inverse_scale, reverse=True)
+        mask = torch.nn.functional.interpolate(mask, (nh,nw), mode=self.interpolation)
+        self.__input_shape = None
+        return mask
+
+    def apply_deaug_label(self, label, scale=1, **kwargs):
+        return label
+
+    def apply_deaug_keypoints(self, keypoints, scale=1, **kwargs):
+        return keypoints

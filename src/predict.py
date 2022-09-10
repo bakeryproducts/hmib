@@ -3,13 +3,14 @@ from functools import partial
 
 import fire
 import torch
+import ttach
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import rasterio as rio
 
+import infer
 from data import ORGANS
-from infer import Inferer
 from tiff import save_tiff
 from mask_utils import rle_encode
 from mp import parallel_block_read
@@ -45,13 +46,9 @@ def log(*m):
     pass
     # print(m)
 
-# import cv2
 
 def infer_whole(name, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
-    # ori_size = batch_blocks[0].shape[-1]
     img = rio.open(name).read()
-    #img = cv2.imread(name)
-    #img = cv2.cvtColor(img.transpose(1,2,0), cv2.COLOR_BGR2RGB).transpose(2,0,1)
     c,h,w = img.shape
 
     output_h = int(np.ceil(h * scale / 32)) * 32
@@ -59,7 +56,6 @@ def infer_whole(name, inferer, scale, pad_size, image_size, organ=None, interpol
 
     img = torch.from_numpy(img).unsqueeze(0).float()
     img = torch.nn.functional.interpolate(img, (output_h, output_w), mode=interpolation_mode)
-    # print(img.shape)
 
     img = inferer.preprocess(img, postp=extra_postprocess)
     pred = inferer(img)  # bchw, logit
@@ -85,14 +81,10 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
         _, _, h, w = batch_blocks.shape
         output_h = int(np.ceil(h * scale / 32)) * 32
         output_w = int(np.ceil(w * scale / 32)) * 32
-        #print(output_h, h, output_w, w)
-        # output_size = int(np.ceil(h * scale / 32)) * 32
-        # fixed_scale = output_size / h
 
         # BCHW
         # Infer batch
         log('LOAD', batch_blocks.shape, batch_coords[0])
-        # batch_blocks = torch.nn.functional.interpolate(batch_blocks, scale_factor=(fixed_scale, fixed_scale), mode=interpolation_mode)
         batch_blocks = torch.nn.functional.interpolate(batch_blocks, (output_h, output_w), mode=interpolation_mode)
         #print(h, w, batch_blocks.shape)
 
@@ -103,7 +95,6 @@ def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, in
 
         log('PREDICT', batch_masks.shape, batch_masks.max())
         batch_masks = select_organ_from_predict(batch_masks, organ)
-        # batch_masks = torch.nn.functional.interpolate( batch_masks, scale_factor=(1./fixed_scale, 1./fixed_scale), mode=interpolation_mode)
         batch_masks = torch.nn.functional.interpolate(batch_masks, (h, w), mode=interpolation_mode)
         batch_masks.sigmoid_()
 
@@ -137,6 +128,45 @@ def image_file_generator(images_dir, images_csv=None, ext='tiff'):
             yield image_file, row.organ
 
 
+
+def init_infer(model_file, config_file, device, tta, tta_merge_mode):
+    if device is not None:
+        # wont init all gups
+        #os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    if tta is not None:
+        transforms = []
+        for t in tta.split('_'):
+            if t == 'd4':
+                transforms.extend([ttach.HorizontalFlip(), ttach.Rotate90(angles=[0, 90, 180, 270]),])
+            elif t == 'scale':
+                transforms.append(infer.ScaleStep([.8, 1, 1.2]))
+            elif t == 'flip':
+                transforms.extend([ttach.HorizontalFlip(), ttach.VerticalFlip(),])
+            elif t == 'rotate':
+                transforms.append(ttach.Rotate90(angles=[0, 90, 180, 270]),)
+            else:
+                raise NotImplementedError
+        tta_transforms = ttach.Compose(transforms)
+    else:
+        tta_transforms = None
+
+    #Create inferer
+    experiment_dir = model_file.parent.parent.parent
+    inferer = infer.Inferer.create(
+        model_file,
+        config_file,
+        experiment_dir,
+        device=device,
+        tta_transforms=tta_transforms,
+        tta_merge_mode=tta_merge_mode,
+    )
+    return inferer
+
+
 def main(
     model_file,
     images_dir,
@@ -150,7 +180,7 @@ def main(
     pad=0.25,
     batch_size=4,
     threshold=0.5,
-    tta=False,
+    tta=None,
     device=None,
     tta_merge_mode="mean",
     images_csv=None,
@@ -180,12 +210,13 @@ def main(
             Inference block size
         network_scale: float, default 1024/3000
             Scale of the network was trained
-        pad_ratio: float, default 0.25
-            Ratio of padding during the inference
+        pad: float, default 0.25
+            if <1 Ratio of padding during the inference
+            if >1 pad size
         batch_size: int, default 4
             Batch size
-        tta: bool
-            Apply 8 TTA or not
+        tta: str
+            modes : 'd4', 'd4_scale'
         device: int, default None
             Device for inference, should be 0, 1, ..  or None for cpu
         tta_merge_mode: str
@@ -195,33 +226,16 @@ def main(
             If you pass this path only images from this df will be
             used for inference
     """
-    # Check cmd args
-    if device is not None:
-        # wont init all gups
-        #os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
-        device = 'cuda'
-    else:
-        device = 'cpu'
-
-    experiment_dir = Path(model_file).parent.parent.parent
-    images_dir = Path(images_dir)
-
-    if config_file is None: config_file = experiment_dir / "src" / "configs" / "u.yaml"
-    if output_dir is None: output_dir = Path(experiment_dir) / "predicts"
+    model_file = Path(model_file)
+    experiment_dir = model_file.parent.parent.parent
+    if output_dir is None: output_dir = experiment_dir / "predicts"
     output_dir.mkdir(exist_ok=True)
 
-    #Create inferer
-    inferer = Inferer.create(
-        model_file,
-        config_file,
-        experiment_dir,
-        device=device,
-        threshold=threshold,
-        tta=tta,
-        tta_merge_mode=tta_merge_mode,
-    )
+    config_file = experiment_dir / 'src/configs/u.yaml'
+    inferer = init_infer(model_file, config_file, device, tta, tta_merge_mode)
 
     result = []
+    images_dir = Path(images_dir)
     gen = image_file_generator(images_dir, images_csv, ext)
 
 

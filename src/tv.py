@@ -212,11 +212,11 @@ class ValCB(sh.callbacks.Callback):
                 self.L.tracker_cb.set('dices', all_organs_dice, operation=op)
                 self.L.tracker_cb.set('classes', batch['cls'].float(), operation=op)
 
-                pred_cls = pred['cls'].softmax(1)
-                pred_cls = torch.max(pred_cls, 1)[1]
-                gt_cls = batch['cls']
-                acc = (pred_cls == gt_cls).float().mean()
-                self.L.tracker_cb.set('cls_acc', acc)
+                # pred_cls = pred['cls'].softmax(1)
+                # pred_cls = torch.max(pred_cls, 1)[1]
+                # gt_cls = batch['cls']
+                # acc = (pred_cls == gt_cls).float().mean()
+                # self.L.tracker_cb.set('cls_acc', acc)
 
                 self.L.tracker_cb.set('ema_score', dice_fix_lung)
                 self.L.tracker_cb.set('score', dice_fix_lung)
