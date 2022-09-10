@@ -7,7 +7,7 @@ from functools import partial
 
 from basemodels import ClassificationHead
 from buildingblocks import Adapter
-from decoder.upernet import FPN_fuse, PSPModule
+from decoders.upernet import FPN_fuse, PSPModule
 
 
 def model_select(cfg):
