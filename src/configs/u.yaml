@@ -20,13 +20,13 @@ DATA:
       'hpa_extra_lung',
       'hpa_extra_prostate',
 
-      # 'gtex_largeintestine', 
-      # 'gtex_spleen',
+      'gtex_largeintestine', 
+      'gtex_spleen',
+      'gtex_kidney',
       # 'gtex_prostate',
-      # 'gtex_kidney',
-      # 'hubmap_kidney',
-      # 'hubmap_largeintestine',
-      #'gtex_spleen'
+
+      'hubmap_kidney',
+      'hubmap_largeintestine',
       ]
 
   VALID:
@@ -38,9 +38,14 @@ DATA:
       'hpa_valid_fixed_lung',
     ]
   VALID_HUB:
-    DATASETS: ['hubmap_kidney', 'hubmap_largeintestine']
+    DATASETS: ['hubmap_test_kidney', 'hubmap_test_largeintestine']
   VALID_GTEX:
-    DATASETS: ['gtex_largeintestine', 'gtex_spleen', 'gtex_prostate', 'gtex_kidney']
+    DATASETS: [
+      'gtex_prostate',
+      'gtex_test_kidney',
+      'gtex_test_spleen',
+      'gtex_test_largeintestine',
+    ]
 
 AUGS:
   NORM:
@@ -76,14 +81,16 @@ AUGS:
   TRAIN:
     AUGS:
       # - {m : albu.RandomCrop, args : [512,512]}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.25, 0.5], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
       # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : ColorMeanShift, kwargs : {'p': 0.5}}
-        #- {m : ColorAugs, kwargs : {'p': 0.5}}
-      - {m : NoiseAugs, kwargs : {'p': 0.3}}
+      - {m : ColorMeanShift, kwargs : {'p': 0.3}}
+      - {m : ColorAugs, kwargs : {'p': 0.2}}
+      - {m : albu.GaussNoise, kwargs : {'var_limit': [10, 50] , 'p': 0.3}}
+      - {m : albu.CLAHE, kwargs : {'clip_limit': 4 , 'p': 0.2}}
+      - {m : NoiseAugs, kwargs : {'p': 0.5}}
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
@@ -99,8 +106,8 @@ AUGS:
       - {m : sh.augmentation.ToTensor,}
 
 MODEL:
-  # ARCH: 'unet' 
-  ARCH: 'upernet'
+  ARCH: 'unet' 
+  # ARCH: 'upernet'
   INIT_MODEL: ""
   ENCODER:
     runner: 
@@ -110,12 +117,13 @@ MODEL:
         # _target_: encoders.encoder.create_swin
         _partial_: true
     # model_name: 'resnet34'
+    model_name: 'regnetx_120'
     # model_name: 'coat_lite_mini'
     # model_name: 'coat_mini'
     # model_name: 'swin'
     # model_name: 'mit_b1'
     # model_name: 'tf_efficientnet_b2_ns'
-    model_name: 'tf_efficientnetv2_m_in21k'
+    # model_name: 'tf_efficientnetv2_m_in21k'
     # model_name: 'resnetv2_50x1_bitm_in21k'
     # model_name: 'convnext_small_in22ft1k'
     # model_name: 'convnext_base_in22ft1k'
@@ -126,7 +134,7 @@ MODEL:
     # img_size: 512
     in_chans: 4
     drop_rate: .5
-    drop_path_rate: .6
+    drop_path_rate: .5
     # attn_drop_rate: .2
 
   DECODER:
@@ -165,14 +173,14 @@ TRAIN:
   SCALAR_STEP: 1
   TB_STEP: 1
   START_VAL: 0
-  EPOCH_COUNT: 200
-  BATCH_SIZE: 12
-  EARLY_EXIT: 20
+  EPOCH_COUNT: 250
+  BATCH_SIZE: 20
+  EARLY_EXIT: 50
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     ENABLE: True
-    start: 0.97
-    end: .99
+    start: 0.99
+    end: .995
     type: 'linear'
 
 VALID:
@@ -184,14 +192,14 @@ VALID_GTEX:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .6
+      weight: .01
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .4
+      weight: .99
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
@@ -255,4 +263,4 @@ defaults:
     - _self_
     # - DATA: datasets_0.8
     # - DATA: datasets_1.2
-    - DATA: datasets_1.2
+    - DATA: datasets_1.2_rate
