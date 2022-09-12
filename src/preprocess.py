@@ -96,7 +96,7 @@ def do_folder_scales(src, dst='input/preprocessed', co=None, ki=None, sp=None, l
     dst = Path(dst)
     assert src.exists(), 'PREPROCESS DATA FIRST, scripts/prepare_hmib'
 
-    output_dirname = f"f_{src.stem}_rle_v2"
+    output_dirname = f"f_{src.stem}"
     output_data_dir = dst / output_dirname
 
     csv = src / 'data.csv'
@@ -113,7 +113,7 @@ def do_folder_scales(src, dst='input/preprocessed', co=None, ki=None, sp=None, l
     for name, image, mask, row in tqdm(gen):
         # Resize
         organ_scale = SCALES[row.organ]
-        if organ_scale == 'none':
+        if organ_scale is None:
             continue
 
         image = cv2.resize(image, (0,0), fx=1/organ_scale, fy=1/organ_scale, interpolation=cv2.INTER_LINEAR)

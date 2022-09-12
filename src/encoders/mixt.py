@@ -311,14 +311,13 @@ class MixVisionTransformer(BaseModule):
             for m in self.modules():
                 self._init_weights(m)
         elif isinstance(self.pretrained, str):
-            # checkpoint = _load_checkpoint(self.pretrained, logger=None, map_location='cpu')
-            # if 'state_dict' in checkpoint:
-            #     state_dict = checkpoint['state_dict']
-            # elif 'model' in checkpoint:
-            #     state_dict = checkpoint['model']
-            # else:
-            #     state_dict = checkpoint
-            raise Exception
+            checkpoint = torch.load(self.pretrained, map_location='cpu')
+            if 'state_dict' in checkpoint:
+                state_dict = checkpoint['state_dict']
+            elif 'model' in checkpoint:
+                state_dict = checkpoint['model']
+            else:
+                state_dict = checkpoint
             # TODO
             self.load_state_dict(state_dict, False)
 

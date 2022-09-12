@@ -1,3 +1,4 @@
+from pathlib import Path
 from functools import partial
 
 import timm
@@ -6,7 +7,7 @@ from torch import nn as nn
 from torch.nn import functional as F
 
 from encoders.swin import SwinTransformer
-from encoders.mixt import mit_b0, mit_b1
+from encoders.mixt import mit_b0, mit_b1, mit_b3, mit_b4
 
 
 def oh_my_god(s):
@@ -46,12 +47,34 @@ def load_pretrained_swin(m):
     return m
 
 
+def load_pretrained_mixt(m, p):
+    st = torch.load(p)
+    stf = {}
+    for k, v in st['state_dict'].items():
+        if k == 'backbone.patch_embed1.proj.weight':
+            v = v.repeat(1,2,1,1)[:,:4]
+        if 'backbone' in k:
+            k = k[9:]
+            stf[k] = v
+
+    m.load_state_dict(stf, strict=False)
+    return m
+
+
 def create_mixt(enc_cfg):
     name = enc_cfg.pop('model_name')
-    names = dict(mit_b0=mit_b0, mit_b1=mit_b1)
+    names = dict(mit_b0=mit_b0, mit_b1=mit_b1, mit_b3=mit_b3, mit_b4=mit_b4)
     assert name in names, (name, names)
     enc = names[name](**enc_cfg)
-    # TODO: load_pretrained(enc)
+    if 'pretrained' not in enc_cfg:
+        pretrs = dict(
+            mit_b3=Path('input/weights/segformer.b3.1024x1024.city.160k.pth'),
+            mit_b4=Path('input/weights/segformer.b4.512x512.ade.160k.pth'),
+        )
+        pretr = pretrs[name]
+        assert pretr.exists(), pretr
+        load_pretrained_mixt(enc, pretr)
+
     blocks = [{'ch': i} for i in enc.embed_dims]
     enc_cfg['blocks'] = blocks
     return enc, enc_cfg

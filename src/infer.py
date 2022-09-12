@@ -8,6 +8,10 @@ import ttach
 import torch
 from omegaconf import OmegaConf
 
+from PIL import Image
+import torchstain
+import numpy as np
+
 
 def batch_quantile(b, q=.01):
     br = b.view(b.shape[0],-1)
@@ -258,6 +262,47 @@ class ScaleStep(ttach.transforms.DualTransform):
         _, _, nh, nw = self.__input_shape
         mask = torch.nn.functional.interpolate(mask, (nh,nw), mode=self.interpolation)
         self.__input_shape = None
+        return mask
+
+    def apply_deaug_label(self, label, scale=1, **kwargs):
+        return label
+
+    def apply_deaug_keypoints(self, keypoints, scale=1, **kwargs):
+        return keypoints
+
+
+
+class StainTta(ttach.transforms.DualTransform):
+    identity_param = False
+
+    def __init__(self):
+        super().__init__("apply", [False, True])
+        dst = torch.from_numpy(np.array(Image.open('input/hmib/train_images/10651.tiff')))
+        self.init_fit(dst)
+
+    def init_fit(self, dst, organ=None):
+        n = torchstain.normalizers.MacenkoNormalizer(backend='torch')
+        n.fit(dst.permute(2,0,1))
+        self.norm = n
+
+    def apply_aug_image(self, x, apply=False, **kwargs):
+        if apply:
+            # print(image.shape, image.dtype)
+            guide = x[0, 3:4]
+            img = x[0,:3].float().cpu()
+            img = (img * 255).byte()
+            # print(t.shape, t.max(), guide.max())
+
+            img,_,_ =  self.norm.normalize(I=img, stains=False)
+            img = img / 255.
+            img = img.cuda().permute(2,0,1)
+
+            x = torch.vstack([img, guide])
+            x = x.unsqueeze(0)
+            # print(image.shape, image.dtype)
+        return x
+
+    def apply_deaug_mask(self, mask, scale=1, **kwargs):
         return mask
 
     def apply_deaug_label(self, label, scale=1, **kwargs):

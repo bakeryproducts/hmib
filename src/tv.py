@@ -88,7 +88,7 @@ class TrainCB(_TrainCallback):
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.ampaug = AmpAug(scale=20, p=.2)
         self.gaub = Splitter(aug=T.GaussianBlur(kernel_size=3, sigma=7), p=.3).cuda()
-        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.4, hue=.4), p=.6).cuda()
+        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.5, hue=.4), p=.7).cuda()
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}

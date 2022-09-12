@@ -148,6 +148,8 @@ def init_infer(model_file, config_file, device, tta, tta_merge_mode):
                 transforms.extend([ttach.HorizontalFlip(), ttach.VerticalFlip(),])
             elif t == 'rotate':
                 transforms.append(ttach.Rotate90(angles=[0, 90, 180, 270]),)
+            elif t == 'stain':
+                transforms.append(infer.StainTta(),)
             else:
                 raise NotImplementedError
         tta_transforms = ttach.Compose(transforms)
