@@ -47,27 +47,26 @@ Creates input/extra/hubmap/preprocessed folder with :
 # TODO
 
 ## Basic
+- public .78 just resizes into 768???
+- stride trick
+- TTA stain
+- loss only from 1channel?
+
 - ~~rle masks, check diff vs polygon masks on lungs~~ rle is better
 - ~~multilabel , looks the same~~
 - ~~Proper val, whole image~~ ~~big center crop for now~~ separate datasets, merge them
 - ~~build scale regressor, do not rely on kaggle scales~~ test.csv should contain scale, but still nice to have?
 - ~~deep supervision~~
 - more blur augs
-- harder regularization 
-- tissue / non tissue mask? white background depends on scanner
 - boundary loss weight-in
-- layer-wise LR decay
-- trivial aug w/ gt
-- repeated aug
+- ~~repeated aug~~
 - finetuning with frequent val epoch, every N step -> inside train cb
 - proper regularization, stoch depth, LayerScale? dropouts
 - fix seg head, check for heavier heads, CBA -> Nxtimes
 - SAM
-- upernet, aspp fuse? 
+- ~~upernet, aspp fuse?~~
 - nfnets?
-- swin bb
 - uptrain helps.
-- maybe cls test on top left all white crop ?
 - ~~decouple WD for head/body (https://arxiv.org/pdf/2106.04560.pdf)~~
 
 ## Transformers
@@ -249,7 +248,38 @@ mount  -t tmpfs -o size=20g  tmpfs /userhome/memory_data
 1878 - 11629
 
 
+# TEST
 
+## gtex:
+
+colon:
+
+GTEX-1JMPY-0426
+0_10645_8853_14908_16156.tiff  1_15028_25841_18556_12381.tiff  2_31025_6677_8158_7198.tiff
+
+kidney
+GTEX-144GL-1926
+0_2262_4788_10748_11581.tiff   2_32749_2709_11388_12349.tiff   4_22032_22257_9085_11005.tiff 1_17489_3445_11420_11613.tiff  3_35980_19409_11068_11581.tiff  5_4661_25136_10012_10781.tiff
+
+spleen
+GTEX-1N2DV-0726
+0_5271_8052_20187_21947.tiff  1_35184_6324_21467_19515.tiff
+GTEX-1L5NE-0926
+0_3574_4787_19611_21627.tiff  1_25137_6546_24154_22363.tiff 
+
+
+
+## hubmap colon
+
+CL_HandE_1234_B004_bottomleft_000000.png  HandE_B005_CL_b_RGB_bottomleft_000002.png
+CL_HandE_1234_B004_bottomleft_000001.png  HandE_B005_CL_b_RGB_bottomleft_000003.png
+CL_HandE_1234_B004_bottomleft_000003.png
+
+## hub kidney
+
+1e2425f28_000000 - 11.png
+2f6ecfcdf_000000 - 11.png
+4ef6695ce_000000 - 11.png
 
 
 
