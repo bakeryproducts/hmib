@@ -88,7 +88,7 @@ class TrainCB(_TrainCallback):
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.ampaug = AmpAug(scale=20, p=.2)
         self.gaub = Splitter(aug=T.GaussianBlur(kernel_size=3, sigma=7), p=.3).cuda()
-        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.5, hue=.4), p=.7).cuda()
+        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.4, hue=.4), p=.6).cuda()
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}
@@ -240,10 +240,10 @@ def collect_map_score(cb, ema=True, train=False):
     classes = classes.view(-1, classes.shape[-1])
     ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
     LB_WEIGHT = {
-        "kidney": 0.176, 
-        "prostate": 0.219, 
-        "spleen": 0.252, 
-        "largeintestine": 0.096, 
+        "kidney": 0.176,
+        "prostate": 0.219,
+        "spleen": 0.252,
+        "largeintestine": 0.096,
         "lung": 0.257,
     }
 

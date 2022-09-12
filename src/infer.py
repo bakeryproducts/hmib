@@ -256,9 +256,6 @@ class ScaleStep(ttach.transforms.DualTransform):
         if scale == self.identity_param:
             return mask
         _, _, nh, nw = self.__input_shape
-        # inverse_scale = 1 + (1-scale)
-        # _,_,h,w = mask.shape
-        # nh,nw = self._get_size_scaled((h,w), inverse_scale, reverse=True)
         mask = torch.nn.functional.interpolate(mask, (nh,nw), mode=self.interpolation)
         self.__input_shape = None
         return mask

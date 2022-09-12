@@ -15,6 +15,7 @@ import warnings
 warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarning)
 
 
+DOMAINS = {k:v for v, k in enumerate(['hpa', 'hubmap', 'gtex', 'undef'])}
 ORGANS = {k:i for i,k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
 REV_ORGANS = {v:k for k,v in ORGANS.items()}
 
@@ -205,7 +206,7 @@ class DataPair:
     def __call__(self, label):
         img_data = self.imgs(label)
         ann_data = self.anns(label)
-        return dict(fname=label.fname, x=img_data, y=ann_data, cls=label.organ)
+        return dict(fname=label.fname, x=img_data, y=ann_data, cls=label.organ, dom=label.data_source)
 
 
 class DfDataset:
@@ -279,6 +280,7 @@ class MainDataset:
         r = self.ds.__getitem__(*args, **kwargs)
         return r
 
+
 class MainDatasetv2:
     def __init__(self,
                  cfg,
@@ -287,9 +289,10 @@ class MainDatasetv2:
                  ImgLoader,
                  AnnLoader,
                  organ,
+                 data_source,
                  **kwargs):
 
-        ds = ExtraValDataset(cfg, root, ann_path, ImgLoader, AnnLoader, organ, **kwargs)
+        ds = ExtraValDataset(cfg, root, ann_path, ImgLoader, AnnLoader, organ, data_source, **kwargs)
         rate = kwargs.get('rate', 1)
         self.ds = Mult(ds, rate)
 
@@ -308,6 +311,7 @@ class ExtraValDataset:
                  ImgLoader,
                  AnnLoader,
                  organ,
+                 data_source,
                  ext='png',
                  **kwargs):
 
@@ -318,8 +322,8 @@ class ExtraValDataset:
         imgs = list(root.glob(f'*.{ext}'))
         assert len(imgs) > 0, root
 
-        label_kwargs = dict(lid=-1, data_source='hubmap', w=-1, h=-1, rle='')
-        self.labels = [Label(fname=f.name, organ=ORGANS[organ], **label_kwargs) for f in imgs]
+        label_kwargs = dict(lid=-1, organ=ORGANS[organ], data_source=DOMAINS[data_source], w=-1, h=-1, rle='')
+        self.labels = [Label(fname=f.name, **label_kwargs) for f in imgs]
 
     def __len__(self): return len(self.labels)
 

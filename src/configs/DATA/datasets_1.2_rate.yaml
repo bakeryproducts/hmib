@@ -63,20 +63,17 @@ datasets:
     root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}/lung_3/'
     rate: 2
 
-  - name: "hpa_valid_fixed_lung"
-    root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/lung_3/'
-
   - name: "hpa_extra_lung"
     root: 'CUTS/hpa/lung/3.000/'
     rate: 2
+
+  - name: "hpa_valid_fixed_lung"
+    root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/lung_3/'
 
   ############################### PROSTATE ##############################
   - name: "hpa_train_prostate"
     root: 'preprocessed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}_rle_v2/prostate_3/'
     rate: 2
-
-  - name: "hpa_valid_prostate"
-    root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/prostate_3/'
 
   - name: 'gtex_prostate'
     root: 'CUTS/gtex/prostate/2.400_1024'
@@ -85,6 +82,9 @@ datasets:
   - name: "hpa_extra_prostate"
     root: 'CUTS/hpa/prostate/3.000/'
     rate: 2
+
+  - name: "hpa_valid_prostate"
+    root: 'preprocessed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}_rle_v2/prostate_3/'
 
   ############################### SPLEEN ##############################
   - name: "hpa_train_fixed_spleen"

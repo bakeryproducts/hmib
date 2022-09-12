@@ -23,7 +23,7 @@ DATA:
       'gtex_largeintestine', 
       'gtex_spleen',
       'gtex_kidney',
-      # 'gtex_prostate',
+      'gtex_prostate',
 
       'hubmap_kidney',
       'hubmap_largeintestine',
@@ -41,7 +41,7 @@ DATA:
     DATASETS: ['hubmap_test_kidney', 'hubmap_test_largeintestine']
   VALID_GTEX:
     DATASETS: [
-      'gtex_prostate',
+      # 'gtex_prostate',
       'gtex_test_kidney',
       'gtex_test_spleen',
       'gtex_test_largeintestine',
@@ -64,7 +64,7 @@ AUGS:
   FMIX:
     ALPHA: 1
     REPEAT: 1
-    PROB: .5
+    PROB: .2
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
@@ -81,14 +81,15 @@ AUGS:
   TRAIN:
     AUGS:
       # - {m : albu.RandomCrop, args : [512,512]}
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 30, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.6, 1.5], 'rotate_limit': 45, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.6}}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
+      - {m : DomainStainer, kwargs : {'step': 100, 'domain': '"gtex"', 'p': .3,}}
       # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : ColorMeanShift, kwargs : {'p': 0.3}}
-      - {m : ColorAugs, kwargs : {'p': 0.2}}
-      - {m : albu.GaussNoise, kwargs : {'var_limit': [10, 50] , 'p': 0.3}}
+      - {m : ColorMeanShift, kwargs : {'p': 0.2}}
+      # - {m : ColorAugs, kwargs : {'p': 0.2}}
+      # - {m : albu.GaussNoise, kwargs : {'var_limit': [10, 50] , 'p': 0.3}}
       - {m : albu.CLAHE, kwargs : {'clip_limit': 4 , 'p': 0.2}}
       - {m : NoiseAugs, kwargs : {'p': 0.5}}
       - {m : sh.augmentation.ToTensor,}
@@ -117,7 +118,7 @@ MODEL:
         # _target_: encoders.encoder.create_swin
         _partial_: true
     # model_name: 'resnet34'
-    model_name: 'regnetx_120'
+    # model_name: 'regnetx_120'
     # model_name: 'coat_lite_mini'
     # model_name: 'coat_mini'
     # model_name: 'swin'
@@ -128,13 +129,13 @@ MODEL:
     # model_name: 'convnext_small_in22ft1k'
     # model_name: 'convnext_base_in22ft1k'
     # model_name: 'convnext_base_384_in22ft1k'
-    # model_name: 'convnext_large_384_in22ft1k'
+    model_name: 'convnext_large_384_in22ft1k'
     # model_name: 'dm_nfnet_f1'
     # model_name: 'convnext_tiny'
     # img_size: 512
     in_chans: 4
-    drop_rate: .5
-    drop_path_rate: .5
+    drop_rate: .6
+    drop_path_rate: .6
     # attn_drop_rate: .2
 
   DECODER:
@@ -147,16 +148,16 @@ MODEL:
       use_bottleneck: False
       last_scale: 1
     blocks:
-      - ch: 512
+      - ch: 768
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 256
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 128
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
-      - ch: 64
+      - ch: 128
         #use_skip: False
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
-      - ch: 32
+      - ch: 64
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
     # all_stages:
 
@@ -174,13 +175,13 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 250
-  BATCH_SIZE: 20
+  BATCH_SIZE: 12
   EARLY_EXIT: 50
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
     ENABLE: True
-    start: 0.99
-    end: .995
+    start: 0.97
+    end: .99
     type: 'linear'
 
 VALID:
@@ -192,14 +193,14 @@ VALID_GTEX:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .01
+      weight: .6
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .99
+      weight: .4
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
@@ -223,7 +224,7 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.000001, 0.0001, 0.0001, 1]
+  LRS: [0.000001, 0.0001, 0.00001, 1]
   # LRS: [0.000001, 0.0008, 0.0001, 1]
   # LRS: [0.000001, 0.00008, 0.00001, 1]
   # LRS: [0.0001, 0.0008, 0.0001, 1]

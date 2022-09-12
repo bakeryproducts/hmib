@@ -27,6 +27,7 @@ class DatasetsGen:
             dataset_cfg = dict(dataset_cfg)
             name = dataset_cfg.pop('name')
             organ = name.split('_')[-1]
+            data_source = name.split('_')[0]
             root = DATA_DIR / dataset_cfg.pop('root')
             base_dataset = data.MainDatasetv2 # can pop from cfg
 
@@ -34,6 +35,7 @@ class DatasetsGen:
                 root=root/'images',
                 ann_path=root/'masks',
                 organ=organ,
+                data_source=data_source,
                 **general_args,
                 **dataset_cfg,
             )

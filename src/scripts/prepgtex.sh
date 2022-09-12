@@ -1,8 +1,9 @@
 #!/usr/bin/bash
 set -e
 SCALE=$1
-CROP=768
-python3 hsrc/data_gen.py --src input/extra/gtex/pieces/prostate --dst temp/gtex_$SCALE/prostate --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid
-python3 hsrc/data_gen.py --src input/extra/gtex/pieces/kidney --dst temp/gtex_$SCALE/kidney --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid
-python3 hsrc/data_gen.py --src input/extra/gtex/pieces/spleen --dst temp/gtex_$SCALE/spleen --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode inst
-python3 hsrc/data_gen.py --src input/extra/gtex/pieces/colon --dst temp/gtex_$SCALE/colon --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid
+DST=$2
+CROP=1024
+python3 hsrc/data_gen.py --src input/extra/gtex/pieces/prostate --dst temp/$DST/gtex_$SCALE/prostate --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid
+python3 hsrc/data_gen.py --src input/extra/gtex/pieces/kidney --dst temp/$DST/gtex_$SCALE/kidney --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid
+python3 hsrc/data_gen.py --src input/extra/gtex/pieces/spleen --dst temp/$DST/gtex_$SCALE/spleen --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode inst
+python3 hsrc/data_gen.py --src input/extra/gtex/pieces/colon --dst temp/$DST/gtex_$SCALE/colon --src_scale .5 --dst_scale $SCALE --cropsize $CROP --recursive --mode grid

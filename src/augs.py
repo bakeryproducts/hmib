@@ -4,12 +4,13 @@ from functools import partial
 import cv2
 import torch
 import staintools
+import torchstain
 import numpy as np
 import albumentations as albu
 from albumentations.augmentations.functional import shift_rgb
 
 import shallow as sh
-from data import ORGANS
+from data import ORGANS, DOMAINS
 
 
 class ColorAugs(albu.core.composition.OneOf):
@@ -31,6 +32,72 @@ class NoiseAugs(albu.core.composition.OneOf):
             #albu.Blur(p=1.0),
         ]
         super().__init__(augs, *args, **kwargs)
+
+
+class DomainStainer(albu.core.transforms_interface.ImageOnlyTransform):
+    def __init__(self, domain='gtex', step=100, p=.5):
+        super().__init__(p=p)
+        self.domain = DOMAINS[domain]
+        self.norms = {v:None for v in ORGANS.values()}
+        self.fit_count = 0
+        self.norm_count = 0
+        self.update_step = step
+
+    @property
+    def targets(self):
+        return {"image": self.apply}
+
+    @property
+    def targets_as_params(self):
+        return ["organ", 'domain']
+
+    def get_params_dependent_on_targets(self, params):
+        return params
+
+    def init_fit(self, dst, organ):
+        try:
+            n = torchstain.normalizers.MacenkoNormalizer(backend='torch')
+            n.fit(torch.from_numpy(dst).permute(2,0,1))
+        except RuntimeError as e:
+            print('DOMAIN FIT RUNERROR!!', dst.shape, dst.max(), organ)
+            print(e)
+            n=None
+        except IndexError as e:
+            print('DOMAIN FIT INDERROR!!', dst.shape, dst.max(), dst.dtype, dst.min(), organ)
+            print(e)
+            n=None
+
+        self.norms[organ] = n
+
+    def sched(self, image, organ):
+        # valid image stats?
+        if self.norms[organ] is None:
+            return True
+        elif self.norm_count > self.update_step:
+            self.norm_count = 0
+            return True
+
+    def apply(self, image, **params):
+        organ = params['organ']
+        domain = params['domain']
+
+        if domain != self.domain:
+            n = self.norms[organ]
+            if n is not None:
+                try:
+                    image,_,_ = n.normalize(I=torch.from_numpy(image).permute(2,0,1), stains=False)
+                    image = image.byte().numpy()
+                except:
+                    # can fail on specific pair?
+                    self.norms[organ] = None
+                    pass
+                self.norm_count += 1
+
+        elif self.sched(image, organ):
+            self.init_fit(image, organ)
+            self.fit_count += 1
+
+        return image
 
 
 
@@ -145,13 +212,14 @@ class AugDataset:
         item = self.dataset[idx]
         image, mask = item['x'], item['y']
         cls = item['cls']
+        dom = item['dom']
 
         aug_images = []
         aug_masks = []
         mult = self.cfg.AUGS.AUG_MULTIPLICITY if self.train else 1
 
         for i in range(mult):
-            aimage, amask = self.aug(image, mask, organ=cls)
+            aimage, amask = self.aug(image, mask, organ=cls, dom=dom)
             aug_images.append(aimage)
             aug_masks.append(amask)
             #print(aimage.shape, aimage.max(), aimage.dtype, amask.max(), mask.max())
@@ -161,8 +229,8 @@ class AugDataset:
         item.update(aitem)
         return item
 
-    def _sup_aug(self, image, mask, organ):
-        kwargs = dict(image=image, mask=mask, organ=organ)
+    def _sup_aug(self, image, mask, organ, dom):
+        kwargs = dict(image=image, mask=mask, organ=organ, domain=dom)
         res = self.transforms(**kwargs)
         return res['image'], res['mask']
 
