@@ -85,15 +85,16 @@ class LungFilterModule(pl.LightningModule):
         targets = batch["target"]
 
         # Losses
-        bce_loss = self.bce_criterion(logits, batch["target"])
-        mse_loss = self.mse_criterion(probs, batch["target"])
-        mae_loss = (batch["target"] - logits).abs().mean()
+        bce_loss = self.bce_criterion(logits, targets)
+        mse_loss = self.mse_criterion(probs, targets)
+        mae_loss = (targets - logits).abs().mean()
 
         losses = {
             "total": bce_loss + mse_loss + mae_loss,
             "bce": bce_loss,
             "mse": mse_loss,
             "mae": mae_loss,
+            "avg_target": targets.mean()
         }
 
         metrics = dict()
