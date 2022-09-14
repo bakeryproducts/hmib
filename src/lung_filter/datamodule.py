@@ -70,7 +70,7 @@ class LungFilterDataModule(pl.LightningDataModule):
         parser.add_argument("--batch_size", type=int, default=16)
         parser.add_argument("--val_size", type=int, default=0.2)
         parser.add_argument("--cache", action="store_true")
-        parser.add_argument("--rate", default=10)
+        parser.add_argument("--rate", type=int, default=100)
 
         return parser
 

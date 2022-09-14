@@ -1,9 +1,7 @@
-import json
 import os.path as osp
 from pathlib import Path
 
 import cv2
-import numpy as np
 from torch.utils.data import Dataset
 
 
@@ -34,8 +32,8 @@ class LungFilterDataset(Dataset):
         return sample
 
     @classmethod
-    def create(cls, images_dir, labels_csv=None, debug=False, **init_kwargs):
-        items = cls.load_items(images_dir, labels_csv, debug)
+    def create(cls, images_dir, cache=False, debug=False, **init_kwargs):
+        items = cls.load_items(images_dir, cache, debug)
         return cls(items, **init_kwargs)
 
     @classmethod
