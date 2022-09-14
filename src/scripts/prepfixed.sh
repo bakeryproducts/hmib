@@ -12,3 +12,8 @@ python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v0/spleen/ --dst temp/$D
 python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v1/spleen/ --dst temp/$DST/train_hpa/spleen/v1 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
 python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v2/spleen/ --dst temp/$DST/train_hpa/spleen/v2 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
 python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v3/spleen/ --dst temp/$DST/train_hpa/spleen/v3 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
+
+python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v0/prostate/ --dst temp/$DST/train_hpa/prostate/v0 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
+python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v1/prostate/ --dst temp/$DST/train_hpa/prostate/v1 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
+python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v2/prostate/ --dst temp/$DST/train_hpa/prostate/v2 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA
+python3 hsrc/data_gen.py --src input/FIXED_TRAIN/splits/v3/prostate/ --dst temp/$DST/train_hpa/prostate/v3 --src_scale .4 --dst_scale $SCALE --cropsize $CROP --recursive  --ext tiff --HACKHPA

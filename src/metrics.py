@@ -47,12 +47,22 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
     pr = pred['yb']
     gt = target['yb']
 
+    # b,5,h,w
+    # clsb = target['cls']
+    # print(clsb.shape, clsb[:10])
+    # for i, c in enumerate(clsb):
+    #     for j in range(5):
+    #         if j != c:
+    #             # print(f'zeroing {i}')
+    #             pr[i,j] -= 5
+
     segd_l = loss['seg_dice'](pr, gt)
     sege_l = loss['seg_ce'](pr, gt)
 
     # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
     if cfg.FEATURES.USE_DS:
         ds = pred['ds']
+        ds = ds[:-2]
         _,_,h,w = gt.shape
         segd_li = 0
         sege_li = 0

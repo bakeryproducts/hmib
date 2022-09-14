@@ -75,6 +75,7 @@ def init_master_cbs(cfg, track_cb, output_folder):
                                ],
                                'general': ['val_score',
                                            'score',
+                                           'score_all',
                                            'ema_dice',
                                            'cls_acc',
                                            ]

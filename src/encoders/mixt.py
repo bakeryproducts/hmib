@@ -177,14 +177,6 @@ class MixVisionTransformer(BaseModule):
                  freeze_patch_embed=False):
         super().__init__(init_cfg)
 
-        assert not (init_cfg and pretrained), \
-            'init_cfg and pretrained cannot be setting at the same time'
-        if isinstance(pretrained, str) or pretrained is None:
-            warnings.warn('DeprecationWarning: pretrained is a deprecated, '
-                          'please use "init_cfg" instead')
-        else:
-            raise TypeError('pretrained must be a str or None')
-
         self.num_classes = num_classes
         self.depths = depths
         self.pretrained = pretrained
@@ -307,19 +299,10 @@ class MixVisionTransformer(BaseModule):
                 m.bias.data.zero_()
 
     def init_weights(self):
+        # loading pretrained model handled from outside
         if self.pretrained is None:
             for m in self.modules():
                 self._init_weights(m)
-        elif isinstance(self.pretrained, str):
-            checkpoint = torch.load(self.pretrained, map_location='cpu')
-            if 'state_dict' in checkpoint:
-                state_dict = checkpoint['state_dict']
-            elif 'model' in checkpoint:
-                state_dict = checkpoint['model']
-            else:
-                state_dict = checkpoint
-            # TODO
-            self.load_state_dict(state_dict, False)
 
     def reset_drop_path(self, drop_path_rate):
         dpr = [

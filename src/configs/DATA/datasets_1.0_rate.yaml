@@ -1,0 +1,110 @@
+#  SPLIT param is in base config
+#  !
+#  dataset name : blabal_any_name_OFFICIALORGANNAME
+#  i.e. 'hubmap_trainimages1-3_kidney'
+#  i.e. 'gtex_kidneyscale1.2_largeintestine'
+#  !
+datasets:
+  ############################### KIDNEY ##############################
+  - name: "hpa_train_kidney"
+    root: 'preprocessed/SCALE_1.0/f_TRAIN_SPLIT_${SPLIT}/kidney_2.5/'
+    rate: 2
+
+  - name: "hubmap_kidney"
+    root: 'CUTS_1.0/hubmap/kidney/2.000_1024'
+    rate: 2
+
+  - name: 'gtex_kidney'
+    root: 'CUTS_1.0/gtex/kidney/2.000_1024'
+    rate: 2
+
+  - name: "hpa_extra_kidney"
+    root: 'CUTS_1.0/hpa/kidney/2.500/'
+    rate: 2
+
+  - name: "hpa_valid_kidney"
+    root: 'preprocessed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/kidney_2.5/'
+
+  - name: 'gtex_test_kidney'
+    root: 'CUTS_1.0/gtex_test/kidney/2.000_1024'
+
+  - name: "hubmap_test_kidney"
+    root: 'CUTS_1.0/hubmap_test/kidney/2.000_1024'
+
+
+  ############################### COLON ##############################
+  - name: "hpa_train_largeintestine"
+    root: 'preprocessed/SCALE_1.0/f_TRAIN_SPLIT_${SPLIT}/largeintestine_2.5/'
+    rate: 2
+
+  - name: "hubmap_largeintestine"
+    root: 'CUTS_1.0/hubmap/colon/2.000_1024'
+    rate: 2
+
+  - name: 'gtex_largeintestine'
+    root: 'CUTS_1.0/gtex/colon/2.000_1024'
+    rate: 2
+
+  - name: "hpa_extra_largeintestine"
+    root: 'CUTS_1.0/hpa/colon/2.500/'
+    rate: 2
+
+  - name: 'gtex_test_largeintestine'
+    root: 'CUTS_1.0/gtex_test/colon/2.000_1024'
+
+  - name: "hpa_valid_largeintestine"
+    root: 'preprocessed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/largeintestine_2.5/'
+
+  - name: "hubmap_test_largeintestine"
+    root: 'CUTS_1.0/hubmap_test/colon/2.000_1024'
+
+  ############################### LUNG ##############################
+  - name: "hpa_train_fixed_lung"
+    root: 'preprocessed_fixed/SCALE_1.0/f_TRAIN_SPLIT_${SPLIT}/lung_2.5/'
+    rate: 2
+
+  - name: "hpa_extra_lung"
+    root: 'CUTS_1.0/hpa/lung/2.500/'
+    rate: 2
+
+  - name: 'gtex_easy_lung'
+    root: 'CUTS_1.0/gtex/lung_easy/2.000_1024'
+    rate: 2
+
+  - name: "hpa_valid_fixed_lung"
+    root: 'preprocessed_fixed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/lung_2.5/'
+
+  ############################### PROSTATE ##############################
+  - name: "hpa_train_fixed_prostate"
+    root: 'preprocessed_fixed/SCALE_1.0/f_TRAIN_SPLIT_${SPLIT}/prostate_2.5/'
+    rate: 2
+
+  - name: 'gtex_prostate'
+    root: 'CUTS_1.0/gtex/prostate/2.000_1024'
+    rate: 2
+
+  - name: "hpa_extra_prostate"
+    root: 'CUTS_1.0/hpa/prostate/2.500/'
+    rate: 2
+
+  - name: "hpa_valid_fixed_prostate"
+    root: 'preprocessed_fixed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/prostate_2.5/'
+
+  ############################### SPLEEN ##############################
+  - name: "hpa_train_fixed_spleen"
+    root: 'preprocessed_fixed/SCALE_1.0/f_TRAIN_SPLIT_${SPLIT}/spleen_2.5/'
+    rate: 2
+
+  - name: 'gtex_spleen'
+    root: 'CUTS_1.0/gtex/spleen/2.000_1024'
+    rate: 2
+
+  - name: "hpa_extra_spleen"
+    root: 'CUTS_1.0/hpa/spleen/2.500/'
+    rate: 2
+
+  - name: 'gtex_test_spleen'
+    root: 'CUTS_1.0/gtex_test/spleen/2.000_1024'
+
+  - name: "hpa_valid_fixed_spleen"
+    root: 'preprocessed_fixed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/spleen_2.5/'

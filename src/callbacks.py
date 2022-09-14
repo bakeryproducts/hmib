@@ -84,10 +84,13 @@ class ScorerCB(sh.callbacks.Callback):
         if self.cfg.PARALLEL.IS_MASTER:
             if hasattr(self.L.tracker_cb, 'val_score'):
                 self.update_max_and_save(self.L.tracker_cb.val_score, prefix='cmax', ema=False)
-            if hasattr(self.L.tracker_cb, 'ema_score'):
+            # TODO support choosing scoring variable
+            # if hasattr(self.L.tracker_cb, 'ema_score'):
+            if hasattr(self.L.tracker_cb, 'score_all'):
                 if self.L.n_epoch % self.cfg.TRAIN.SAVE_STEP == 0:
                     suffix = 'ema'
-                    score = self.L.tracker_cb.ema_score
+                    # score = self.L.tracker_cb.ema_score
+                    score = self.L.tracker_cb.score_all
                     score = score.mean().item()
                     if score > self.max_EMA_score:
                         self.max_EMA_score = score
