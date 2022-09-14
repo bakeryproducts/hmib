@@ -42,7 +42,7 @@ DATA:
     DATASETS: ['hubmap_test_kidney', 'hubmap_test_largeintestine']
   VALID_GTEX:
     DATASETS: [
-      # 'gtex_prostate',
+      'gtex_test_prostate',
       'gtex_test_kidney',
       'gtex_test_spleen',
       'gtex_test_largeintestine',
@@ -65,7 +65,7 @@ AUGS:
   FMIX:
     ALPHA: 1
     REPEAT: 1
-    PROB: .0
+    PROB: .5
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
@@ -89,7 +89,8 @@ AUGS:
       # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : ColorMeanShift, kwargs : {'p': 1.0}}
+      # - {m : ColorMeanShift, kwargs : {'p': 0.5}}
+      - {m : HEDJitter, kwargs : {'theta': .1, 'p': 0.5}}
       # - {m : ColorAugs, kwargs : {'p': 0.2}}
       # - {m : albu.RGBShift, args: [20, 40, 40], kwargs: {'p': 0.2}}
       # - {m : albu.GaussNoise, kwargs : {'var_limit': [10, 50] , 'p': 0.3}}
@@ -139,8 +140,8 @@ MODEL:
     # model_name: 'convnext_tiny'
     # img_size: 512
     in_chans: 4
-    drop_rate: .3
-    drop_path_rate: .3
+    drop_rate: .6
+    drop_path_rate: .6
     # attn_drop_rate: .4
 
   DECODER:
@@ -180,7 +181,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 250
-  BATCH_SIZE: 16
+  BATCH_SIZE: 8
   EARLY_EXIT: 50
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 

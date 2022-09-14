@@ -1,4 +1,5 @@
 import random
+from PIL import Image
 from functools import partial
 
 import cv2
@@ -6,6 +7,7 @@ import torch
 import staintools
 import torchstain
 import numpy as np
+from skimage import color
 import albumentations as albu
 from albumentations.augmentations.functional import shift_rgb
 
@@ -23,12 +25,54 @@ class ColorAugs(albu.core.composition.OneOf):
         super().__init__(augs, *args, **kwargs)
 
 
+class HEDJitter(albu.core.transforms_interface.ImageOnlyTransform):
+    """Randomly perturbe the HED color space value an RGB image.
+    First, it disentangled the hematoxylin and eosin color channels by color deconvolution method using a fixed matrix.
+    Second, it perturbed the hematoxylin, eosin and DAB stains independently.
+    Third, it transformed the resulting stains into regular RGB color space.
+    Args:
+        theta (float): How much to jitter HED color space,
+         alpha is chosen from a uniform distribution [1-theta, 1+theta]
+         betti is chosen from a uniform distribution [-theta, theta]
+         the jitter formula is **s' = \alpha * s + \betti**
+    """
+
+    def __init__(self, theta=.05, p=1.):
+         # HED_light: theta=0.05; HED_strong: theta=0.2
+        super().__init__(p=p)
+        self.theta = theta
+        self.alpha = np.random.uniform(1-theta, 1+theta, (1, 3))
+        self.betti = np.random.uniform(-theta, theta, (1, 3))
+
+    @property
+    def targets(self):
+        return {"image": self.apply}
+
+    @staticmethod
+    def adjust_HED(img, alpha, betti):
+        s = np.reshape(color.rgb2hed(img), (-1, 3))
+        ns = alpha * s + betti  # perturbations on HED color space
+        nimg = color.hed2rgb(np.reshape(ns, img.shape))
+
+        imin = nimg.min()
+        imax = nimg.max()
+        rsimg = (255 * (nimg - imin) / (imax - imin)).astype('uint8')  # rescale to [0,255]
+        return rsimg
+
+    def get_params_dependent_on_targets(self, params):
+        return params
+
+    def apply(self, image, **params):
+        return self.adjust_HED(image, self.alpha, self.betti)
+
+
+
 class NoiseAugs(albu.core.composition.OneOf):
     def __init__(self, *args, **kwargs):
         augs = [
             albu.MultiplicativeNoise((0.9, 1.1), per_channel=True, elementwise=True, p=0.5),
             albu.PixelDropout(dropout_prob=0.05, p=0.5),
-            albu.ImageCompression(quality_lower=99, quality_upper=100, p=.5),
+            albu.ImageCompression(quality_lower=90, quality_upper=100, p=.5),
             #albu.Blur(p=1.0),
         ]
         super().__init__(augs, *args, **kwargs)

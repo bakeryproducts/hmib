@@ -87,6 +87,9 @@ datasets:
     root: 'CUTS_1.0/hpa/prostate/2.500/'
     rate: 2
 
+  - name: 'gtex_test_prostate'
+    root: 'CUTS_1.0/gtex_test/prostate/2.000_1024'
+
   - name: "hpa_valid_fixed_prostate"
     root: 'preprocessed_fixed/SCALE_1.0/f_VALID_SPLIT_${SPLIT}/prostate_2.5/'
 
