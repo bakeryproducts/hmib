@@ -1,10 +1,12 @@
-from block_utils import generate_block_coords, pad_block, mp_func_wrapper, chunkify, paste_crop
-import multiprocessing as mp
 from functools import partial
-from tqdm import tqdm
-import rasterio as rio
+
 import fire
 import numpy as np
+from tqdm import tqdm
+import rasterio as rio
+import multiprocessing as mp
+
+from block_utils import generate_block_coords, pad_block, mp_func_wrapper, chunkify, paste_crop
 
 
 def read_tiff(name, idx, blocks_coords, pad_size, boundless=True):

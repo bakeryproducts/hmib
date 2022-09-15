@@ -83,8 +83,15 @@ class ScorerCB(sh.callbacks.Callback):
     @sh.utils.call.on_mode(mode='VALID_GTEX')
     def after_epoch(self):
         if self.cfg.PARALLEL.IS_MASTER:
-            if hasattr(self.L.tracker_cb, 'val_score'):
-                self.update_max_and_save(self.L.tracker_cb.val_score, prefix='cmax', ema=False)
+            # if self.L.n_epoch % self.cfg.TRAIN.SAVE_STEP == 0:
+            #     if self.chpt_cb is not None:
+            #         scoring = self.L.tracker_cb.score_all
+            #         score = scoring.mean().item()
+            #         suffix = 'ema'
+            #         self.chpt_cb.do_saving(f'step_ema_{round(score, 4)}', save_ema=suffix=='ema')
+
+            # if hasattr(self.L.tracker_cb, 'val_score'):
+            #     self.update_max_and_save(self.L.tracker_cb.val_score, prefix='cmax', ema=False)
             # TODO support choosing scoring variable
             # if hasattr(self.L.tracker_cb, 'ema_score'):
             if hasattr(self.L.tracker_cb, 'score_all'):

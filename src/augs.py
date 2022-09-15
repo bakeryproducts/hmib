@@ -56,7 +56,7 @@ class HEDJitter(albu.core.transforms_interface.ImageOnlyTransform):
 
         imin = nimg.min()
         imax = nimg.max()
-        rsimg = (255 * (nimg - imin) / (imax - imin)).astype('uint8')  # rescale to [0,255]
+        rsimg = (255 * (nimg - imin) / (1e-6 + imax - imin)).astype('uint8')  # rescale to [0,255]
         return rsimg
 
     def get_params_dependent_on_targets(self, params):

@@ -14,7 +14,7 @@ from data import ORGANS
 from tiff import save_tiff
 from mask_utils import rle_encode
 from mp import parallel_block_read
-from block_utils import paste_crop, batcher
+from block_utils import generate_block_coords, crop, paste_crop, pad_block, batcher
 
 import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
@@ -60,6 +60,62 @@ def infer_whole(name, inferer, scale, pad_size, image_size, organ=None, interpol
     img = inferer.preprocess(img, postp=extra_postprocess)
     pred = inferer(img)  # bchw, logit
 
+    mask = select_organ_from_predict(pred, organ)
+    mask = torch.nn.functional.interpolate(mask, (h, w), mode=interpolation_mode)
+    mask.sigmoid_()
+    mask = mask.cpu()
+    mask = mask[0]
+    return mask
+
+
+def pad_image_block_size(img, bs):
+    _, H, W = img.shape
+    px = W - bs * (W // bs)
+    if px > 0: px = bs-px
+    py = H - bs * (H // bs)
+    if py > 0: py = bs-py
+    # pimg = torch.nn.functional.pad(img, pad=(0,px,0,py), mode='reflect')
+    pimg = torch.nn.functional.pad(img, pad=(0,px,0,py), mode='constant')
+    return pimg
+
+
+def cropper(image, bs, pad):
+    C,H,W = image.shape
+    padimg = torch.nn.functional.pad(image, pad=(pad,pad,pad,pad), mode='constant')
+    cds = generate_block_coords(H,W,(bs,bs))
+    for cd in cds:
+        y,x,h,w = pad_block(*cd, pad)
+        padcd = y+pad, x+pad, h, w
+        c = crop(padimg, *padcd).clone()
+        y, x, h, w = cd
+        h, w = min(h, H - y), min(w, W - x)
+        cd = y,x,h,w
+        yield c, cd
+
+
+def infer_whole_with_blocks(name, inferer, scale, pad_size, image_size, block_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
+    img = rio.open(name).read()
+    c,h,w = img.shape
+
+    output_h = int(np.ceil(h * scale / 32)) * 32
+    output_w = int(np.ceil(w * scale / 32)) * 32
+
+    img = torch.from_numpy(img).unsqueeze(0).float()
+    img = torch.nn.functional.interpolate(img, (output_h, output_w), mode=interpolation_mode)
+
+    orig_image = img[0]
+    _, orig_H, orig_W = orig_image.shape
+    image = pad_image_block_size(orig_image, block_size)
+
+    # pred = torch.zeros_like(orig_image)
+    pred = torch.zeros((5, orig_H, orig_W), dtype=float)
+    gen = cropper(image, block_size, pad_size)
+    for part, cd in gen:
+        batch_blocks = inferer.preprocess(part.unsqueeze(0), postp=extra_postprocess)
+        batch_masks = inferer(batch_blocks)  # bchw, logit
+        paste_crop(pred, batch_masks[0], cd, pad_size)
+
+    pred = pred.unsqueeze(0)
     mask = select_organ_from_predict(pred, organ)
     mask = torch.nn.functional.interpolate(mask, (h, w), mode=interpolation_mode)
     mask.sigmoid_()
@@ -176,6 +232,7 @@ def main(
     network_scale,
     organ,
     base_block_size,
+    mode,
     output_dir=None,
     output_csv=None,
     config_file=None,
@@ -188,7 +245,6 @@ def main(
     images_csv=None,
     ext='tiff',
     scale_block=True,
-    whole_image=False,
 ):
     """
     This function will infer all images from images_csv if given
@@ -253,7 +309,7 @@ def main(
         dst.mkdir(exist_ok=True)
         log("SCALE", scale)
 
-        if whole_image:
+        if mode == "whole_image":
             mask = infer_whole(image_file,
                                inferer,
                                scale,
@@ -262,7 +318,18 @@ def main(
                                organ=organ,
                                extra_postprocess=partial(extend_input_organ, organ=organ),
                                )
-        else:
+        elif mode == "whole_blocks":
+            mask = infer_whole_with_blocks(
+                image_file,
+                inferer,
+                scale,
+                pad_size,
+                img_size,
+                block_size=block_size,
+                organ=organ,
+                extra_postprocess=partial(extend_input_organ, organ=organ),
+            )
+        elif mode == "part_blocks":
             _image_reader = parallel_block_read(image_file, block_size, pad_size, num_processes=8)
             image_reader = batcher(_image_reader, batch_size)
             mask = infer_image(image_reader,
@@ -273,6 +340,9 @@ def main(
                                organ=organ,
                                extra_postprocess=partial(extend_input_organ, organ=organ),
                                )
+        else:
+            # mode not in modes
+            raise ValueError
 
 
         if output_csv:
