@@ -8,6 +8,7 @@ from torch.nn import functional as F
 
 from encoders.swin import SwinTransformer
 from encoders.mixt import mit_b0, mit_b1, mit_b3, mit_b4
+from encoders.coat import CoatFlat
 
 
 def oh_my_god(s):
@@ -93,16 +94,6 @@ def create_swin(enc_cfg):
     return enc, enc_cfg
 
 
-class CoatFlat(torch.nn.Module):
-    def __init__(self, model):
-        super().__init__()
-        self.model = model
-
-    def forward(self, x):
-        r = self.model(x)
-        r = [r[k] for k in ['x1_nocls', 'x2_nocls', 'x3_nocls', 'x4_nocls']]
-        return r
-
 
 def create_coat(enc_cfg):
     """
@@ -128,6 +119,18 @@ def create_coat(enc_cfg):
                             **enc_cfg,
                             )
     enc.return_interm_layers = True # init in timm is broken
+
+    if name == 'coat_lite_medium' and enc_cfg['pretrained']:
+        p = 'input/weights/coat_lite_medium_384x384_f9129688.pth'
+        st = torch.load(p)
+        stf = {}
+        for k, v in st['model'].items():
+            if k == 'patch_embed1.proj.weight':
+                v = v.repeat(1,2,1,1)[:,:4]
+            stf[k] = v
+        enc.load_state_dict(stf, strict=False)
+
+
     blocks = [{'ch': i} for i in enc.embed_dims]
     enc_cfg['blocks'] = blocks
     enc = CoatFlat(enc)

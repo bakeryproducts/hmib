@@ -286,11 +286,18 @@ def main(
     """
     model_file = Path(model_file)
     experiment_dir = model_file.parent.parent.parent
-    if output_dir is None: output_dir = experiment_dir / "predicts"
-    output_dir.mkdir(exist_ok=True)
+    result_dir = experiment_dir / 'predicts'
+    if output_dir is not None: result_dir = result_dir / output_dir
+    if result_dir.exists():
+        print(f'{result_dir} exists! quitting !')
+        return
+    result_dir.mkdir(exist_ok=True, parents=True)
 
     config_file = experiment_dir / 'src/configs/u.yaml'
     inferer = init_infer(model_file, config_file, device, tta, tta_merge_mode)
+
+    if organ == 'colon': # synonim
+        organ = 'largeintestine'
 
     result = []
     images_dir = Path(images_dir)
@@ -305,7 +312,7 @@ def main(
         pad_size = int(block_size * pad) if pad <= 1.0 else pad
 
         img_size = rio.open(image_file).shape # well, small price for func reader
-        dst = output_dir / image_file.parent.stem
+        dst = result_dir / image_file.parent.stem
         dst.mkdir(exist_ok=True)
         log("SCALE", scale)
 
@@ -351,7 +358,7 @@ def main(
                 "rle": rle_encode((mask[0] > threshold).astype(np.uint8))
             })
 
-        if output_dir:
+        if result_dir:
             save_tiff(dst / image_file.name, mask * 255)
 
     if output_csv:
