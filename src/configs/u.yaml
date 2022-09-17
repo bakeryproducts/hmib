@@ -65,7 +65,7 @@ AUGS:
   FMIX:
     ALPHA: 1
     REPEAT: 1
-    PROB: .0
+    PROB: .3
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]

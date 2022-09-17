@@ -153,11 +153,12 @@ def single_run(
 
     dices = pd.DataFrame(dices)
 
-    if csv is not None:
-        dices.to_csv(csv, index=False)
-
     mean_dice = dices.dice.mean()
     std_dice = dices.dice.std()
+
+    if csv is not None:
+        dices.to_csv(str(Path(pred_masks_dir) / f"{thr:.3f}_{mean_dice:.3f}_{csv}.csv"), index=False)
+
     logger.warning(f"\tMean dice score @ {thr: .3f} : {mean_dice:.4f} +- {std_dice:.4f}")
     return mean_dice
 

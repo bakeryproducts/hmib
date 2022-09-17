@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from torch import nn
 import torch.nn.functional as F
+from morph import Erosion2d, Dilation2d
 
 
 def calc_dice(pred, target, eps=1e-6, reduce='none'):
@@ -32,6 +33,15 @@ def _loss_dict(foo):
     return wrapper
 
 
+def get_border(yb):
+    e = Erosion2d(1,1, 5).cuda()
+    d = Dilation2d(1,1, 5).cuda()
+    re = e(yb)
+    rd = d(yb)
+    r = (rd - re) > .5
+    return r
+
+
 def loss_seg(pred, target, loss, cfg, reduction='mean'):
     assert reduction == 'mean'
 
@@ -58,6 +68,13 @@ def loss_seg(pred, target, loss, cfg, reduction='mean'):
 
     segd_l = loss['seg_dice'](pr, gt)
     sege_l = loss['seg_ce'](pr, gt)
+
+    # pp = pr[:, 2].unsqueeze(1)
+    # gg = gt[:, 2].unsqueeze(1)
+    # border = get_border(gg)
+    # seg_border = torch.nn.functional.binary_cross_entropy_with_logits(pp[border], gg[border])
+    # alpha = .01
+    # sege_l = (1-alpha) * sege_l + alpha * seg_border
 
     # print(sege_l.cpu().detach().item(), sh.utils.common.st(gt.float()), sh.utils.common.st(pr.float()))
     if cfg.FEATURES.USE_DS:

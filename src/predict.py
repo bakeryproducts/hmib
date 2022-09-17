@@ -294,6 +294,7 @@ def main(
     result_dir.mkdir(exist_ok=True, parents=True)
 
     config_file = experiment_dir / 'src/configs/u.yaml'
+    # config_file = experiment_dir / 'src/configs/lung.yaml'
     inferer = init_infer(model_file, config_file, device, tta, tta_merge_mode)
 
     if organ == 'colon': # synonim
@@ -336,7 +337,7 @@ def main(
                 organ=organ,
                 extra_postprocess=partial(extend_input_organ, organ=organ),
             )
-        elif mode == "part_blocks":
+        elif mode == "parallel_blocks":
             _image_reader = parallel_block_read(image_file, block_size, pad_size, num_processes=8)
             image_reader = batcher(_image_reader, batch_size)
             mask = infer_image(image_reader,

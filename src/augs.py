@@ -12,7 +12,7 @@ import albumentations as albu
 from albumentations.augmentations.functional import shift_rgb
 
 import shallow as sh
-from data import ORGANS, DOMAINS
+from data import ORGANS, DOMAINS, REV_ORGANS
 
 
 class ColorAugs(albu.core.composition.OneOf):
@@ -41,8 +41,6 @@ class HEDJitter(albu.core.transforms_interface.ImageOnlyTransform):
          # HED_light: theta=0.05; HED_strong: theta=0.2
         super().__init__(p=p)
         self.theta = theta
-        self.alpha = np.random.uniform(1-theta, 1+theta, (1, 3))
-        self.betti = np.random.uniform(-theta, theta, (1, 3))
 
     @property
     def targets(self):
@@ -63,7 +61,9 @@ class HEDJitter(albu.core.transforms_interface.ImageOnlyTransform):
         return params
 
     def apply(self, image, **params):
-        return self.adjust_HED(image, self.alpha, self.betti)
+        alpha = np.random.uniform(1-self.theta, 1+self.theta, (1, 3))
+        betti = np.random.uniform(-self.theta, self.theta, (1, 3))
+        return self.adjust_HED(image, alpha, betti)
 
 
 
@@ -173,6 +173,30 @@ class ColorMeanShift(albu.core.transforms_interface.ImageOnlyTransform):
         r,g,b = image.mean((0,1))
         shift = tr-r, tg-g, tb-b
         image = shift_rgb(image, *shift)
+        return image
+
+
+class ProstateDownUp(albu.core.transforms_interface.ImageOnlyTransform):
+    def __init__(self, scale, p=1.):
+        super().__init__(p=p)
+        self.scale = scale
+
+    @property
+    def targets(self):
+        return {"image": self.apply}
+
+    @property
+    def targets_as_params(self):
+        return ["organ"]
+
+    def get_params_dependent_on_targets(self, params):
+        return params
+
+    def apply(self, image, **params):
+        organ = params['organ']
+        if REV_ORGANS[organ] == 'prostate':
+            t = cv2.resize(np.array(image), dsize=None, fx=1/self.scale, fy=1/self.scale)
+            image = cv2.resize(t, dsize=None, fx=self.scale, fy=self.scale)
         return image
 
 

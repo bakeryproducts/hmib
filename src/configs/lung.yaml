@@ -31,7 +31,7 @@ AUGS:
     scale_up: 1.0
     scale_down: 1.0
   MIXUP:
-    PROB: .7
+    PROB: .1
   CUTMIX:
     PROB: .0
   FMIX:
@@ -41,17 +41,23 @@ AUGS:
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
-  CROP: [384,384]
-  # CROP: [512,512]
+  # CROP: [384,384]
+  CROP: [512,512]
   # CROP: [640,640]
   # CROP: [768, 768]
-  VALCROP1: [512, 512]
-  VALCROP2: [512, 512]
-  # VALCROP1: [768, 768]
-  # VALCROP2: [768, 768]
+  # VALCROP1: [512, 512]
+  # VALCROP2: [512, 512]
+  VALCROP1: [768, 768]
+  VALCROP2: [768, 768]
   TRAIN:
     AUGS:
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.5, 'scale_limit': [-0.25, 0.25], 'rotate_limit': 40, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 1.0}}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.2,
+                                         'scale_limit': [-0.25, 0.25],
+                                         'rotate_limit': 40,
+                                         'border_mode': 0,
+                                         'value': 0,
+                                         'mask_value': 0,
+                                         'p': 1.0}}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
@@ -71,8 +77,8 @@ MODEL:
         _target_: encoders.encoder.create_encoder
         _partial_: true
     # model_name: 'regnety_032'
-    # model_name: 'convnext_small_in22ft1k'
-    model_name: 'convnext_large_384_in22ft1k'
+    model_name: 'convnext_small_in22ft1k'
+    # model_name: 'convnext_large_384_in22ft1k'
     in_chans: 4
     drop_rate: .5
     drop_path_rate: .5
@@ -120,7 +126,7 @@ TRAIN:
     type: 'linear'
 
 VALID:
-  BATCH_SIZE: 8
+  BATCH_SIZE: 12
 
 LOSS:
     - name: 'seg_dice'
