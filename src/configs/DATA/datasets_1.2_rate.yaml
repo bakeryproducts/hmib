@@ -61,15 +61,15 @@ datasets:
   ############################### LUNG ##############################
   - name: "hpa_train_fixed_lung"
     root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}/lung_3.0/'
-    rate: 2
+    rate: 20
 
   - name: "hpa_extra_lung"
     root: 'CUTS_1.2/hpa/lung/3.000/'
-    rate: 2
+    rate: 20
 
   - name: 'gtex_easy_lung'
-    root: 'CUTS_1.2/gtex/lung_easy/2.400_1024'
-    rate: 2
+    root: 'CUTS_1.2/gtex/lung_easy/2.400_512'
+    rate: 20
 
   - name: "hpa_valid_fixed_lung"
     root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/lung_3.0/'

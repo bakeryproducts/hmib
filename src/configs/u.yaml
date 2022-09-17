@@ -65,7 +65,7 @@ AUGS:
   FMIX:
     ALPHA: 1
     REPEAT: 1
-    PROB: .5
+    PROB: .0
 
   AUG_MULTIPLICITY: 1
   # CROP: [256,256]
@@ -84,36 +84,40 @@ AUGS:
   TRAIN:
     AUGS:
       # - {m : albu.RandomCrop, args : [512,512]}
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1, 'scale_limit': [-0.5, 1.0], 'rotate_limit': 40, 'border_mode': 0, 'value': 0, 'mask_value': 0, 'p': 0.5}}
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0., 
+                                         'scale_limit': [-0.5, 1.0],
+                                         'rotate_limit': 40,
+                                         'border_mode': 0,
+                                         'value': 0,
+                                         'mask_value': 0,
+                                         'p': 0.8}}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
-      # - {m : DomainStainer, kwargs : {'step': 100, 'domain': '"gtex"', 'p': .3,}}
-      # - {m : albu.CenterCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
       # - {m : ColorMeanShift, kwargs : {'p': 0.5}}
-      - {m : HEDJitter, kwargs : {'theta': .1, 'p': 0.5}}
-      # - {m : ColorAugs, kwargs : {'p': 0.2}}
-      # - {m : albu.RGBShift, args: [20, 40, 40], kwargs: {'p': 0.2}}
-      # - {m : albu.GaussNoise, kwargs : {'var_limit': [10, 50] , 'p': 0.3}}
-      - {m : albu.CLAHE, kwargs : {'clip_limit': 4 , 'p': 0.2}}
+      - {m : HEDJitter, kwargs : {'theta': .05, 'p': 0.7}}
+      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 0.8}}
+      # - {m : DomainStainer, kwargs : {'step': 100, 'domain': '"gtex"', 'p': .3,}}
       - {m : NoiseAugs, kwargs : {'p': 0.5}}
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
+      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP1}'}
       - {m : sh.augmentation.ToTensor,}
   VALID_HUB:
     AUGS:
+      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP2}'}
       - {m : sh.augmentation.ToTensor,}
   VALID_GTEX:
     AUGS:
+      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP2}'}
       - {m : sh.augmentation.ToTensor,}
 
 MODEL:
   ARCH: 'unet' 
-  # ARCH: 'upernet'
   # INIT_MODEL: "/home/gsm/work/hmib/output/09-12/18-20-27_unet_convnext_large_384_in22ft1k/split_0/models/e140_t250_step_ema_0.926.pth"
   # INIT_MODEL: "/home/gsm/work/hmib/output/09-11/16-05-25_unet_convnext_large_384_in22ft1k/split_0/models/e154_t250_cmax_ema_0.9267.pth"
   INIT_MODEL: ""
@@ -125,9 +129,11 @@ MODEL:
         # _target_: encoders.encoder.create_swin
         _partial_: true
     # model_name: 'resnet34'
-    # model_name: 'regnetx_120'
+    # model_name: 'regnety_032'
     # model_name: 'coat_lite_mini'
-    model_name: 'coat_mini'
+    # model_name: 'coat_mini'
+    # model_name: 'coat_lite_small'
+    model_name: 'coat_lite_medium'
     # model_name: 'coatnet_1_rw_224'
     # model_name: 'swin'
     # model_name: 'mit_b3'
@@ -142,9 +148,9 @@ MODEL:
     # model_name: 'convnext_tiny'
     img_size: 768
     in_chans: 4
-    drop_rate: .3
+    drop_rate: .4
     drop_path_rate: .0
-    attn_drop_rate: .3
+    attn_drop_rate: .4
 
   DECODER:
     runner: 
@@ -163,11 +169,9 @@ MODEL:
       - ch: 128
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 64
-        #use_skip: False
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
       - ch: 32
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
-    # all_stages:
 
   SEGHEAD:
     out_channels: 5
@@ -183,7 +187,7 @@ TRAIN:
   TB_STEP: 1
   START_VAL: 0
   EPOCH_COUNT: 200
-  BATCH_SIZE: 12
+  BATCH_SIZE: 8
   EARLY_EXIT: 50
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
   EMA: 
@@ -201,14 +205,16 @@ VALID_GTEX:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .6
+      # weight: .6
+      weight: .8
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .4
+      # weight: .4
+      weight: 0.2
       LOSS:
         # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
@@ -232,10 +238,10 @@ FEATURES:
 
 
 OPTIMIZER:
-  # LRS: [0.000001, 0.0001, 0.00001, 1]
+  LRS: [0.000001, 0.0002, 0.00001, 1]
   # LRS: [0.000001, 0.0008, 0.0001, 1]
   # LRS: [0.000001, 0.00005, 0.00001, 1]
-  LRS: [0.000001, 0.0001, 0.00001, 1]
+  # LRS: [0.000001, 0.0001, 0.00001, 1]
   # LRS: [0.0001, 0.0008, 0.0001, 1]
   # LRS: [0.0001, 0.01, 0.001, 1]
   
@@ -271,7 +277,6 @@ defaults:
     - FEATURES.SAM: _sam
     - AUGS.MIXUP: _mixup
     - _self_
-    # - DATA: datasets_0.8
     # - DATA: datasets_1.2
     - DATA: datasets_1.2_rate
     # - DATA: datasets_1.0_rate
