@@ -1,0 +1,188 @@
+INPUTS: input
+OUTPUTS: output
+
+SPLIT: 0
+DATA:
+  DALI: false
+  img_loader: 'partial(data.PngImages, suffix=".png")'
+  ann_loader: 'partial(data.PngImages, suffix=".png")'
+  TRAIN:
+    DATASETS: [
+      'hpa_v1_lung',
+      'hpa_v2_lung',
+      'hpa_v3_lung',
+      'hpa_extra_lung',
+      'gtex_lung',
+      ]
+
+  VALID:
+    DATASETS: [
+      'hpa_v0_lung',
+    ]
+
+AUGS:
+  NORM:
+    MODE: 'const'
+    STD: [69] 
+    MEAN: [176.]
+  TRAIN_RESIZE: [0]
+  VALID_RESIZE: [0]
+  MSR:
+    scale_up: 1.0
+    scale_down: 1.0
+  MIXUP:
+    PROB: .1
+  CUTMIX:
+    PROB: .0
+  FMIX:
+    ALPHA: 1
+    REPEAT: 1
+    PROB: .0
+
+  AUG_MULTIPLICITY: 1
+  # CROP: [256,256]
+  # CROP: [384,384]
+  CROP: [512,512]
+  # CROP: [640,640]
+  # CROP: [768, 768]
+  # VALCROP1: [512, 512]
+  # VALCROP2: [512, 512]
+  VALCROP1: [768, 768]
+  VALCROP2: [768, 768]
+  TRAIN:
+    AUGS:
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.2,
+                                         'scale_limit': [-0.25, 0.25],
+                                         'rotate_limit': 40,
+                                         'border_mode': 0,
+                                         'value': 0,
+                                         'mask_value': 0,
+                                         'p': 1.0}}
+      - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
+      - {m : albu.RandomRotate90, }
+      - {m : albu.HorizontalFlip, }
+      - {m : HEDJitter, kwargs : {'theta': .05, 'p': 0.7}}
+      - {m : NoiseAugs, kwargs : {'p': 0.5}}
+      - {m : sh.augmentation.ToTensor,}
+  VALID:
+    AUGS:
+      - {m : albu.CenterCrop, args : '${AUGS.VALCROP1}'}
+      - {m : sh.augmentation.ToTensor,}
+
+MODEL:
+  ARCH: 'unet' 
+  INIT_MODEL: ""
+  ENCODER:
+    runner: 
+        _target_: encoders.encoder.create_encoder
+        _partial_: true
+    # model_name: 'regnety_032'
+    model_name: 'convnext_small_in22ft1k'
+    # model_name: 'convnext_large_384_in22ft1k'
+    in_chans: 4
+    drop_rate: .5
+    drop_path_rate: .5
+
+  DECODER:
+    runner: 
+        _target_: decoders.decoder.create_decoder
+        _partial_: true
+    base:
+      use_bottleneck: False
+      last_scale: 1
+    blocks:
+      - ch: 512
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 256
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 128
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 64
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+      - ch: 32
+        e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
+
+  SEGHEAD:
+    out_channels: 5
+    kernel_size: 1
+
+TRAIN:
+  BATCH_NUM_INSTANCES: 1
+  AMP: True
+  GPUS: [0,1,2,3]
+  NUM_WORKERS: 3
+  SAVE_STEP: 5
+  SCALAR_STEP: 1
+  TB_STEP: 1
+  START_VAL: 0
+  EPOCH_COUNT: 200
+  BATCH_SIZE: 12
+  EARLY_EXIT: 100
+  SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
+  EMA: 
+    ENABLE: True
+    start: 0.98
+    end: .995
+    type: 'linear'
+
+VALID:
+  BATCH_SIZE: 12
+
+LOSS:
+    - name: 'seg_dice'
+      weight: .7
+      LOSS:
+        _target_: segmentation_models_pytorch.losses.DiceLoss
+        mode: 'multilabel'
+        smooth: .0
+
+    - name: 'seg_ce'
+      weight: .3
+      LOSS:
+        _target_: torch.nn.BCEWithLogitsLoss
+  
+
+FEATURES:
+  GRAD_CLIP: 1
+  CLAMP: 10
+  CLIP_MODE: 'value'
+  BATCH_ACCUMULATION_STEP: 1
+  USE_DS: False
+  SAM:
+    REDUCE: 1.
+    RHO: 0.
+
+
+OPTIMIZER:
+  LRS: [0.000001, 0.0001, 0.00001, 1]
+  
+  FINE_LR:
+    - name: 'seg_head'
+      group_options:
+        lr_scale: 1
+        weight_decay: .005
+
+  OPT:
+    _target_: torch.optim.AdamW
+    _partial_: true
+    weight_decay: 0.001
+
+PARALLEL:
+  DDP: True
+
+
+_postfix : ${MODEL.ARCH}_${MODEL.ENCODER.model_name}
+hydra:
+  run:
+    dir: ./output/${now:%m-%d}/${now:%H-%M-%S}_${_postfix}
+  sweep:
+    dir : ./output/${now:%m-%d}/${now:%H-%M-%S}_SWEEP
+    subdir: J${hydra.job.num}_${_postfix}
+
+defaults: 
+    - PARALLEL: _parallel
+    - VALID: _valid
+    - FEATURES.SAM: _sam
+    - AUGS.MIXUP: _mixup
+    - _self_
+    - DATA: datasets_lung

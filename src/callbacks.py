@@ -79,22 +79,33 @@ class ScorerCB(sh.callbacks.Callback):
                 if self.chpt_cb is not None:
                     self.chpt_cb.do_saving(f'{prefix}_{suffix}_{round(score, 4)}', save_ema=ema)
 
-    @sh.utils.call.on_mode(mode='VALID')
+    # @sh.utils.call.on_mode(mode='VALID')
+    @sh.utils.call.on_mode(mode='VALID_GTEX')
     def after_epoch(self):
         if self.cfg.PARALLEL.IS_MASTER:
-            if hasattr(self.L.tracker_cb, 'val_score'):
-                self.update_max_and_save(self.L.tracker_cb.val_score, prefix='cmax', ema=False)
-            if hasattr(self.L.tracker_cb, 'ema_score'):
+            # if self.L.n_epoch % self.cfg.TRAIN.SAVE_STEP == 0:
+            #     if self.chpt_cb is not None:
+            #         scoring = self.L.tracker_cb.score_all
+            #         score = scoring.mean().item()
+            #         suffix = 'ema'
+            #         self.chpt_cb.do_saving(f'step_ema_{round(score, 4)}', save_ema=suffix=='ema')
+
+            # if hasattr(self.L.tracker_cb, 'val_score'):
+            #     self.update_max_and_save(self.L.tracker_cb.val_score, prefix='cmax', ema=False)
+            # TODO support choosing scoring variable
+            # if hasattr(self.L.tracker_cb, 'ema_score'):
+            if hasattr(self.L.tracker_cb, 'score_all'):
+                scoring = self.L.tracker_cb.score_all
                 if self.L.n_epoch % self.cfg.TRAIN.SAVE_STEP == 0:
                     suffix = 'ema'
-                    score = self.L.tracker_cb.ema_score
-                    score = score.mean().item()
+                    # score = self.L.tracker_cb.ema_score
+                    score = scoring.mean().item()
                     if score > self.max_EMA_score:
                         self.max_EMA_score = score
                     if self.chpt_cb is not None:
                         self.chpt_cb.do_saving(f'step_{suffix}_{round(score, 4)}', save_ema=suffix=='ema')
                 elif self.cfg.TRAIN.EMA.ENABLE:
-                    self.update_max_and_save(self.L.tracker_cb.ema_score, prefix='cmax', ema=True)
+                    self.update_max_and_save(scoring, prefix='cmax', ema=True)
 
 
 class TrackResultsCB(sh.callbacks.Callback):

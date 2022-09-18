@@ -88,7 +88,11 @@ class TrainCB(_TrainCallback):
         # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
         # self.ampaug = AmpAug(scale=20, p=.2)
         self.gaub = Splitter(aug=T.GaussianBlur(kernel_size=3, sigma=7), p=.3).cuda()
-        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.5, hue=.4), p=.7).cuda()
+        self.colj = Splitter(aug=T.ColorJitter(brightness=.4, contrast=.4, saturation=.5, hue=.5), p=.6).cuda()
+
+        # self.colj = Splitter(aug=T.ColorJitter(brightness=.2, contrast=.2, saturation=.2, hue=.2), p=.5).cuda()
+
+        # self.pers = T.RandomPerspective(distortion_scale=0.5, p=0.5)
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}
@@ -218,8 +222,10 @@ class ValCB(sh.callbacks.Callback):
                 # acc = (pred_cls == gt_cls).float().mean()
                 # self.L.tracker_cb.set('cls_acc', acc)
 
-                self.L.tracker_cb.set('ema_score', dice_fix_lung)
                 self.L.tracker_cb.set('score', dice_fix_lung)
+                self.L.tracker_cb.set('ema_score', dice_fix_lung)
+                self.L.tracker_cb.set('score_all', dice_fix_lung)
+
 
                 loss_d = defaultdict(default_zero_tensor)
                 loss_d.update(self.L.loss_func(pred, batch, **self.loss_kwargs))
@@ -254,6 +260,10 @@ def collect_map_score(cb, ema=True, train=False):
         for i in range(5):
             idxs = classes.long() == i
             class_name = ORGANS_DECODE[i]
+
+            # if class_name != 'lung': continue
+            if class_name == 'lung': continue
+
             organ_dices = dices[idxs]
             organ_dice_mean = organ_dices.mean()
             organ_dice_std = organ_dices.std()
@@ -263,4 +273,3 @@ def collect_map_score(cb, ema=True, train=False):
             lb_avg += LB_WEIGHT[class_name] * organ_dice_mean
         cb.L.writer.add_scalar(f'{prefix}/macro_avg', torch.as_tensor(macro).mean(), cb.L.n_epoch)
         cb.L.writer.add_scalar(f'{prefix}/lb_avg', torch.as_tensor(lb_avg), cb.L.n_epoch)
-

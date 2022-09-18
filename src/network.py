@@ -8,6 +8,7 @@ from functools import partial
 from basemodels import ClassificationHead
 from buildingblocks import Adapter
 from decoders.upernet import FPN_fuse, PSPModule
+from encoders.encoder import create_coat
 
 
 def model_select(cfg):
@@ -44,7 +45,7 @@ class EncoderDecoder(nn.Module):
 
         num_classes = 5
         self.cls_head = ClassificationHead(encoder_cfg['blocks'][-1]['ch'], num_classes)
-        self.ds_adapter = Adapter(self.decoder.out_channels, 1) if cfg.FEATURES.USE_DS else torch.nn.Identity()
+        self.ds_adapter = Adapter(self.decoder.out_channels, num_classes) if cfg.FEATURES.USE_DS else torch.nn.Identity()
 
 
     def forward(self, batch):

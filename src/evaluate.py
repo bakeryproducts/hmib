@@ -2,6 +2,7 @@ import sys
 import os
 from pathlib import Path
 import os.path as osp
+from functools import lru_cache
 
 import cv2
 import fire
@@ -10,6 +11,17 @@ import pandas as pd
 from loguru import logger
 
 from tiff import load_tiff
+from mp import parallel_read
+
+
+
+class Cacher:
+    def __init__(self):
+        pass
+
+    @lru_cache(None)
+    def __call__(self, k):
+        return load_mask(k)
 
 
 def init_logs(off=False):
@@ -21,7 +33,7 @@ def init_logs(off=False):
 
 
 def binarize(m, thr):
-    m = (m > thr).astype(int)
+    m = (m > thr)#.astype(int)
     return m
 
 
@@ -63,11 +75,11 @@ def get_mask_file_pairs(true_masks_dir, pred_masks_dir, recursive=True, ext='*.[
 def load_mask(mask_file):
     ext = osp.splitext(mask_file)[1]
     if ext.lower() in {".tif", ".tiff"}:
-        mask = load_tiff(mask_file, mode="hwc")
+        mask = parallel_read(mask_file, 8)
+        if len(mask.shape) == 3:
+            mask = mask.transpose(1,2,0)
     else:
         mask = cv2.imread(mask_file)
-        #mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
-    # print(mask.shape, mask.max(), mask.dtype)
 
     if len(mask.shape) == 3:
         mask = mask[..., 0]
@@ -90,10 +102,11 @@ def main(
     if thr_max is None:
         single_run(pred_masks_dir, true_masks_dir, thr, csv, loff, in_masks_only)
     else:
+        cacher = Cacher()
         thrs = np.linspace(thr, thr_max, thr_total)
         dices = []
         for thr in thrs:
-            dice = single_run(pred_masks_dir, true_masks_dir, thr, csv, loff, in_masks_only)
+            dice = single_run(pred_masks_dir, true_masks_dir, thr, csv, loff, in_masks_only, cacher)
             dices.append(dice)
         idx = np.argmax(dices)
         logger.warning(f'\t\nBest dice {dices[idx]} @ thr {thrs[idx]: .3f}')
@@ -106,14 +119,15 @@ def single_run(
     csv=None,
     loff=False,
     in_masks_only=False,
+    cacher=None,
 ):
     init_logs(loff)
     pairs = get_mask_file_pairs(true_masks_dir, pred_masks_dir, in_masks_only=in_masks_only)
 
     dices = []
     for filename, pair in pairs.items():
-        true_mask = load_mask(pair["true"])
-        pred_mask = load_mask(pair["pred"])
+        true_mask = load_mask(pair["true"]) if cacher is None else cacher(pair["true"])
+        pred_mask = load_mask(pair["pred"]) if cacher is None else cacher(pair["pred"])
 
         if pred_mask.shape != true_mask.shape:
             logger.info(f'ERROR: Sizes dont match! {filename}, {pred_mask.shape}, {true_mask.shape}')
@@ -131,7 +145,7 @@ def single_run(
             s = 768 #* scale // 3
             true_mask = true_mask[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
             pred_mask = pred_mask[cy - s//2: cy + s//2, cx-s//2:cx+s//2]
-
+        #print(true_mask.shape, pred_mask.shape)
         dices.append({
             "filename": filename,
             "dice": dice(true_mask, pred_mask),
@@ -139,11 +153,12 @@ def single_run(
 
     dices = pd.DataFrame(dices)
 
-    if csv is not None:
-        dices.to_csv(csv, index=False)
-
     mean_dice = dices.dice.mean()
     std_dice = dices.dice.std()
+
+    if csv is not None:
+        dices.to_csv(str(Path(pred_masks_dir) / f"{thr:.3f}_{mean_dice:.3f}_{csv}.csv"), index=False)
+
     logger.warning(f"\tMean dice score @ {thr: .3f} : {mean_dice:.4f} +- {std_dice:.4f}")
     return mean_dice
 

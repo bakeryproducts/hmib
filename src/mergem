@@ -64,7 +64,7 @@ def start(imgs=None, mask=None, gt=None, dst=None, mode='S', ext='png'):
         tiff_merge_mask(imgs, mask, dst, path_mask2=gt)
     elif mode == 'F':
         dst = Path(dst) / 'merged'
-        dst.mkdir()
+        dst.mkdir(parents=True)
         imgs = Path(imgs)
         mask = Path(mask)
         imgs = list(imgs.rglob(f'*.{ext}'))

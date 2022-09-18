@@ -79,6 +79,8 @@ class HubCB(sh.callbacks.Callback):
                 self.L.tracker_cb.set('dices_hub', all_organs_dice, operation=op)
                 self.L.tracker_cb.set('classes_hub', batch['cls'].float(), operation=op)
 
+                self.L.tracker_cb.set('score_all', all_organs_dice)
+
 
 def collect_dist(cb, ema=True, train=False):
     cb.L.tracker_cb._collect_all()

@@ -3,6 +3,7 @@
 input
 _src
 output
+notebooks
 losses
 temp
 kgl_out

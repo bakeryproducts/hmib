@@ -1,0 +1,34 @@
+#  SPLIT param is in base config
+#  !
+#  dataset name : blabal_any_name_OFFICIALORGANNAME
+#  i.e. 'hubmap_trainimages1-3_kidney'
+#  i.e. 'gtex_kidneySCALE_1.2_largeintestine'
+#  !
+datasets:
+  ############################### LUNG ##############################
+  - name: "gtex_filter1_lung"
+    root: 'FILTER/lung_filter1/4.000_512'
+    rate: 10
+
+  - name: "gtex_filter2_lung"
+    root: 'FILTER/lung_filter2/4.000_512'
+    rate: 10
+
+  - name: "gtex_test_lung"
+    root: 'FILTER/lung_filter2/4.000_512'
+    rate: 1
+
+  # - name: "hpa_train_fixed_lung"
+  #   root: 'preprocessed_fixed/SCALE_1.2/f_TRAIN_SPLIT_${SPLIT}/lung_3.0/'
+  #   rate: 2
+
+  # - name: "hpa_extra_lung"
+  #   root: 'CUTS_1.2/hpa/lung/3.000/'
+  #   rate: 2
+
+  # - name: 'gtex_easy_lung'
+  #   root: 'CUTS_1.2/gtex/lung_easy/2.400_1024'
+  #   rate: 2
+
+  # - name: "hpa_valid_fixed_lung"
+  #   root: 'preprocessed_fixed/SCALE_1.2/f_VALID_SPLIT_${SPLIT}/lung_3.0/'
