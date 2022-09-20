@@ -34,8 +34,8 @@ def _loss_dict(foo):
 
 
 def get_border(yb):
-    e = Erosion2d(1,1, 5).cuda()
-    d = Dilation2d(1,1, 5).cuda()
+    e = Erosion2d(1,1, 3).cuda()
+    d = Dilation2d(1,1, 9).cuda()
     re = e(yb)
     rd = d(yb)
     r = (rd - re) > .5

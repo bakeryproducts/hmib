@@ -157,7 +157,7 @@ def single_run(
     std_dice = dices.dice.std()
 
     if csv is not None:
-        dices.to_csv(str(Path(pred_masks_dir) / f"{thr:.3f}_{mean_dice:.3f}_{csv}.csv"), index=False)
+        dices.to_csv(str(Path(pred_masks_dir) / f"{thr:.3f}_{mean_dice:.4f}_{csv}.csv"), index=False)
 
     logger.warning(f"\tMean dice score @ {thr: .3f} : {mean_dice:.4f} +- {std_dice:.4f}")
     return mean_dice

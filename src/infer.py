@@ -94,7 +94,7 @@ class Inferer:
                 merge_mode=self.tta_merge_mode
             )
 
-    def preprocess(self, batch, postp=lambda x:x):
+    def preprocess(self, batch, preprocess=lambda x:x):
         """Preprocessing
 
         Params
@@ -118,7 +118,7 @@ class Inferer:
             raise NotImplementedError
 
         X.clamp_(-self.cfg.FEATURES.CLAMP, self.cfg.FEATURES.CLAMP)
-        X = postp(X)
+        X = preprocess(X)
         return X
 
     def __call__(self, batch):

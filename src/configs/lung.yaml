@@ -2,8 +2,10 @@ INPUTS: input
 OUTPUTS: output
 
 SPLIT: 0
+RATE: 3
 DATA:
   DALI: false
+  ORGANS: ['lung']
   img_loader: 'partial(data.PngImages, suffix=".png")'
   ann_loader: 'partial(data.PngImages, suffix=".png")'
   TRAIN:
@@ -13,6 +15,7 @@ DATA:
       'hpa_v3_lung',
       'hpa_extra_lung',
       'gtex_lung',
+      'gtex_filter1_lung',
       ]
 
   VALID:
@@ -46,26 +49,26 @@ AUGS:
   # CROP: [640,640]
   # CROP: [768, 768]
   # VALCROP1: [512, 512]
-  # VALCROP2: [512, 512]
   VALCROP1: [768, 768]
-  VALCROP2: [768, 768]
+  # VALCROP1: [1024, 1024]
   TRAIN:
     AUGS:
-      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.2,
-                                         'scale_limit': [-0.25, 0.25],
+      - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0.1,
+                                         'scale_limit': [-0.25, 0.5],
                                          'rotate_limit': 40,
                                          'border_mode': 0,
                                          'value': 0,
                                          'mask_value': 0,
-                                         'p': 1.0}}
+                                         'p': 0.8}}
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      - {m : HEDJitter, kwargs : {'theta': .05, 'p': 0.7}}
+      - {m : HEDJitter, kwargs : {'theta': .03, 'p': 0.7}}
       - {m : NoiseAugs, kwargs : {'p': 0.5}}
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
+      - {m : albu.PadIfNeeded, args : "${AUGS.VALCROP1}"}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP1}'}
       - {m : sh.augmentation.ToTensor,}
 
@@ -75,13 +78,20 @@ MODEL:
   ENCODER:
     runner: 
         _target_: encoders.encoder.create_encoder
+        # _target_: encoders.encoder.create_coat
         _partial_: true
     # model_name: 'regnety_032'
+    # model_name: 'convnext_tiny_384_in22ft1k'
+    # model_name: 'convnext_small_in22ft1k'
+    # model_name: 'coat_lite_small'
     model_name: 'convnext_small_in22ft1k'
     # model_name: 'convnext_large_384_in22ft1k'
+    # model_name: 'tf_efficientnetv2_m_in21k'
+    # img_size: 512
     in_chans: 4
-    drop_rate: .5
-    drop_path_rate: .5
+    drop_rate: .7
+    drop_path_rate: .7
+    # attn_drop_rate: .5
 
   DECODER:
     runner: 
@@ -103,7 +113,7 @@ MODEL:
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
 
   SEGHEAD:
-    out_channels: 5
+    out_channels: 1
     kernel_size: 1
 
 TRAIN:
@@ -130,14 +140,14 @@ VALID:
 
 LOSS:
     - name: 'seg_dice'
-      weight: .7
+      weight: .6
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      weight: .3
+      weight: .4
       LOSS:
         _target_: torch.nn.BCEWithLogitsLoss
   

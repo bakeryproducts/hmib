@@ -8,25 +8,29 @@ datasets:
   ############################### LUNG ##############################
 
   - name: "hpa_v0_lung"
-    root: 'CUTS_0.8/separate_lung/hpa_lung/v0/2.000_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/hpa_lung/v0/1.500_768/'
+    rate: "${RATE}"
 
   - name: "hpa_v1_lung"
-    root: 'CUTS_0.8/separate_lung/hpa_lung/v1/2.000_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/hpa_lung/v1/1.500_768/'
+    rate: "${RATE}"
 
   - name: "hpa_v2_lung"
-    root: 'CUTS_0.8/separate_lung/hpa_lung/v2/2.000_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/hpa_lung/v2/1.500_768/'
+    rate: "${RATE}"
 
   - name: "hpa_v3_lung"
-    root: 'CUTS_0.8/separate_lung/hpa_lung/v3/2.000_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/hpa_lung/v3/1.500_768/'
+    rate: "${RATE}"
 
   - name: "hpa_extra_lung"
-    root: 'CUTS_0.8/separate_lung/ehpa_lung/2.000_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/ehpa_lung/1.500_768/'
+    rate: "${RATE}"
 
   - name: 'gtex_lung'
-    root: 'CUTS_0.8/separate_lung/gtex_lung/1.600_768/'
-    rate: 4
+    root: 'CUTS_0.8/separate_lung/gtex_lung/2.400_768/'
+    rate: "${RATE}"
+
+  - name: "gtex_filter1_lung"
+    root: 'CUTS_0.8/separate_lung/filter1/2.400_768/'
+    rate: 1

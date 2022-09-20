@@ -10,7 +10,7 @@ from tqdm import tqdm
 import rasterio as rio
 
 import infer
-from data import ORGANS
+import mp
 from tiff import save_tiff
 from mask_utils import rle_encode
 from mp import parallel_block_read
@@ -20,19 +20,18 @@ import warnings
 warnings.filterwarnings("ignore", category=rio.errors.NotGeoreferencedWarning)
 
 
-def select_organ_from_predict(yb, organ):
+def select_organ_from_predict(yb, organ, organs):
     # yb BCHW
-    # copy ORGANS from data, better not to source data.py
     if organ and organ != 'none':
-        yb = yb[:, ORGANS[organ]].unsqueeze(1)
+        yb = yb[:, organs[organ]].unsqueeze(1)
     else:
         yb, _ = torch.max(yb, dim=1, keepdim=True)
     return yb
 
 
-def extend_input_organ(xb, organ):
+def extend_input_organ(xb, organ, organs):
     b,_,h,w = xb.shape
-    cls = torch.tensor(ORGANS[organ]).repeat(b)
+    cls = torch.tensor(organs[organ]).repeat(b)
 
     cls_layer = torch.ones(b,1,h,w).float()
     cls_layer = cls_layer * cls.view(-1, 1,1,1)
@@ -45,27 +44,6 @@ def log(*m):
     # TODO normal logging?
     pass
     # print(m)
-
-
-def infer_whole(name, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
-    img = rio.open(name).read()
-    c,h,w = img.shape
-
-    output_h = int(np.ceil(h * scale / 32)) * 32
-    output_w = int(np.ceil(w * scale / 32)) * 32
-
-    img = torch.from_numpy(img).unsqueeze(0).float()
-    img = torch.nn.functional.interpolate(img, (output_h, output_w), mode=interpolation_mode)
-
-    img = inferer.preprocess(img, postp=extra_postprocess)
-    pred = inferer(img)  # bchw, logit
-
-    mask = select_organ_from_predict(pred, organ)
-    mask = torch.nn.functional.interpolate(mask, (h, w), mode=interpolation_mode)
-    mask.sigmoid_()
-    mask = mask.cpu()
-    mask = mask[0]
-    return mask
 
 
 def pad_image_block_size(img, bs):
@@ -93,8 +71,36 @@ def cropper(image, bs, pad):
         yield c, cd
 
 
-def infer_whole_with_blocks(name, inferer, scale, pad_size, image_size, block_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
+def infer_whole(name, inferer, scale, pad_size, preprocess, postprocess, **kwargs):
+    interpolation_mode='bilinear'
+
     img = rio.open(name).read()
+
+    c,h,w = img.shape
+
+    output_h = int(np.ceil(h * scale / 32)) * 32
+    output_w = int(np.ceil(w * scale / 32)) * 32
+
+    img = torch.from_numpy(img).unsqueeze(0).float()
+    img = torch.nn.functional.interpolate(img, (output_h, output_w), mode=interpolation_mode)
+
+    img = inferer.preprocess(img, preprocess=preprocess)
+    pred = inferer(img)  # bchw, logit
+
+    mask = postprocess(pred)
+    mask = torch.nn.functional.interpolate(mask, (h, w), mode=interpolation_mode)
+    mask.sigmoid_()
+    mask = mask.cpu()
+    mask = mask[0]
+    return mask
+
+
+
+def infer_whole_with_blocks(name, inferer, scale, pad_size, block_size, preprocess, postprocess, use_mp=False, **kwargs):
+    interpolation_mode='bilinear'
+    if use_mp: img = mp.parallel_read(name, 8)
+    else: img = rio.open(name).read()
+
     c,h,w = img.shape
 
     output_h = int(np.ceil(h * scale / 32)) * 32
@@ -111,60 +117,17 @@ def infer_whole_with_blocks(name, inferer, scale, pad_size, image_size, block_si
     pred = torch.zeros((5, orig_H, orig_W), dtype=float)
     gen = cropper(image, block_size, pad_size)
     for part, cd in gen:
-        batch_blocks = inferer.preprocess(part.unsqueeze(0), postp=extra_postprocess)
+        batch_blocks = inferer.preprocess(part.unsqueeze(0), preprocess=preprocess)
         batch_masks = inferer(batch_blocks)  # bchw, logit
         paste_crop(pred, batch_masks[0], cd, pad_size)
 
     pred = pred.unsqueeze(0)
-    mask = select_organ_from_predict(pred, organ)
+    # mask = select_organ_from_predict(pred, organ, ORGANS)
+    mask = postprocess(pred)
     mask = torch.nn.functional.interpolate(mask, (h, w), mode=interpolation_mode)
     mask.sigmoid_()
     mask = mask.cpu()
     mask = mask[0]
-    return mask
-
-
-def infer_image(dataloader, inferer, scale, pad_size, image_size, organ=None, interpolation_mode='bilinear', extra_postprocess=lambda x:x):
-    H, W = image_size
-
-    # Infer batch by batch
-    mask = np.zeros((1, H, W), dtype=float)
-    for batch_blocks, batch_coords in dataloader:
-        batch_blocks = torch.from_numpy(np.stack(batch_blocks))
-        batch_blocks = batch_blocks.cuda().float()
-
-        # Fix scale to output_size be divisible by 32
-        _, _, h, w = batch_blocks.shape
-        output_h = int(np.ceil(h * scale / 32)) * 32
-        output_w = int(np.ceil(w * scale / 32)) * 32
-
-        # BCHW
-        # Infer batch
-        log('LOAD', batch_blocks.shape, batch_coords[0])
-        batch_blocks = torch.nn.functional.interpolate(batch_blocks, (output_h, output_w), mode=interpolation_mode)
-        #print(h, w, batch_blocks.shape)
-
-        log('PREEXTEND', batch_blocks.shape)
-        batch_blocks = inferer.preprocess(batch_blocks.float(), postp=extra_postprocess)
-        log('INFER', batch_blocks.shape)
-        batch_masks = inferer(batch_blocks)  # bchw, logit
-
-        log('PREDICT', batch_masks.shape, batch_masks.max())
-        batch_masks = select_organ_from_predict(batch_masks, organ)
-        batch_masks = torch.nn.functional.interpolate(batch_masks, (h, w), mode=interpolation_mode)
-        batch_masks.sigmoid_()
-
-        log('ORGAN', batch_masks.shape,)
-        batch_masks = batch_masks.cpu()
-
-        log('FINAL', batch_masks.shape)
-
-        # Copy block mask to the original
-        for block_mask, block_cd in zip(batch_masks, batch_coords):
-            #log(block_mask.shape, block_mask.max(), block_cd)
-            paste_crop(mask, block_mask, block_cd, pad_size)
-
-    log('MASK', mask.shape)
     return mask
 
 
@@ -187,13 +150,11 @@ def image_file_generator(images_dir, images_csv=None, ext='tiff'):
 
 def init_infer(model_file, config_file, device, tta, tta_merge_mode):
     if device is not None:
-        # wont init all gups
-        #os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3"
         device = 'cuda'
     else:
         device = 'cpu'
 
-    if tta is not None:
+    if tta != 'none':
         transforms = []
         for t in tta.split('_'):
             if t == 'd4':
@@ -239,54 +200,17 @@ def main(
     pad=0.25,
     batch_size=4,
     threshold=0.5,
-    tta=None,
+    tta='none',
     device=None,
     tta_merge_mode="mean",
     images_csv=None,
     ext='tiff',
     scale_block=True,
+    use_mp=False,
 ):
-    """
-    This function will infer all images from images_csv if given
-    or images_dir and save the results in output_csv file in the
-    format of df with columns "id" and "rle".
-
-    Params
-    ------
-        model_file: str
-            Path to .pth model file
-        images_dir: str
-            Path to images directory
-        output_dir: str
-            Path to the directory where output masks will be stored
-        output_csv: str, optional, default None
-            Path to .csv file where to store inference result
-            If None then no .csv result will be stored
-        config_file: str, optional, default None
-            Path to .yml config file
-        block_size: int, default 512
-            Inference block size
-        network_scale: float, default 1024/3000
-            Scale of the network was trained
-        pad: float, default 0.25
-            if <1 Ratio of padding during the inference
-            if >1 pad size
-        batch_size: int, default 4
-            Batch size
-        tta: str
-            modes : 'd4', 'd4_scale'
-        device: int, default None
-            Device for inference, should be 0, 1, ..  or None for cpu
-        tta_merge_mode: str
-            One of [mean, max]
-        images_csv: str, default None
-            Path to .csv file with images metadata
-            If you pass this path only images from this df will be
-            used for inference
-    """
     model_file = Path(model_file)
     experiment_dir = model_file.parent.parent.parent
-    result_dir = experiment_dir / 'predicts'
+    result_dir = experiment_dir / f'{tta}_predicts'
     if output_dir is not None: result_dir = result_dir / output_dir
     if result_dir.exists():
         print(f'{result_dir} exists! quitting !')
@@ -296,6 +220,12 @@ def main(
     config_file = experiment_dir / 'src/configs/u.yaml'
     # config_file = experiment_dir / 'src/configs/lung.yaml'
     inferer = init_infer(model_file, config_file, device, tta, tta_merge_mode)
+
+    if 'ORGANS' not in inferer.cfg.DATA:
+        organs = ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
+        ORGANS = {k:i for i,k in enumerate(organs)}
+        REV_ORGANS = {v:k for k,v in ORGANS.items()}
+        inferer.cfg.DATA.ORGANS = ORGANS
 
     if organ == 'colon': # synonim
         organ = 'largeintestine'
@@ -322,9 +252,8 @@ def main(
                                inferer,
                                scale,
                                pad_size,
-                               img_size,
-                               organ=organ,
-                               extra_postprocess=partial(extend_input_organ, organ=organ),
+                               preprocess=partial(extend_input_organ, organ=organ, organs=inferer.cfg.DATA.ORGANS),
+                               postprocess=partial(select_organ_from_predict, organ=organ, organs=inferer.cfg.DATA.ORGANS),
                                )
         elif mode == "whole_blocks":
             mask = infer_whole_with_blocks(
@@ -332,22 +261,11 @@ def main(
                 inferer,
                 scale,
                 pad_size,
-                img_size,
                 block_size=block_size,
-                organ=organ,
-                extra_postprocess=partial(extend_input_organ, organ=organ),
+                preprocess=partial(extend_input_organ, organ=organ, organs=inferer.cfg.DATA.ORGANS),
+                postprocess=partial(select_organ_from_predict, organ=organ, organs=inferer.cfg.DATA.ORGANS),
+                use_mp=use_mp,
             )
-        elif mode == "parallel_blocks":
-            _image_reader = parallel_block_read(image_file, block_size, pad_size, num_processes=8)
-            image_reader = batcher(_image_reader, batch_size)
-            mask = infer_image(image_reader,
-                               inferer,
-                               scale,
-                               pad_size,
-                               img_size,
-                               organ=organ,
-                               extra_postprocess=partial(extend_input_organ, organ=organ),
-                               )
         else:
             # mode not in modes
             raise ValueError

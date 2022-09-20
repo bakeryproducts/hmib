@@ -16,8 +16,6 @@ warnings.filterwarnings("ignore", category=rasterio.errors.NotGeoreferencedWarni
 
 
 DOMAINS = {k:v for v, k in enumerate(['hpa', 'hubmap', 'gtex', 'undef'])}
-ORGANS = {k:i for i,k in enumerate(['prostate', 'spleen', 'lung', 'largeintestine', 'kidney'])}
-REV_ORGANS = {v:k for k,v in ORGANS.items()}
 
 
 def read_ann(p):
@@ -68,10 +66,10 @@ class Label:
     rle: str
 
 
-def create_label(row):
+def create_label(row, organs):
     lid = row['id']
     organ_name = row['organ']
-    organ = ORGANS[organ_name]
+    organ = organs[organ_name]
 
     l = Label(lid=lid,
               fname=f'{lid}.tiff',
@@ -84,10 +82,10 @@ def create_label(row):
     return l
 
 
-def read_meta(df):
+def read_meta(df, organs):
     labels = []
     for i, row in df.iterrows():
-        label = create_label(row)
+        label = create_label(row, organs)
         labels.append(label)
     return labels
 
@@ -216,7 +214,7 @@ class DfDataset:
         inddf = ind_df.reset_index(drop=True)
 
         df = base_df.iloc[inddf[0].values]
-        self.labels = read_meta(df)
+        self.labels = read_meta(df, organs)
         if overlap: self.labels = self.convert_to_overlap(self.labels, overlap)
         self.data = data
 
@@ -249,38 +247,6 @@ def load_index_df(index_paths):
     return df
 
 
-class MainDataset:
-    def __init__(self,
-                 cfg,
-                 root,
-                 ann_path,
-                 base_path,
-                 index_paths,
-                 train,
-                 ImgLoader,
-                 AnnLoader,
-                 **kwargs):
-        assert all([p.exists() for p in index_paths]), index_paths
-
-        imgs = ImgLoader(root)
-        anns = AnnLoader(ann_path)
-        data = DataPair(imgs, anns)
-
-        base_df = pd.read_csv(base_path)
-        ind_df = load_index_df(index_paths)
-
-        rate = kwargs.pop('rate')
-        ds = DfDataset(data=data, base_df=base_df, ind_df=ind_df, **kwargs)
-        # TODO: ds = ScaleDataset(ds)
-        self.ds = Mult(ds, rate)
-
-    def __len__(self): return len(self.ds)
-
-    def __getitem__(self, *args, **kwargs):
-        r = self.ds.__getitem__(*args, **kwargs)
-        return r
-
-
 class MainDatasetv2:
     def __init__(self,
                  cfg,
@@ -289,10 +255,11 @@ class MainDatasetv2:
                  ImgLoader,
                  AnnLoader,
                  organ,
+                 organs,
                  data_source,
                  **kwargs):
 
-        ds = ExtraValDataset(cfg, root, ann_path, ImgLoader, AnnLoader, organ, data_source, **kwargs)
+        ds = ExtraValDataset(cfg, root, ann_path, ImgLoader, AnnLoader, organ, organs, data_source, **kwargs)
         rate = kwargs.get('rate', 1)
         self.ds = Mult(ds, rate)
 
@@ -311,6 +278,7 @@ class ExtraValDataset:
                  ImgLoader,
                  AnnLoader,
                  organ,
+                 organs,
                  data_source,
                  ext='png',
                  **kwargs):
@@ -322,7 +290,7 @@ class ExtraValDataset:
         imgs = list(root.glob(f'*.{ext}'))
         assert len(imgs) > 0, root
 
-        label_kwargs = dict(lid=-1, organ=ORGANS[organ], data_source=DOMAINS[data_source], w=-1, h=-1, rle='')
+        label_kwargs = dict(lid=-1, organ=organs[organ], data_source=DOMAINS[data_source], w=-1, h=-1, rle='')
         self.labels = [Label(fname=f.name, **label_kwargs) for f in imgs]
 
     def __len__(self): return len(self.labels)

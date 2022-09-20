@@ -15,6 +15,12 @@ def get_by_name(path, glob, filter):
 class DatasetsGen:
     def __init__(self, cfg):
         self.cfg = cfg
+        organs = cfg.DATA.ORGANS
+        ORGANS = {k:i for i,k in enumerate(organs)}
+        REV_ORGANS = {v:k for k,v in ORGANS.items()}
+        data.ORGANS = ORGANS
+        data.REV_ORGANS = REV_ORGANS
+
         DATA_DIR = Path(cfg.INPUTS).absolute()
         if not DATA_DIR.exists(): raise Exception(DATA_DIR)
 
@@ -35,6 +41,7 @@ class DatasetsGen:
                 root=root/'images',
                 ann_path=root/'masks',
                 organ=organ,
+                organs=ORGANS,
                 data_source=data_source,
                 **general_args,
                 **dataset_cfg,

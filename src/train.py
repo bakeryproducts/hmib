@@ -103,7 +103,7 @@ def init_model_path(p):
     return ''
 
 
-def batch_transform(b):
+def batch_transform(b, num_classes):
     xb, yb = b['x'], b['y']
     cls = b['cls']
     if isinstance(xb, list):
@@ -113,7 +113,6 @@ def batch_transform(b):
 
     # print(xb.shape, yb.shape, cls.shape)
 
-    num_classes = 5
     multilabel = torch.zeros_like(yb).repeat(1, num_classes, 1, 1)
     for j,i in enumerate(cls):
         multilabel[j,i] = yb[j]
@@ -156,7 +155,7 @@ def start_split(cfg, output_folder, datasets):
     optimizer = optim.build_optim(cfg, model, init_fn=partial(sh.utils.nn.load_state, path=INIT_MODEL_PATH, k=['optim_state', 'o']))
     amp_scaler = optim.build_scaler(cfg, init_fn=partial(sh.utils.nn.load_state, path=INIT_MODEL_PATH, k=['scaler_state', 's']))
 
-    batch_transform_fn = batch_transform
+    batch_transform_fn = partial(batch_transform, num_classes=len(cfg.DATA.ORGANS))
     batch_setup_cb = sh.callbacks.SetupLearnerCB(batch_transform=batch_transform_fn)
 
     train_cb = tv.TrainCB(amp_scaler=amp_scaler, logger=logger)

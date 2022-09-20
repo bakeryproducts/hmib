@@ -311,10 +311,10 @@ class TBPredictionsCB(sh.callbacks.Callback):
             if self.L.n_epoch % self.cfg.TRAIN.TB_STEP == 0:
                 self.process_write_predictions(self.L.mode)
         else:
-            # try:
-            self.process_write_predictions(self.L.mode)
-            # except Exception as e:
-            #     self.log_error('TB error', e)
+            try:
+                self.process_write_predictions(self.L.mode)
+            except Exception as e:
+                self.log_error('TB error', e)
             # pred = self.L.pred['seg'].cpu().float().flatten()
             # self.L.writer.add_histogram('predicts/val', pred, self.L.n_epoch)
 

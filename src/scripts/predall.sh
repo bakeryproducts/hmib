@@ -4,6 +4,9 @@ MODEL=$1
 SCALE=$2
 # ORGAN='prostate'
 ROOT="$(dirname $(dirname $(dirname "$MODEL")))"
+DEVICE=${3:-0}
+export CUDA_VISIBLE_DEVICES=$DEVICE
+TTA=${4:-"none"}
 
 ORGANS='prostate kidney spleen colon'
 for ORGAN in $ORGANS; do
@@ -14,15 +17,17 @@ for ORGAN in $ORGANS; do
         --image_meter_scale 0.5 \
         --network_scale $SCALE \
         --device 0  \
-        --base_block_size 512  \
+        --base_block_size 768 \
         --pad 128  \
-        --batch_size 8  \
+        --batch_size 16 \
         --organ $ORGAN\
         --ext tiff  \
         --mode whole_blocks \
-        --scale_block False
+        --scale_block False \
+        --use_mp True \
+        --tta $TTA
     python3 src/evaluate.py \
-        --pred_masks_dir $ROOT/predicts/${ORGAN}_test/ \
+        --pred_masks_dir $ROOT/${TTA}_predicts/${ORGAN}_test/ \
         --true_masks_dir input/CUTS_$SCALE/gtex_test/${ORGAN}/bigmasks \
         --thr 10 \
         --thr_max 250 \

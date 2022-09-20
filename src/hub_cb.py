@@ -5,7 +5,6 @@ import metrics
 from callbacks_fn import default_zero_tensor
 from tools_tv import run_once, norm_2d, batch_quantile
 
-from data import ORGANS
 from tv import prepare_batch
 
 
@@ -36,7 +35,8 @@ class HubCB(sh.callbacks.Callback):
 
     @sh.utils.call.on_mode(mode='VALID_HUB')
     def after_epoch(self):
-        collect_dist(self)
+        if self.sched():
+            collect_dist(self)
 
     @sh.utils.call.on_mode(mode='VALID_HUB')
     def step(self):
@@ -83,21 +83,24 @@ class HubCB(sh.callbacks.Callback):
 
 
 def collect_dist(cb, ema=True, train=False):
+    organs = cb.cfg.DATA.ORGANS
+    ORGANS = {k:i for i,k in enumerate(organs)}
+    REV_ORGANS = {v:k for k,v in ORGANS.items()}
+
     cb.L.tracker_cb._collect_all()
     dices = cb.L.tracker_cb.dices_hub.cpu()
     classes = cb.L.tracker_cb.classes_hub.cpu()
 
     dices = dices.view(-1, dices.shape[-1])
     classes = classes.view(-1, classes.shape[-1])
-    ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
 
     if cb.cfg.PARALLEL.IS_MASTER:
         prefix = f'organs_{cb.L.mode}'
         macro = []
-        for i in range(5):
+        for i in range(len(ORGANS)):
             idxs = classes.long() == i
             if not idxs.any(): continue
-            class_name = ORGANS_DECODE[i]
+            class_name = REV_ORGANS[i]
             organ_dices = dices[idxs]
             organ_dice_mean = organ_dices.mean()
             organ_dice_std = organ_dices.std()

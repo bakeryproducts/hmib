@@ -11,7 +11,6 @@ from tools_tv import run_once, norm_2d, batch_quantile
 from augment.mixup import MSR, MixUpAug
 from augment.fmix import FMixAug, AmpAug
 from augment.batch_augs import Splitter
-from data import ORGANS
 
 
 import shallow as sh
@@ -85,14 +84,9 @@ class TrainCB(_TrainCallback):
         self.msr = MSR(self.cfg)
         self.mixup = MixUpAug(self.cfg)
         self.fmix = FMixAug(self.cfg)
-        # self.noise = NoiseInjection(max_noise_level=.15, p=.2)
-        # self.ampaug = AmpAug(scale=20, p=.2)
+
         self.gaub = Splitter(aug=T.GaussianBlur(kernel_size=3, sigma=7), p=.3).cuda()
-        self.colj = Splitter(aug=T.ColorJitter(brightness=.4, contrast=.4, saturation=.5, hue=.5), p=.6).cuda()
-
-        # self.colj = Splitter(aug=T.ColorJitter(brightness=.2, contrast=.2, saturation=.2, hue=.2), p=.5).cuda()
-
-        # self.pers = T.RandomPerspective(distortion_scale=0.5, p=0.5)
+        self.colj = Splitter(aug=T.ColorJitter(brightness=.5, contrast=.5, saturation=.5, hue=.4), p=.7).cuda()
 
         self.batch_acc_step = self.cfg.FEATURES.BATCH_ACCUMULATION_STEP
         self.loss_weights = {l.name:float(l.weight) for l in self.cfg.LOSS}
@@ -165,11 +159,12 @@ class ValCB(sh.callbacks.Callback):
 
     @sh.utils.call.on_mode(mode='VALID')
     def after_epoch(self):
-        collect_map_score(self)
+        if self.sched():
+            collect_map_score(self)
 
     @sh.utils.call.on_mode(mode='VALID')
     def step(self):
-        if self.sched() and self.cfg.MODEL.ARCH != 'ssl':
+        if self.sched():
             self.run_valid()
         else:
             raise sh.exceptions.CancelEpochException
@@ -208,8 +203,8 @@ class ValCB(sh.callbacks.Callback):
                 # print(gt.shape, pred_hm.shape)
                 all_organs_dice = metrics.calc_score(pred_hm, gt)
 
-                is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])
-                pred_hm[is_lung] = gt[is_lung]
+                # is_lung = torch.tensor([i == ORGANS['lung'] for i in batch['cls']])
+                # pred_hm[is_lung] = gt[is_lung]
                 dice_fix_lung = metrics.calc_score(pred_hm, gt)
 
                 op = 'gather'
@@ -238,13 +233,16 @@ class ValCB(sh.callbacks.Callback):
 
 
 def collect_map_score(cb, ema=True, train=False):
+    organs = cb.cfg.DATA.ORGANS
+    ORGANS = {k:i for i,k in enumerate(organs)}
+    REV_ORGANS = {v:k for k,v in ORGANS.items()}
+
     cb.L.tracker_cb._collect_all()
     dices = cb.L.tracker_cb.dices.cpu()
     classes = cb.L.tracker_cb.classes.cpu()
 
     dices = dices.view(-1, dices.shape[-1])
     classes = classes.view(-1, classes.shape[-1])
-    ORGANS_DECODE = {v:k for k,v in ORGANS.items()}
     LB_WEIGHT = {
         "kidney": 0.176,
         "prostate": 0.219,
@@ -257,9 +255,9 @@ def collect_map_score(cb, ema=True, train=False):
         prefix = f'organs_{cb.L.mode}'
         macro = []
         lb_avg = 0
-        for i in range(5):
+        for i in range(len(ORGANS)):
             idxs = classes.long() == i
-            class_name = ORGANS_DECODE[i]
+            class_name = REV_ORGANS[i]
 
             # if class_name != 'lung': continue
             if class_name == 'lung': continue

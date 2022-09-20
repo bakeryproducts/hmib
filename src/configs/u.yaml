@@ -2,8 +2,11 @@ INPUTS: input
 OUTPUTS: output
 
 SPLIT: 0
+RATE: 1
 DATA:
   DALI: false
+  # ORGANS: ['prostate', 'spleen', 'lung', 'largeintestine', 'kidney']
+  ORGANS: ['prostate', 'spleen', 'largeintestine', 'kidney']
   img_loader: 'partial(data.PngImages, suffix=".png")'
   ann_loader: 'partial(data.PngImages, suffix=".png")'
   TRAIN:
@@ -68,11 +71,11 @@ AUGS:
     PROB: .3
 
   AUG_MULTIPLICITY: 1
-  # CROP: [256,256]
-  # CROP: [384,384]
-  # CROP: [512,512]
+  CROP: [512,512]
   # CROP: [640,640]
-  CROP: [768, 768]
+  # CROP: [768, 768]
+  # CROP: [768, 768]
+  # CROP: [1024, 1024]
   # VALCROP: [512, 512]
   # VALCROP1: [512, 512]
   # VALCROP2: [512, 512]
@@ -80,10 +83,12 @@ AUGS:
   VALCROP1: [768, 768]
   VALCROP2: [768, 768]
   # VALCROP1: [1152, 1152]
+  # VALCROP1: [1024, 1024]
   # VALCROP2: [1024, 1024]
   TRAIN:
     AUGS:
       # - {m : albu.RandomCrop, args : [512,512]}
+      - {m : albu.PadIfNeeded, args : "${AUGS.CROP}"}
       - {m : ShiftScaleRotate, kwargs : {'shift_limit': 0., 
                                          'scale_limit': [-0.5, 1.0],
                                          'rotate_limit': 40,
@@ -94,70 +99,58 @@ AUGS:
       - {m : albu.RandomCrop, args : '${AUGS.CROP}'}
       - {m : albu.RandomRotate90, }
       - {m : albu.HorizontalFlip, }
-      # - {m : ColorMeanShift, kwargs : {'p': 0.5}}
-      - {m : HEDJitter, kwargs : {'theta': .05, 'p': 0.7}}
-      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 0.8}}
-      # - {m : DomainStainer, kwargs : {'step': 100, 'domain': '"gtex"', 'p': .3,}}
+      # - {m : ColorMeanShift, kwargs : {'organs': '${DATA.ORGANS}','p': 0.5}}
+      - {m : HEDJitter, kwargs : {'theta': .05, 'p': 0.5}}
+      - {m : ProstateDownUp, kwargs : {'organs': '${DATA.ORGANS}', 'scale': 4, 'p': 0.8}}
+        # - {m : DomainStainer, kwargs : {'organs': '${DATA.ORGANS}', 'step': 100, 'domain': '"gtex"', 'p': .3,}}
+      - {m : albu.CLAHE, kwargs : {'clip_limit': 4 , 'p': 0.2}}
       - {m : NoiseAugs, kwargs : {'p': 0.5}}
       - {m : sh.augmentation.ToTensor,}
   VALID:
     AUGS:
-      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
+      - {m : albu.PadIfNeeded, args : "${AUGS.CROP}"}
+      - {m : ProstateDownUp, kwargs : {'organs': '${DATA.ORGANS}', 'scale': 4, 'p': 0.8}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP1}'}
       - {m : sh.augmentation.ToTensor,}
   VALID_HUB:
     AUGS:
-      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
+      - {m : albu.PadIfNeeded, args : "${AUGS.CROP}"}
+      - {m : ProstateDownUp, kwargs : {'organs': '${DATA.ORGANS}', 'scale': 4, 'p': 0.8}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP2}'}
       - {m : sh.augmentation.ToTensor,}
   VALID_GTEX:
     AUGS:
-      - {m : ProstateDownUp, kwargs : {'scale': 4, 'p': 1.0}}
+      - {m : albu.PadIfNeeded, args : "${AUGS.CROP}"}
+      - {m : ProstateDownUp, kwargs : {'organs': '${DATA.ORGANS}', 'scale': 4, 'p': 0.8}}
       - {m : albu.CenterCrop, args : '${AUGS.VALCROP2}'}
       - {m : sh.augmentation.ToTensor,}
 
 MODEL:
   ARCH: 'unet' 
-  # INIT_MODEL: "/home/gsm/work/hmib/output/09-12/18-20-27_unet_convnext_large_384_in22ft1k/split_0/models/e140_t250_step_ema_0.926.pth"
-  # INIT_MODEL: "/home/gsm/work/hmib/output/09-11/16-05-25_unet_convnext_large_384_in22ft1k/split_0/models/e154_t250_cmax_ema_0.9267.pth"
   INIT_MODEL: ""
   ENCODER:
     runner: 
-        # _target_: encoders.encoder.create_mixt
-        # _target_: encoders.encoder.create_encoder
-        _target_: encoders.encoder.create_coat
-        # _target_: encoders.encoder.create_swin
+        _target_: encoders.encoder.create_encoder
+        # _target_: encoders.encoder.create_coat
         _partial_: true
-    # model_name: 'resnet34'
-    # model_name: 'regnety_032'
-    # model_name: 'coat_lite_mini'
-    # model_name: 'coat_mini'
     # model_name: 'coat_lite_small'
-    model_name: 'coat_lite_medium'
-    # model_name: 'coatnet_1_rw_224'
-    # model_name: 'swin'
-    # model_name: 'mit_b3'
+    # model_name: 'coat_lite_medium'
     # model_name: 'tf_efficientnet_b2_ns'
     # model_name: 'tf_efficientnetv2_m_in21k'
-    # model_name: 'resnetv2_50x1_bitm_in21k'
-    # model_name: 'convnext_small_in22ft1k'
     # model_name: 'convnext_base_in22ft1k'
     # model_name: 'convnext_base_384_in22ft1k'
     # model_name: 'convnext_large_384_in22ft1k'
-    # model_name: 'dm_nfnet_f1'
-    # model_name: 'convnext_tiny'
-    img_size: 768
+    model_name: 'convnext_xlarge_384_in22ft1k'
+    # img_size: 1024
     in_chans: 4
-    drop_rate: .4
-    drop_path_rate: .0
-    attn_drop_rate: .4
+    drop_rate: .5
+    drop_path_rate: .5
+    # attn_drop_rate: .5
 
   DECODER:
     runner: 
-        # _target_: decoders.decoder.create_segdec
         _target_: decoders.decoder.create_decoder
         _partial_: true
-        # embedding_dim: 128
     base:
       use_bottleneck: False
       last_scale: 1
@@ -174,7 +167,7 @@ MODEL:
         e_prehook: 'torch.nn.Upsample(scale_factor=(2,2), mode="bilinear")'
 
   SEGHEAD:
-    out_channels: 5
+    out_channels: 4
     kernel_size: 1
 
 TRAIN:
@@ -182,11 +175,11 @@ TRAIN:
   AMP: True
   GPUS: [0,1,2,3]
   NUM_WORKERS: 3
-  SAVE_STEP: 20
+  SAVE_STEP: 10
   SCALAR_STEP: 1
   TB_STEP: 1
-  START_VAL: 0
-  EPOCH_COUNT: 200
+  START_VAL: 1
+  EPOCH_COUNT: 300
   BATCH_SIZE: 8
   EARLY_EXIT: 50
   SEED: 0 # not fixed! no touching! TODO: fix this, should be hidden in config.py
@@ -197,33 +190,24 @@ TRAIN:
     type: 'linear'
 
 VALID:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 2
 VALID_HUB:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 2
 VALID_GTEX:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 2
 
 LOSS:
     - name: 'seg_dice'
-      # weight: .6
-      weight: .8
+      weight: .6
       LOSS:
         _target_: segmentation_models_pytorch.losses.DiceLoss
         mode: 'multilabel'
         smooth: .0
 
     - name: 'seg_ce'
-      # weight: .4
-      weight: 0.2
+      weight: .4
       LOSS:
-        # _target_: torch.nn.CrossEntropyLoss
         _target_: torch.nn.BCEWithLogitsLoss
-        # _target_: segmentation_models_pytorch.losses.SoftCrossEntropyLoss
-        # smooth_factor: .0
-    # - name: 'cls'
-    #   weight: .01
-    #   LOSS:
-    #     _target_: torch.nn.CrossEntropyLoss
   
 
 FEATURES:
@@ -238,12 +222,9 @@ FEATURES:
 
 
 OPTIMIZER:
-  LRS: [0.000001, 0.0002, 0.00001, 1]
+  # LRS: [0.000001, 0.0002, 0.00001, 1]
   # LRS: [0.000001, 0.0008, 0.0001, 1]
-  # LRS: [0.000001, 0.00005, 0.00001, 1]
-  # LRS: [0.000001, 0.0001, 0.00001, 1]
-  # LRS: [0.0001, 0.0008, 0.0001, 1]
-  # LRS: [0.0001, 0.01, 0.001, 1]
+  LRS: [0.000001, 0.00008, 0.00002, 1]
   
   FINE_LR:
     - name: 'seg_head'
@@ -277,6 +258,4 @@ defaults:
     - FEATURES.SAM: _sam
     - AUGS.MIXUP: _mixup
     - _self_
-    # - DATA: datasets_1.2
     - DATA: datasets_1.2_rate
-    # - DATA: datasets_1.0_rate

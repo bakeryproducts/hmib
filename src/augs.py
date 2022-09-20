@@ -12,7 +12,7 @@ import albumentations as albu
 from albumentations.augmentations.functional import shift_rgb
 
 import shallow as sh
-from data import ORGANS, DOMAINS, REV_ORGANS
+from data import DOMAINS
 
 
 class ColorAugs(albu.core.composition.OneOf):
@@ -79,7 +79,8 @@ class NoiseAugs(albu.core.composition.OneOf):
 
 
 class DomainStainer(albu.core.transforms_interface.ImageOnlyTransform):
-    def __init__(self, domain='gtex', step=100, p=.5):
+    def __init__(self, organs, domain='gtex', step=100, p=.5):
+        ORGANS = {k:i for i,k in enumerate(organs)}
         super().__init__(p=p)
         self.domain = DOMAINS[domain]
         self.norms = {v:None for v in ORGANS.values()}
@@ -146,7 +147,7 @@ class DomainStainer(albu.core.transforms_interface.ImageOnlyTransform):
 
 
 class ColorMeanShift(albu.core.transforms_interface.ImageOnlyTransform):
-    def __init__(self, p=1.):
+    def __init__(self, organs, p=1.):
         super().__init__(p=p)
         shifts = {'largeintestine': [129, 116,138],
                   'lung': [198, 187, 207],
@@ -154,6 +155,7 @@ class ColorMeanShift(albu.core.transforms_interface.ImageOnlyTransform):
                   'prostate': [187,140,194],
                   'kidney': [156,100,171],
                   }
+        ORGANS = {k:i for i,k in enumerate(organs)}
         self.shifts = {ORGANS[k]:v for k,v in shifts.items()}
 
     @property
@@ -177,9 +179,11 @@ class ColorMeanShift(albu.core.transforms_interface.ImageOnlyTransform):
 
 
 class ProstateDownUp(albu.core.transforms_interface.ImageOnlyTransform):
-    def __init__(self, scale, p=1.):
+    def __init__(self, organs, scale, p=1.):
         super().__init__(p=p)
         self.scale = scale
+        ORGANS = {k:i for i,k in enumerate(organs)}
+        self.REV_ORGANS = {v:k for k,v in ORGANS.items()}
 
     @property
     def targets(self):
@@ -194,7 +198,7 @@ class ProstateDownUp(albu.core.transforms_interface.ImageOnlyTransform):
 
     def apply(self, image, **params):
         organ = params['organ']
-        if REV_ORGANS[organ] == 'prostate':
+        if self.REV_ORGANS[organ] == 'prostate':
             t = cv2.resize(np.array(image), dsize=None, fx=1/self.scale, fy=1/self.scale)
             image = cv2.resize(t, dsize=None, fx=self.scale, fy=self.scale)
         return image
